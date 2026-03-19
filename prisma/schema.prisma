@@ -21,10 +21,26 @@ model Client {
   dateCreation  DateTime  @default(now())
   caTotal       Float     @default(0)
   
+  contacts      Contact[]
   interactions  Interaction[]
   devis         Devis[]
   
   @@map("clients")
+}
+
+model Contact {
+  id           String   @id @default(cuid())
+  clientId     String
+  nom          String
+  email        String?
+  telephone    String?
+  poste        String?
+  isPrincipal  Boolean  @default(false)
+  dateCreation DateTime @default(now())
+  
+  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  @@map("contacts")
 }
 
 model Interaction {

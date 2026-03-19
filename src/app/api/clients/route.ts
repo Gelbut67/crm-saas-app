@@ -12,6 +12,11 @@ export async function GET() {
         dateCreation: 'desc'
       },
       include: {
+        contacts: {
+          orderBy: {
+            isPrincipal: 'desc'
+          }
+        },
         interactions: {
           orderBy: {
             date: 'desc'
@@ -26,18 +31,22 @@ export async function GET() {
     })
 
     // Formater pour le frontend
-    const formattedClients = clients.map(client => ({
+    const formattedClients = clients.map((client: any) => ({
       ...client,
       dateCreation: client.dateCreation.toISOString(),
-      interactions: client.interactions.map(int => ({
+      contacts: client.contacts?.map((contact: any) => ({
+        ...contact,
+        dateCreation: contact.dateCreation.toISOString()
+      })) || [],
+      interactions: client.interactions?.map((int: any) => ({
         ...int,
         date: int.date.toISOString()
-      })),
-      devis: client.devis.map(devis => ({
+      })) || [],
+      devis: client.devis?.map((devis: any) => ({
         ...devis,
         dateCreation: devis.dateCreation.toISOString(),
         dateEcheance: devis.dateEcheance.toISOString()
-      }))
+      })) || []
     }))
 
     return NextResponse.json(formattedClients)
