@@ -200,14 +200,14 @@ export default function DevisDBPage() {
               <div>
                 <label className="text-sm font-medium mb-2 block">Statut</label>
                 <Select
-                  value={filters.statut}
-                  onValueChange={(value) => setFilters({ ...filters, statut: value })}
+                  value={filters.statut || "tous"}
+                  onValueChange={(value) => setFilters({ ...filters, statut: value === "tous" ? "" : value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Tous" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Tous</SelectItem>
+                    <SelectItem value="tous">Tous</SelectItem>
                     <SelectItem value="en_cours">En cours</SelectItem>
                     <SelectItem value="gagne">Gagné</SelectItem>
                     <SelectItem value="perdu">Perdu</SelectItem>
