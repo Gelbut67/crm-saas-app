@@ -13,6 +13,11 @@ export async function GET(
         statut: 'prospect'
       },
       include: {
+        contacts: {
+          orderBy: {
+            isPrincipal: 'desc'
+          }
+        },
         interactions: {
           orderBy: {
             date: 'desc'
@@ -32,10 +37,14 @@ export async function GET(
     const formattedProspect = {
       ...prospect,
       dateCreation: prospect.dateCreation.toISOString(),
-      interactions: prospect.interactions.map(int => ({
+      contacts: (prospect as any).contacts?.map((contact: any) => ({
+        ...contact,
+        dateCreation: contact.dateCreation.toISOString()
+      })) || [],
+      interactions: (prospect as any).interactions?.map((int: any) => ({
         ...int,
         date: int.date.toISOString()
-      }))
+      })) || []
     }
 
     return NextResponse.json(formattedProspect)
@@ -43,6 +52,32 @@ export async function GET(
     console.error('Erreur:', error)
     return NextResponse.json(
       { error: 'Erreur lors de la récupération du prospect' },
+      { status: 500 }
+    )
+  }
+}
+
+// PUT - Mettre à jour un prospect
+export async function PUT(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const data = await request.json()
+    
+    const prospect = await prisma.client.update({
+      where: { id: params.id },
+      data: {
+        entreprise: data.entreprise?.trim() || null,
+        secteur: data.secteur?.trim() || null,
+      }
+    })
+
+    return NextResponse.json(prospect)
+  } catch (error) {
+    console.error('Erreur:', error)
+    return NextResponse.json(
+      { error: 'Erreur lors de la mise à jour du prospect' },
       { status: 500 }
     )
   }
