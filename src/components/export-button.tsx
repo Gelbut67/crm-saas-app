@@ -44,13 +44,13 @@ export function ExportButton({ type, data, disabled = false }: ExportButtonProps
           await exportClientsToCSV(clients)
           filename = "clients_export.csv"
           // Pour le CSV, nous devons lire le fichier généré
-          const response = await fetch('/clients_export.csv')
+          const response = await fetch('/api/clients/export/csv')
           content = await response.text()
         } else {
           await exportClientsToExcel(clients)
           filename = "clients_export.xlsx"
           // Pour Excel, nous devons lire le fichier généré
-          const response = await fetch('/clients_export.xlsx')
+          const response = await fetch('/api/clients/export/excel')
           const arrayBuffer = await response.arrayBuffer()
           const blob = new Blob([arrayBuffer], { 
             type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
@@ -64,12 +64,12 @@ export function ExportButton({ type, data, disabled = false }: ExportButtonProps
         if (format === "csv") {
           await exportDevisToCSV(devis)
           filename = "devis_export.csv"
-          const response = await fetch('/devis_export.csv')
+          const response = await fetch('/api/devis/export/csv')
           content = await response.text()
         } else {
           await exportDevisToExcel(devis)
           filename = "devis_export.xlsx"
-          const response = await fetch('/devis_export.xlsx')
+          const response = await fetch('/api/devis/export/excel')
           const arrayBuffer = await response.arrayBuffer()
           const blob = new Blob([arrayBuffer], { 
             type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 

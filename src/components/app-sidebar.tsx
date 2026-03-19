@@ -41,41 +41,21 @@ export function AppSidebar() {
     },
     {
       name: "Prospects",
-      href: "/prospects",
-      icon: UserPlus,
-    },
-    {
-      name: "Prospects (DB)",
       href: "/prospects-db",
       icon: UserPlus,
     },
     {
       name: "Clients",
-      href: "/clients",
-      icon: Users,
-    },
-    {
-      name: "Clients (DB)",
       href: "/clients-db",
       icon: Users,
     },
     {
       name: "Devis",
-      href: "/devis",
-      icon: FileText,
-    },
-    {
-      name: "Devis (DB)",
       href: "/devis-db",
       icon: FileText,
     },
     {
       name: "Pipeline",
-      href: "/pipeline",
-      icon: BarChart3,
-    },
-    {
-      name: "Pipeline (DB)",
       href: "/pipeline-db",
       icon: BarChart3,
     },

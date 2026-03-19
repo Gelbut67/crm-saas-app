@@ -213,13 +213,13 @@ export function Dashboard() {
         </div>
         <div className="flex gap-3">
           <Button asChild className="button-modern">
-            <Link href="/devis/new">
+            <Link href="/devis-db/new">
               <Plus className="mr-2 h-4 w-4" />
               Nouveau devis
             </Link>
           </Button>
           <Button asChild variant="outline" className="hover-lift">
-            <Link href="/clients/new">
+            <Link href="/clients-db/new">
               <Plus className="mr-2 h-4 w-4" />
               Nouveau client
             </Link>

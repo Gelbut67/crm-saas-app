@@ -64,7 +64,7 @@ export function NotificationCenter() {
             message: "Le devis 'Application Mobile iOS' pour Marie Martin n'a pas eu de réponse depuis 7 jours",
             timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 heures ago
             read: false,
-            actionUrl: "/devis/2",
+            actionUrl: "/devis-db/2",
             actionLabel: "Voir le devis"
           },
           {
@@ -74,7 +74,7 @@ export function NotificationCenter() {
             message: "Le devis 'Maintenance Annuelle' expire dans 3 jours",
             timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 heures ago
             read: false,
-            actionUrl: "/devis/3",
+            actionUrl: "/devis-db/3",
             actionLabel: "Voir le devis"
           },
           {
@@ -84,7 +84,7 @@ export function NotificationCenter() {
             message: "Sophie Petit a été ajoutée à votre base de clients",
             timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 jour ago
             read: true,
-            actionUrl: "/clients/4",
+            actionUrl: "/clients-db/4",
             actionLabel: "Voir le client"
           }
         ]
@@ -291,7 +291,7 @@ export function useDevisReminders() {
           message: `Le devis "${devi.titre}" pour ${devi.client.nom} n'a pas eu de réponse depuis 7 jours`,
           timestamp: new Date(),
           read: false,
-          actionUrl: `/devis/${devi.id}`,
+          actionUrl: `/devis-db/${devi.id}`,
           actionLabel: "Relancer"
         })
       }
@@ -311,7 +311,7 @@ export function useDevisReminders() {
             message: `Le devis "${devi.titre}" expire dans 3 jours`,
             timestamp: new Date(),
             read: false,
-            actionUrl: `/devis/${devi.id}`,
+            actionUrl: `/devis-db/${devi.id}`,
             actionLabel: "Voir le devis"
           })
         }
