@@ -123,5 +123,29 @@ export function useDevis() {
     loadDevis()
   }, [loadDevis])
 
-  return { devis, loading, reload: loadDevis }
+  const createDevis = async (devisData: any) => {
+    try {
+      const response = await fetch('/api/devis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(devisData),
+      })
+      
+      if (response.ok) {
+        await loadDevis()
+        return true
+      } else {
+        const errorData = await response.json()
+        console.error('Erreur API:', errorData)
+        return false
+      }
+    } catch (error) {
+      console.error('Erreur:', error)
+      return false
+    }
+  }
+
+  return { devis, loading, createDevis, reload: loadDevis }
 }
