@@ -21,25 +21,28 @@ export default function SettingsPage() {
 
   useEffect(() => {
     // Charger les objectifs depuis localStorage
-    const savedObjectifs = localStorage.getItem('objectifsCA')
-    if (savedObjectifs) {
-      try {
-        const parsed = JSON.parse(savedObjectifs)
-        setObjectifs(parsed)
-      } catch (error) {
-        console.error("Erreur lors du chargement des objectifs:", error)
+    if (typeof window !== 'undefined') {
+      const savedObjectifs = localStorage.getItem('objectifsCA')
+      if (savedObjectifs) {
+        try {
+          const parsed = JSON.parse(savedObjectifs)
+          setObjectifs(parsed)
+        } catch (error) {
+          console.error("Erreur lors du chargement des objectifs:", error)
+        }
       }
     }
   }, [])
 
   const handleSave = () => {
     try {
-      localStorage.setItem('objectifsCA', JSON.stringify(objectifs))
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('objectifsCA', JSON.stringify(objectifs))
+        
+        // Déclencher un événement pour notifier les autres pages
+        window.dispatchEvent(new CustomEvent('objectifsUpdated', { detail: objectifs }))
+      }
       setSaved(true)
-      
-      // Déclencher un événement pour notifier les autres pages
-      window.dispatchEvent(new CustomEvent('objectifsUpdated', { detail: objectifs }))
-      
       setTimeout(() => setSaved(false), 2000)
     } catch (error) {
       console.error("Erreur lors de la sauvegarde:", error)

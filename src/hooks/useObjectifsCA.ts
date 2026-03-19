@@ -13,25 +13,27 @@ export function useObjectifsCA() {
 
   useEffect(() => {
     // Charger les objectifs depuis localStorage
-    const savedObjectifs = localStorage.getItem('objectifsCA')
-    if (savedObjectifs) {
-      try {
-        const parsed = JSON.parse(savedObjectifs)
-        setObjectifs(parsed)
-      } catch (error) {
-        console.error("Erreur lors du chargement des objectifs:", error)
+    if (typeof window !== 'undefined') {
+      const savedObjectifs = localStorage.getItem('objectifsCA')
+      if (savedObjectifs) {
+        try {
+          const parsed = JSON.parse(savedObjectifs)
+          setObjectifs(parsed)
+        } catch (error) {
+          console.error("Erreur lors du chargement des objectifs:", error)
+        }
       }
-    }
 
-    // Écouter les mises à jour
-    const handleObjectifsUpdated = (event: CustomEvent) => {
-      setObjectifs(event.detail)
-    }
+      // Écouter les mises à jour
+      const handleObjectifsUpdated = (event: CustomEvent) => {
+        setObjectifs(event.detail)
+      }
 
-    window.addEventListener('objectifsUpdated', handleObjectifsUpdated as EventListener)
+      window.addEventListener('objectifsUpdated', handleObjectifsUpdated as EventListener)
 
-    return () => {
-      window.removeEventListener('objectifsUpdated', handleObjectifsUpdated as EventListener)
+      return () => {
+        window.removeEventListener('objectifsUpdated', handleObjectifsUpdated as EventListener)
+      }
     }
   }, [])
 
