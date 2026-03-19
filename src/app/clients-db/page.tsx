@@ -6,91 +6,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Search, Edit, Trash2, Eye, Download, Upload, Mail, Phone, Users, Building2, FileText, Filter, DollarSign, TrendingUp, UserCheck } from "lucide-react"
-
+import { Plus, Search, Edit, Trash2, Eye, Phone, Mail, Building, Users, TrendingUp, DollarSign, FileText, User } from "lucide-react"
 import { useClients, useDevis } from "@/hooks/useDatabase"
+import { useClientFiltersDB } from "@/hooks/useClientFiltersDB"
+import { AdvancedFilters } from "@/components/advanced-filters"
+import { ExportButton } from "@/components/export-button"
+import { ImportButton } from "@/components/import-button"
 
-// Types
-interface Client {
-  id: string
-  nom: string
-  email?: string
-  telephone?: string
-  entreprise?: string
-  secteur?: string
-  statut: string
-  caTotal: number
-  dateCreation: string
-  interactions: any[]
-  devis: any[]
-}
-
-export default function ClientsPage() {
+export default function ClientsDBPage() {
   const { clients, loading, reload } = useClients()
   const { devis } = useDevis()
-  const [searchTerm, setSearchTerm] = useState("")
+  const { filters, setFilters, filteredClients, resetFilters } = useClientFiltersDB(clients)
   const [showDeleteDialog, setShowDeleteDialog] = useState<string | null>(null)
-
-  // Filtrer les clients
-  const filteredClients = clients.filter(client => {
-    const searchLower = searchTerm.toLowerCase()
-    return (
-      client.nom.toLowerCase().includes(searchLower) ||
-      (client.email && client.email.toLowerCase().includes(searchLower)) ||
-      (client.entreprise && client.entreprise.toLowerCase().includes(searchLower)) ||
-      (client.secteur && client.secteur.toLowerCase().includes(searchLower))
-    )
-  })
 
   // Calculer les statistiques
   const stats = {
-    total: clients.length,
+    totalClients: clients.length,
     caTotal: clients.reduce((sum, client) => sum + (client.caTotal || 0), 0),
     caMoyen: clients.length > 0 ? clients.reduce((sum, client) => sum + (client.caTotal || 0), 0) / clients.length : 0,
-  }
-
-  // Export CSV
-  const exportCSV = () => {
-    const headers = ['Nom', 'Email', 'Téléphone', 'Entreprise', 'Secteur', 'CA Total', 'Date création']
-    const csvContent = [
-      headers.join(','),
-      ...clients.map(c => [
-        c.nom,
-        c.email || '',
-        c.telephone || '',
-        c.entreprise || '',
-        c.secteur || '',
-        c.caTotal.toString(),
-        new Date(c.dateCreation).toLocaleDateString('fr-FR')
-      ].join(','))
-    ].join('\n')
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    const url = URL.createObjectURL(blob)
-    link.setAttribute('href', url)
-    link.setAttribute('download', `clients_${new Date().toISOString().split('T')[0]}.csv`)
-    link.style.visibility = 'hidden'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
-
-  // Export Excel
-  const exportExcel = async () => {
-    const XLSX = await import('xlsx')
-    const worksheet = XLSX.utils.json_to_sheet(clients.map(c => ({
-      Nom: c.nom,
-      Email: c.email || '',
-      Téléphone: c.telephone || '',
-      Entreprise: c.entreprise || '',
-      Secteur: c.secteur || '',
-      'CA Total': c.caTotal,
-      'Date création': new Date(c.dateCreation).toLocaleDateString('fr-FR')
-    })))
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Clients')
-    XLSX.writeFile(workbook, `clients_${new Date().toISOString().split('T')[0]}.xlsx`)
   }
 
   // Supprimer un client
@@ -109,6 +42,17 @@ export default function ClientsPage() {
     }
   }
 
+  // Préparer les données pour l'export
+  const exportData = filteredClients.map(client => ({
+    id: client.id,
+    nomEntreprise: client.entreprise || client.nom,
+    secteur: client.secteur || '',
+    caTotal: client.caTotal || 0,
+    dateCreation: new Date(client.dateCreation).toLocaleDateString('fr-FR'),
+    contacts: client.contacts?.map((c: any) => c.nom).join(', ') || '',
+    nbDevis: client.devis?.length || 0
+  }))
+
   if (loading) {
     return (
       <div className="p-6">
@@ -126,54 +70,58 @@ export default function ClientsPage() {
 
   return (
     <div className="p-6 animate-in">
-      {/* En-tête avec statistiques */}
+      {/* En-tête */}
       <div className="mb-6">
         <div className="flex justify-between items-start mb-6">
           <div>
             <h1 className="text-3xl font-bold">Clients</h1>
             <p className="text-muted-foreground">
-              {clients.length} client{clients.length > 1 ? 's' : ''} actif{clients.length > 1 ? 's' : ''}
+              Gérez vos clients et leurs informations
             </p>
           </div>
-          <Button asChild>
-            <Link href="/clients-db/new">
-              <Plus className="w-4 h-4 mr-2" />
-              Nouveau client
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <ExportButton type="clients" data={exportData} />
+            <ImportButton type="clients" />
+            <Button asChild>
+              <Link href="/clients-db/new">
+                <Plus className="w-4 h-4 mr-2" />
+                Nouveau client
+              </Link>
+            </Button>
+          </div>
         </div>
 
         {/* Cartes de statistiques */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+        <div className="grid gap-4 md:grid-cols-3 mb-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total clients</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
+              <div className="text-2xl font-bold">{stats.totalClients}</div>
               <p className="text-xs text-muted-foreground">
-                +0% ce mois
+                Clients actifs
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">CA total</CardTitle>
+              <CardTitle className="text-sm font-medium">CA Total</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.caTotal.toLocaleString()} €</div>
               <p className="text-xs text-muted-foreground">
-                +0% ce mois
+                Chiffre d'affaires cumulé
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">CA moyen</CardTitle>
+              <CardTitle className="text-sm font-medium">CA Moyen</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -183,35 +131,16 @@ export default function ClientsPage() {
               </p>
             </CardContent>
           </Card>
-
         </div>
 
-        {/* Barre de recherche et actions */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-            <Input
-              placeholder="Rechercher un client..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={exportCSV}>
-              <Download className="w-4 h-4 mr-2" />
-              CSV
-            </Button>
-            <Button variant="outline" onClick={exportExcel}>
-              <Download className="w-4 h-4 mr-2" />
-              Excel
-            </Button>
-            <Button variant="outline">
-              <Upload className="w-4 h-4 mr-2" />
-              Importer
-            </Button>
-          </div>
-        </div>
+        {/* Filtres avancés */}
+        <AdvancedFilters
+          filters={filters}
+          onFiltersChange={setFilters}
+          onReset={resetFilters}
+          totalCount={clients.length}
+          filteredCount={filteredClients.length}
+        />
       </div>
 
       {/* Liste des clients */}
@@ -220,12 +149,12 @@ export default function ClientsPage() {
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Users className="w-12 h-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">
-              {searchTerm ? 'Aucun client trouvé' : 'Aucun client'}
+              {filters.search || filters.secteur || filters.entreprise ? 'Aucun client trouvé' : 'Aucun client'}
             </h3>
             <p className="text-muted-foreground text-center mb-4">
-              {searchTerm ? 'Essayez une autre recherche' : 'Commencez par ajouter votre premier client'}
+              {filters.search || filters.secteur || filters.entreprise ? 'Essayez de modifier vos filtres' : 'Commencez par ajouter votre premier client'}
             </p>
-            {!searchTerm && (
+            {!filters.search && !filters.secteur && !filters.entreprise && (
               <Button asChild>
                 <Link href="/clients-db/new">
                   <Plus className="w-4 h-4 mr-2" />
@@ -237,119 +166,136 @@ export default function ClientsPage() {
         </Card>
       ) : (
         <div className="grid gap-4">
-          {filteredClients.map((client) => (
-            <Card key={client.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="text-lg font-semibold">{client.nom}</h3>
-                      {client.entreprise && (
-                        <Badge variant="secondary">{client.entreprise}</Badge>
-                      )}
-                      {client.secteur && (
-                        <Badge variant="outline">{client.secteur}</Badge>
-                      )}
-                    </div>
-                    
-                    <div className="space-y-1 text-sm text-muted-foreground">
-                      {client.email && (
-                        <div className="flex items-center gap-2">
-                          <Mail className="w-4 h-4" />
-                          {client.email}
-                        </div>
-                      )}
-                      {client.telephone && (
-                        <div className="flex items-center gap-2">
-                          <Phone className="w-4 h-4" />
-                          {client.telephone}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="mt-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm">
-                          <span className="font-medium">CA total : </span>
-                          <span className="text-green-600 font-semibold">
-                            {client.caTotal.toLocaleString()} €
-                          </span>
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Client depuis {new Date(client.dateCreation).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
-                        </div>
+          {filteredClients.map((client) => {
+            const principalContact = client.contacts?.find((c: any) => c.isPrincipal) || client.contacts?.[0]
+            const otherContactsCount = (client.contacts?.length || 0) - 1
+            
+            return (
+              <Card key={client.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="text-lg font-semibold">{client.entreprise || client.nom}</h3>
+                        {client.secteur && (
+                          <Badge variant="outline">{client.secteur}</Badge>
+                        )}
                       </div>
                       
-                      {/* Devis récents */}
-                      {client.devis && client.devis.length > 0 && (
-                        <div className="pt-3 border-t">
-                          <div className="text-xs font-medium text-muted-foreground mb-2">
-                            Devis récents ({client.devis.length})
-                          </div>
-                          <div className="space-y-1">
-                            {client.devis.slice(0, 3).map((devis: any) => (
-                              <Link
-                                key={devis.id}
-                                href={`/devis-db/${devis.id}`}
-                                className="flex items-center justify-between text-xs p-2 rounded hover:bg-muted transition-colors"
-                              >
-                                <span className="truncate">{devis.titre}</span>
-                                <div className="flex items-center gap-2">
-                                  <span className="font-semibold">
-                                    {devis.montant.toLocaleString()} €
-                                  </span>
-                                  {devis.statut === 'gagne' && (
-                                    <Badge className="text-xs bg-green-100 text-green-800">G</Badge>
-                                  )}
-                                  {devis.statut === 'en_cours' && (
-                                    <Badge className="text-xs bg-blue-100 text-blue-800">E</Badge>
-                                  )}
-                                  {devis.statut === 'perdu' && (
-                                    <Badge className="text-xs bg-red-100 text-red-800">P</Badge>
-                                  )}
-                                </div>
-                              </Link>
-                            ))}
-                            {client.devis.length > 3 && (
-                              <div className="text-xs text-muted-foreground text-center">
-                                +{client.devis.length - 3} autre(s) devis...
-                              </div>
+                      {/* Contact principal */}
+                      {principalContact && (
+                        <div className="space-y-1 text-sm text-muted-foreground mb-3">
+                          <div className="flex items-center gap-2">
+                            <User className="w-4 h-4" />
+                            <span className="font-medium">{principalContact.nom}</span>
+                            {principalContact.poste && (
+                              <span className="text-xs">• {principalContact.poste}</span>
                             )}
                           </div>
+                          {principalContact.email && (
+                            <div className="flex items-center gap-2">
+                              <Mail className="w-4 h-4" />
+                              {principalContact.email}
+                            </div>
+                          )}
+                          {principalContact.telephone && (
+                            <div className="flex items-center gap-2">
+                              <Phone className="w-4 h-4" />
+                              {principalContact.telephone}
+                            </div>
+                          )}
+                          {otherContactsCount > 0 && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              + {otherContactsCount} autre{otherContactsCount > 1 ? 's' : ''} contact{otherContactsCount > 1 ? 's' : ''}
+                            </div>
+                          )}
                         </div>
                       )}
+
+                      <div className="mt-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm">
+                            <span className="font-medium">CA total : </span>
+                            <span className="text-green-600 font-semibold">
+                              {client.caTotal.toLocaleString()} €
+                            </span>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Client depuis {new Date(client.dateCreation).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
+                          </div>
+                        </div>
+                        
+                        {/* Devis récents */}
+                        {client.devis && client.devis.length > 0 && (
+                          <div className="pt-3 border-t">
+                            <div className="text-xs font-medium text-muted-foreground mb-2">
+                              Devis récents ({client.devis.length})
+                            </div>
+                            <div className="space-y-1">
+                              {client.devis.slice(0, 3).map((devis: any) => (
+                                <Link
+                                  key={devis.id}
+                                  href={`/devis-db/${devis.id}`}
+                                  className="flex items-center justify-between text-xs p-2 rounded hover:bg-muted transition-colors"
+                                >
+                                  <span className="truncate">{devis.titre}</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-semibold">
+                                      {devis.montant.toLocaleString()} €
+                                    </span>
+                                    {devis.statut === 'gagne' && (
+                                      <Badge className="text-xs bg-green-100 text-green-800">G</Badge>
+                                    )}
+                                    {devis.statut === 'en_cours' && (
+                                      <Badge className="text-xs bg-blue-100 text-blue-800">E</Badge>
+                                    )}
+                                    {devis.statut === 'perdu' && (
+                                      <Badge className="text-xs bg-red-100 text-red-800">P</Badge>
+                                    )}
+                                  </div>
+                                </Link>
+                              ))}
+                              {client.devis.length > 3 && (
+                                <div className="text-xs text-muted-foreground text-center">
+                                  +{client.devis.length - 3} autre(s) devis...
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2 ml-4">
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/clients-db/${client.id}`}>
+                          <Eye className="w-4 h-4" />
+                        </Link>
+                      </Button>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/clients-db/${client.id}/edit`}>
+                          <Edit className="w-4 h-4" />
+                        </Link>
+                      </Button>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/devis-db/new?clientId=${client.id}`}>
+                          <FileText className="w-4 h-4" />
+                        </Link>
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setShowDeleteDialog(client.id)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
-                  
-                  <div className="flex gap-2 ml-4">
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={`/clients-db/${client.id}`}>
-                        <Eye className="w-4 h-4" />
-                      </Link>
-                    </Button>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={`/clients-db/${client.id}/edit`}>
-                        <Edit className="w-4 h-4" />
-                      </Link>
-                    </Button>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={`/devis-db/new?clientId=${client.id}`}>
-                        <FileText className="w-4 h-4" />
-                      </Link>
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => setShowDeleteDialog(client.id)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
       )}
 
