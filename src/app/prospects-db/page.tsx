@@ -6,19 +6,43 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Search, Edit, Trash2, Eye, Phone, Mail, Building, Users, TrendingUp, UserPlus, User } from "lucide-react"
-import { useProspects } from "@/hooks/useDatabase"
+import { useProspects, useClients } from "@/hooks/useDatabase"
 import { useClientFiltersDB } from "@/hooks/useClientFiltersDB"
 import { AdvancedFilters } from "@/components/advanced-filters"
 import { ExportButton } from "@/components/export-button"
 import { ImportButton } from "@/components/import-button"
+import { useEffect, useState as useReactState } from "react"
 
 export default function ProspectsDBPage() {
   const { prospects, loading, reload } = useProspects()
+  const { clients } = useClients()
   const { filters, setFilters, filteredClients: filteredProspects, resetFilters } = useClientFiltersDB(prospects)
   const [showDeleteDialog, setShowDeleteDialog] = useState<string | null>(null)
   const [convertingProspect, setConvertingProspect] = useState<string | null>(null)
+  const [totalConverted, setTotalConverted] = useReactState(0)
+
+  // Récupérer le nombre total de prospects convertis (tous les clients)
+  useEffect(() => {
+    const fetchConvertedCount = async () => {
+      try {
+        const response = await fetch('/api/clients')
+        if (response.ok) {
+          const data = await response.json()
+          setTotalConverted(data.length)
+        }
+      } catch (error) {
+        console.error('Erreur:', error)
+      }
+    }
+    fetchConvertedCount()
+  }, [prospects, clients])
 
   // Calculer les statistiques
+  const totalProspectsAndConverted = prospects.length + totalConverted
+  const conversionRate = totalProspectsAndConverted > 0 
+    ? ((totalConverted / totalProspectsAndConverted) * 100).toFixed(1)
+    : "0"
+
   const stats = {
     totalProspects: prospects.length,
     thisMonth: prospects.filter(p => {
@@ -26,6 +50,7 @@ export default function ProspectsDBPage() {
       const now = new Date()
       return createdDate.getMonth() === now.getMonth() && createdDate.getFullYear() === now.getFullYear()
     }).length,
+    conversionRate: conversionRate,
   }
 
   // Supprimer un prospect
@@ -149,9 +174,9 @@ export default function ProspectsDBPage() {
               <UserPlus className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">-</div>
+              <div className="text-2xl font-bold">{stats.conversionRate}%</div>
               <p className="text-xs text-muted-foreground">
-                À calculer
+                {totalConverted} convertis
               </p>
             </CardContent>
           </Card>
