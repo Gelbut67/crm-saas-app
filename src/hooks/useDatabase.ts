@@ -36,11 +36,15 @@ export function useClients() {
       if (response.ok) {
         await loadClients()
         return true
+      } else {
+        const errorData = await response.json()
+        console.error('Erreur API:', errorData)
+        return false
       }
     } catch (error) {
       console.error('Erreur:', error)
+      return false
     }
-    return false
   }
 
   return { clients, loading, createClient, reload: loadClients }
@@ -82,11 +86,15 @@ export function useProspects() {
       if (response.ok) {
         await loadProspects()
         return true
+      } else {
+        const errorData = await response.json()
+        console.error('Erreur API:', errorData)
+        return false
       }
     } catch (error) {
       console.error('Erreur:', error)
+      return false
     }
-    return false
   }
 
   return { prospects, loading, createProspect, reload: loadProspects }

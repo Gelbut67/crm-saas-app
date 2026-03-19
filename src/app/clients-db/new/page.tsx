@@ -63,7 +63,16 @@ export default function NewClientPage() {
         alert("Client créé avec succès !")
         router.push("/clients-db")
       } else {
-        alert("Une erreur est survenue lors de la création du client")
+        // Afficher un message plus détaillé
+        const errorDetails = await fetch('/api/clients', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(clientData),
+        }).then(res => res.json()).catch(() => ({ error: 'Erreur inconnue' }))
+        
+        alert(`Erreur lors de la création du client: ${errorDetails.error || 'Vérifiez les données saisies'}`)
       }
     } catch (error) {
       console.error("Erreur lors de la création du client:", error)

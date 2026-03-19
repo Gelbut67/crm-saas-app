@@ -62,7 +62,16 @@ export default function NewProspectPage() {
         alert("Prospect créé avec succès !")
         router.push("/prospects-db")
       } else {
-        alert("Une erreur est survenue lors de la création du prospect")
+        // Afficher un message plus détaillé
+        const errorDetails = await fetch('/api/prospects', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(prospectData),
+        }).then(res => res.json()).catch(() => ({ error: 'Erreur inconnue' }))
+        
+        alert(`Erreur lors de la création du prospect: ${errorDetails.error || 'Vérifiez les données saisies'}`)
       }
     } catch (error) {
       console.error("Erreur lors de la création du prospect:", error)

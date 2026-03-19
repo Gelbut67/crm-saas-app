@@ -47,9 +47,21 @@ export async function POST(request: Request) {
   try {
     const data = await request.json()
     
+    // Validation basique
+    if (!data.nom || data.nom.trim() === '') {
+      return NextResponse.json(
+        { error: 'Le nom du prospect est obligatoire' },
+        { status: 400 }
+      )
+    }
+    
     const prospect = await prisma.client.create({
       data: {
-        ...data,
+        nom: data.nom.trim(),
+        email: data.email?.trim() || null,
+        telephone: data.telephone?.trim() || null,
+        entreprise: data.entreprise?.trim() || null,
+        secteur: data.secteur?.trim() || null,
         statut: 'prospect',
         dateCreation: new Date(),
       }
@@ -59,7 +71,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Erreur:', error)
     return NextResponse.json(
-      { error: 'Erreur lors de la création du prospect' },
+      { error: 'Erreur lors de la création du prospect: ' + (error instanceof Error ? error.message : 'Erreur inconnue') },
       { status: 500 }
     )
   }
