@@ -111,6 +111,12 @@ async function main() {
   } else {
     console.log(`La base contient déjà ${clientsCount} client(s)`)
   }
+  } catch (error) {
+    console.error('Erreur lors du seed:', error)
+    throw error
+  } finally {
+    await prisma.$disconnect()
+  }
 }
 
 main()
