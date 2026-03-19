@@ -50,6 +50,11 @@ export function AppSidebar() {
       icon: Users,
     },
     {
+      name: "Clients (DB)",
+      href: "/clients-db",
+      icon: Users,
+    },
+    {
       name: "Devis",
       href: "/devis",
       icon: FileText,
