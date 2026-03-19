@@ -163,7 +163,7 @@ export function Dashboard() {
     {
       title: "CA Total",
       value: `${caTotal.toLocaleString()} €`,
-      description: `${devis.filter(d => d.statut === 'gagne' || d.statut === 'facture').length} devis gagnés/facturés / Objectif: ${objectifs.annuel.toLocaleString()} €`,
+      description: `${devis.filter(d => d.statut === 'gagne').length} devis gagnés / Objectif: ${objectifs.annuel.toLocaleString()} €`,
       icon: DollarSign,
       trend: caTotal > 0 ? "up" : "stable",
       progress: Math.min((caTotal / objectifs.annuel) * 100, 100)
