@@ -43,7 +43,7 @@ export default function ProspectsPage() {
           acc[secteur] = (acc[secteur] || 0) + 1
           return acc
         }, {} as Record<string, number>)
-      : {}
+      : {} as Record<string, number>
   }
 
   // Export CSV
@@ -185,13 +185,13 @@ export default function ProspectsPage() {
             <CardContent>
               <div className="text-2xl font-bold">
                 {Object.keys(stats.secteurPrincipal).length > 0 
-                  ? Object.entries(stats.secteurPrincipal).sort((a, b) => b[1] - a[1])[0][0]
+                  ? (Object.entries(stats.secteurPrincipal) as [string, number][]).sort((a, b) => b[1] - a[1])[0][0]
                   : 'N/A'
                 }
               </div>
               <p className="text-xs text-muted-foreground">
                 {Object.keys(stats.secteurPrincipal).length > 0 
-                  ? Object.entries(stats.secteurPrincipal).sort((a, b) => b[1] - a[1])[0][1]
+                  ? (Object.entries(stats.secteurPrincipal) as [string, number][]).sort((a, b) => b[1] - a[1])[0][1]
                   : 0} prospects
               </p>
             </CardContent>
