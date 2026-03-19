@@ -17,6 +17,7 @@ async function main() {
         telephone: '0612345678',
         entreprise: 'Tech Solutions',
         secteur: 'Informatique',
+        statut: 'client',
         caTotal: 50000,
       },
     })
@@ -28,7 +29,20 @@ async function main() {
         telephone: '0623456789',
         entreprise: 'Marketing Pro',
         secteur: 'Marketing',
+        statut: 'client',
         caTotal: 75000,
+      },
+    })
+    
+    const prospect1 = await prisma.client.create({
+      data: {
+        nom: 'Pierre Durand',
+        email: 'pierre.durand@email.com',
+        telephone: '0634567890',
+        entreprise: 'Startup Innov',
+        secteur: 'Tech',
+        statut: 'prospect',
+        caTotal: 0,
       },
     })
     
@@ -49,6 +63,11 @@ async function main() {
           clientId: client2.id,
           type: 'email',
           contenu: 'Envoi de la brochure commerciale',
+        },
+        {
+          clientId: prospect1.id,
+          type: 'appel',
+          contenu: 'Prise de contact initiale',
         },
       ],
     })
@@ -72,10 +91,22 @@ async function main() {
           dateEcheance: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000), // 15 jours
           description: 'Campagne sur 3 mois',
         },
+        {
+          clientId: client1.id,
+          titre: 'Maintenance annuelle',
+          montant: 5000,
+          statut: 'perdu',
+          dateEcheance: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // Expired
+          description: 'Contrat de maintenance',
+        },
       ],
     })
     
     console.log('Données de test ajoutées avec succès!')
+    console.log(`- 2 clients créés`)
+    console.log(`- 1 prospect créé`)
+    console.log(`- 4 interactions créées`)
+    console.log(`- 3 devis créés`)
   } else {
     console.log(`La base contient déjà ${clientsCount} client(s)`)
   }

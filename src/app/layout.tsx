@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { ThemeProvider } from "@/components/theme-provider"
 import { AppSidebar } from "@/components/app-sidebar"
+import { DataMigration } from "@/components/data-migration"
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -50,6 +51,7 @@ export default function RootLayout({
             <div className="flex h-screen overflow-hidden">
               <AppSidebar />
               <main className="flex-1 overflow-auto lg:pl-64">
+                <DataMigration />
                 {children}
               </main>
             </div>
