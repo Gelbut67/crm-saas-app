@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Search, Edit, Trash2, Eye, Download, Upload, Mail, Phone, Users, Building2, FileText, Filter } from "lucide-react"
 
-import { useClients } from "@/hooks/useDatabase"
+import { useClients, useDevis } from "@/hooks/useDatabase"
 
 // Types
 interface Client {
