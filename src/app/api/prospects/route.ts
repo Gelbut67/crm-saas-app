@@ -18,6 +18,11 @@ export async function GET() {
         dateCreation: 'desc'
       },
       include: {
+        contacts: {
+          orderBy: {
+            isPrincipal: 'desc'
+          }
+        },
         interactions: {
           orderBy: {
             date: 'desc'
@@ -29,13 +34,17 @@ export async function GET() {
     console.log(`API Prospects GET - ${prospects.length} prospects trouvés`)
 
     // Formater pour le frontend
-    const formattedProspects = prospects.map(prospect => ({
+    const formattedProspects = prospects.map((prospect: any) => ({
       ...prospect,
       dateCreation: prospect.dateCreation.toISOString(),
-      interactions: prospect.interactions.map(int => ({
+      contacts: prospect.contacts?.map((contact: any) => ({
+        ...contact,
+        dateCreation: contact.dateCreation.toISOString()
+      })) || [],
+      interactions: prospect.interactions?.map((int: any) => ({
         ...int,
         date: int.date.toISOString()
-      }))
+      })) || []
     }))
 
     return NextResponse.json(formattedProspects)

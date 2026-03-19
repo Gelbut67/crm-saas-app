@@ -1,90 +1,31 @@
 "use client"
 
 import { useState } from "react"
-import { useProspects } from "@/hooks/useDatabase"
+import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Users, Building2, Phone, Mail, UserCheck, Search, Edit, Trash2, Eye, Download, Upload, TrendingUp } from "lucide-react"
-import Link from "next/link"
-import { format } from "date-fns"
-import { fr } from "date-fns/locale"
+import { Plus, Search, Edit, Trash2, Eye, Phone, Mail, Building, Users, TrendingUp, UserPlus, User } from "lucide-react"
+import { useProspects } from "@/hooks/useDatabase"
+import { useClientFiltersDB } from "@/hooks/useClientFiltersDB"
+import { AdvancedFilters } from "@/components/advanced-filters"
+import { ExportButton } from "@/components/export-button"
+import { ImportButton } from "@/components/import-button"
 
-export default function ProspectsPage() {
+export default function ProspectsDBPage() {
   const { prospects, loading, reload } = useProspects()
-  const [searchTerm, setSearchTerm] = useState("")
-  const [prospectToDelete, setProspectToDelete] = useState<string | null>(null)
-
-  // Filtrer les prospects
-  const filteredProspects = prospects.filter(prospect => {
-    const searchLower = searchTerm.toLowerCase()
-    return (
-      prospect.nom.toLowerCase().includes(searchLower) ||
-      (prospect.entreprise && prospect.entreprise.toLowerCase().includes(searchLower)) ||
-      (prospect.email && prospect.email.toLowerCase().includes(searchLower)) ||
-      (prospect.secteur && prospect.secteur.toLowerCase().includes(searchLower))
-    )
-  })
+  const { filters, setFilters, filteredClients: filteredProspects, resetFilters } = useClientFiltersDB(prospects)
+  const [showDeleteDialog, setShowDeleteDialog] = useState<string | null>(null)
+  const [convertingProspect, setConvertingProspect] = useState<string | null>(null)
 
   // Calculer les statistiques
   const stats = {
-    total: prospects.length,
-    ceMois: prospects.filter(p => {
-      const creationDate = new Date(p.dateCreation)
+    totalProspects: prospects.length,
+    thisMonth: prospects.filter(p => {
+      const createdDate = new Date(p.dateCreation)
       const now = new Date()
-      return creationDate.getMonth() === now.getMonth() && creationDate.getFullYear() === now.getFullYear()
+      return createdDate.getMonth() === now.getMonth() && createdDate.getFullYear() === now.getFullYear()
     }).length,
-    tauxConversion: 0, // TODO: calculer depuis les clients convertis
-    secteurPrincipal: prospects.length > 0 
-      ? prospects.reduce((acc, p) => {
-          const secteur = p.secteur || 'Non défini'
-          acc[secteur] = (acc[secteur] || 0) + 1
-          return acc
-        }, {} as Record<string, number>)
-      : {} as Record<string, number>
-  }
-
-  // Export CSV
-  const exportCSV = () => {
-    const headers = ['Nom', 'Email', 'Téléphone', 'Entreprise', 'Secteur', 'Date création']
-    const csvContent = [
-      headers.join(','),
-      ...prospects.map(p => [
-        p.nom,
-        p.email || '',
-        p.telephone || '',
-        p.entreprise || '',
-        p.secteur || '',
-        new Date(p.dateCreation).toLocaleDateString('fr-FR')
-      ].join(','))
-    ].join('\n')
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    const url = URL.createObjectURL(blob)
-    link.setAttribute('href', url)
-    link.setAttribute('download', `prospects_${new Date().toISOString().split('T')[0]}.csv`)
-    link.style.visibility = 'hidden'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
-
-  // Export Excel
-  const exportExcel = async () => {
-    const XLSX = await import('xlsx')
-    const worksheet = XLSX.utils.json_to_sheet(prospects.map(p => ({
-      Nom: p.nom,
-      Email: p.email || '',
-      Téléphone: p.telephone || '',
-      Entreprise: p.entreprise || '',
-      Secteur: p.secteur || '',
-      'Date création': new Date(p.dateCreation).toLocaleDateString('fr-FR')
-    })))
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Prospects')
-    XLSX.writeFile(workbook, `prospects_${new Date().toISOString().split('T')[0]}.xlsx`)
   }
 
   // Supprimer un prospect
@@ -96,12 +37,45 @@ export default function ProspectsPage() {
       
       if (response.ok) {
         await reload()
-        setProspectToDelete(null)
+        setShowDeleteDialog(null)
       }
     } catch (error) {
       console.error('Erreur:', error)
     }
   }
+
+  // Convertir un prospect en client
+  const convertToClient = async (prospectId: string) => {
+    setConvertingProspect(prospectId)
+    try {
+      const response = await fetch(`/api/prospects/${prospectId}/convert`, {
+        method: 'POST'
+      })
+      
+      if (response.ok) {
+        await reload()
+        alert('Prospect converti en client avec succès !')
+      } else {
+        alert('Erreur lors de la conversion')
+      }
+    } catch (error) {
+      console.error('Erreur:', error)
+      alert('Erreur lors de la conversion')
+    } finally {
+      setConvertingProspect(null)
+    }
+  }
+
+  // Préparer les données pour l'export
+  const exportData = filteredProspects.map(prospect => ({
+    id: prospect.id,
+    nomEntreprise: prospect.entreprise || prospect.nom,
+    secteur: prospect.secteur || '',
+    caTotal: 0,
+    dateCreation: new Date(prospect.dateCreation).toLocaleDateString('fr-FR'),
+    contacts: prospect.contacts?.map((c: any) => c.nom).join(', ') || '',
+    nbDevis: 0
+  }))
 
   if (loading) {
     return (
@@ -120,47 +94,51 @@ export default function ProspectsPage() {
 
   return (
     <div className="p-6 animate-in">
-      {/* En-tête avec statistiques */}
+      {/* En-tête */}
       <div className="mb-6">
         <div className="flex justify-between items-start mb-6">
           <div>
             <h1 className="text-3xl font-bold">Prospects</h1>
             <p className="text-muted-foreground">
-              {prospects.length} prospect{prospects.length > 1 ? 's' : ''} en suivi
+              Gérez vos prospects et convertissez-les en clients
             </p>
           </div>
-          <Button asChild>
-            <Link href="/prospects-db/new">
-              <Plus className="w-4 h-4 mr-2" />
-              Nouveau prospect
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <ExportButton type="clients" data={exportData} />
+            <ImportButton type="clients" />
+            <Button asChild>
+              <Link href="/prospects-db/new">
+                <Plus className="w-4 h-4 mr-2" />
+                Nouveau prospect
+              </Link>
+            </Button>
+          </div>
         </div>
 
         {/* Cartes de statistiques */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+        <div className="grid gap-4 md:grid-cols-3 mb-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total prospects</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
+              <div className="text-2xl font-bold">{stats.totalProspects}</div>
               <p className="text-xs text-muted-foreground">
-                {stats.ceMois} ce mois
+                Prospects actifs
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Nouveaux ce mois</CardTitle>
+              <CardTitle className="text-sm font-medium">Ce mois</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.ceMois}</div>
+              <div className="text-2xl font-bold">{stats.thisMonth}</div>
               <p className="text-xs text-muted-foreground">
-                {stats.total > 0 ? Math.round((stats.ceMois / stats.total) * 100) : 0}% du total
+                Nouveaux prospects
               </p>
             </CardContent>
           </Card>
@@ -168,63 +146,25 @@ export default function ProspectsPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Taux de conversion</CardTitle>
-              <UserCheck className="h-4 w-4 text-muted-foreground" />
+              <UserPlus className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.tauxConversion}%</div>
+              <div className="text-2xl font-bold">-</div>
               <p className="text-xs text-muted-foreground">
-                En clients
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Secteur principal</CardTitle>
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {Object.keys(stats.secteurPrincipal).length > 0 
-                  ? (Object.entries(stats.secteurPrincipal) as [string, number][]).sort((a, b) => b[1] - a[1])[0][0]
-                  : 'N/A'
-                }
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {Object.keys(stats.secteurPrincipal).length > 0 
-                  ? (Object.entries(stats.secteurPrincipal) as [string, number][]).sort((a, b) => b[1] - a[1])[0][1]
-                  : 0} prospects
+                À calculer
               </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Barre de recherche et actions */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-            <Input
-              placeholder="Rechercher un prospect..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={exportCSV}>
-              <Download className="w-4 h-4 mr-2" />
-              CSV
-            </Button>
-            <Button variant="outline" onClick={exportExcel}>
-              <Download className="w-4 h-4 mr-2" />
-              Excel
-            </Button>
-            <Button variant="outline">
-              <Upload className="w-4 h-4 mr-2" />
-              Importer
-            </Button>
-          </div>
-        </div>
+        {/* Filtres avancés */}
+        <AdvancedFilters
+          filters={filters}
+          onFiltersChange={setFilters}
+          onReset={resetFilters}
+          totalCount={prospects.length}
+          filteredCount={filteredProspects.length}
+        />
       </div>
 
       {/* Liste des prospects */}
@@ -233,12 +173,12 @@ export default function ProspectsPage() {
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Users className="w-12 h-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">
-              {searchTerm ? 'Aucun prospect trouvé' : 'Aucun prospect'}
+              {filters.search || filters.secteur || filters.entreprise ? 'Aucun prospect trouvé' : 'Aucun prospect'}
             </h3>
             <p className="text-muted-foreground text-center mb-4">
-              {searchTerm ? 'Essayez une autre recherche' : 'Commencez par ajouter votre premier prospect'}
+              {filters.search || filters.secteur || filters.entreprise ? 'Essayez de modifier vos filtres' : 'Commencez par ajouter votre premier prospect'}
             </p>
-            {!searchTerm && (
+            {!filters.search && !filters.secteur && !filters.entreprise && (
               <Button asChild>
                 <Link href="/prospects-db/new">
                   <Plus className="w-4 h-4 mr-2" />
@@ -250,72 +190,99 @@ export default function ProspectsPage() {
         </Card>
       ) : (
         <div className="grid gap-4">
-          {filteredProspects.map((prospect) => (
-            <Card key={prospect.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="text-lg font-semibold">{prospect.nom}</h3>
-                      {prospect.entreprise && (
-                        <Badge variant="secondary">{prospect.entreprise}</Badge>
+          {filteredProspects.map((prospect) => {
+            const principalContact = prospect.contacts?.find((c: any) => c.isPrincipal) || prospect.contacts?.[0]
+            const otherContactsCount = (prospect.contacts?.length || 0) - 1
+            
+            return (
+              <Card key={prospect.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="text-lg font-semibold">{prospect.entreprise || prospect.nom}</h3>
+                        <Badge variant="secondary">Prospect</Badge>
+                        {prospect.secteur && (
+                          <Badge variant="outline">{prospect.secteur}</Badge>
+                        )}
+                      </div>
+                      
+                      {/* Contact principal */}
+                      {principalContact && (
+                        <div className="space-y-1 text-sm text-muted-foreground mb-3">
+                          <div className="flex items-center gap-2">
+                            <User className="w-4 h-4" />
+                            <span className="font-medium">{principalContact.nom}</span>
+                            {principalContact.poste && (
+                              <span className="text-xs">• {principalContact.poste}</span>
+                            )}
+                          </div>
+                          {principalContact.email && (
+                            <div className="flex items-center gap-2">
+                              <Mail className="w-4 h-4" />
+                              {principalContact.email}
+                            </div>
+                          )}
+                          {principalContact.telephone && (
+                            <div className="flex items-center gap-2">
+                              <Phone className="w-4 h-4" />
+                              {principalContact.telephone}
+                            </div>
+                          )}
+                          {otherContactsCount > 0 && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              + {otherContactsCount} autre{otherContactsCount > 1 ? 's' : ''} contact{otherContactsCount > 1 ? 's' : ''}
+                            </div>
+                          )}
+                        </div>
                       )}
-                      {prospect.secteur && (
-                        <Badge variant="outline">{prospect.secteur}</Badge>
-                      )}
-                      <Badge variant="outline">Prospect</Badge>
+
+                      <div className="mt-4">
+                        <div className="text-xs text-muted-foreground">
+                          Prospect depuis {new Date(prospect.dateCreation).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
+                        </div>
+                      </div>
                     </div>
                     
-                    <div className="space-y-1 text-sm text-muted-foreground">
-                      {prospect.email && (
-                        <div className="flex items-center gap-2">
-                          <Mail className="w-4 h-4" />
-                          {prospect.email}
-                        </div>
-                      )}
-                      {prospect.telephone && (
-                        <div className="flex items-center gap-2">
-                          <Phone className="w-4 h-4" />
-                          {prospect.telephone}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="mt-4 flex items-center justify-between">
-                      <div className="text-xs text-muted-foreground">
-                        Prospect depuis {format(new Date(prospect.dateCreation), 'dd MMM yyyy', { locale: fr })}
-                      </div>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" asChild>
-                          <Link href={`/prospects/${prospect.id}`}>
-                            <Eye className="w-4 h-4" />
-                          </Link>
-                        </Button>
-                        <Button variant="outline" size="sm" asChild>
-                          <Link href={`/prospects/${prospect.id}/edit`}>
-                            <Edit className="w-4 h-4" />
-                          </Link>
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => setProspectToDelete(prospect.id)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+                    <div className="flex gap-2 ml-4">
+                      <Button 
+                        variant="default" 
+                        size="sm"
+                        onClick={() => convertToClient(prospect.id)}
+                        disabled={convertingProspect === prospect.id}
+                      >
+                        <UserPlus className="w-4 h-4 mr-2" />
+                        {convertingProspect === prospect.id ? 'Conversion...' : 'Convertir'}
+                      </Button>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/prospects-db/${prospect.id}`}>
+                          <Eye className="w-4 h-4" />
+                        </Link>
+                      </Button>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/prospects-db/${prospect.id}/edit`}>
+                          <Edit className="w-4 h-4" />
+                        </Link>
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setShowDeleteDialog(prospect.id)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
       )}
 
       {/* Confirmation de suppression */}
-      {prospectToDelete && (
+      {showDeleteDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <Card className="w-full max-w-sm">
             <CardHeader>
@@ -328,14 +295,14 @@ export default function ProspectsPage() {
               <div className="flex gap-2">
                 <Button 
                   variant="destructive" 
-                  onClick={() => deleteProspect(prospectToDelete)}
+                  onClick={() => deleteProspect(showDeleteDialog)}
                   className="flex-1"
                 >
                   Supprimer
                 </Button>
                 <Button 
                   variant="outline" 
-                  onClick={() => setProspectToDelete(null)}
+                  onClick={() => setShowDeleteDialog(null)}
                   className="flex-1"
                 >
                   Annuler
