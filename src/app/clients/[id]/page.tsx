@@ -665,7 +665,7 @@ export default function ClientDetailPage() {
                         {/* Sélecteur de statut direct */}
                         <Select 
                           value={devisItem.statut} 
-                          onValueChange={(value) => handleStatutChange(devisItem.id, value as 'en_cours' | 'gagne' | 'facture' | 'perdu')}
+                          onValueChange={(value) => handleStatutChange(devisItem.id, value as 'en_cours' | 'gagne' | 'perdu')}
                         >
                           <SelectTrigger className="w-32">
                             <SelectValue />
@@ -673,7 +673,6 @@ export default function ClientDetailPage() {
                           <SelectContent>
                             <SelectItem value="en_cours">En cours</SelectItem>
                             <SelectItem value="gagne">Gagné</SelectItem>
-                            <SelectItem value="facture">Facturé</SelectItem>
                             <SelectItem value="perdu">Perdu</SelectItem>
                           </SelectContent>
                         </Select>
