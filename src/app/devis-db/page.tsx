@@ -17,7 +17,6 @@ export default function DevisPage() {
   const { prospects } = useProspects()
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatut, setFilterStatut] = useState<string>("tous")
-  const [showForm, setShowForm] = useState(false)
 
   // Filtrer les devis
   const filteredDevis = devis.filter(devi => {
@@ -125,9 +124,11 @@ export default function DevisPage() {
               {devis.length} devis au total
             </p>
           </div>
-          <Button onClick={() => setShowForm(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Nouveau devis
+          <Button asChild>
+            <Link href="/devis-db/new">
+              <Plus className="w-4 h-4 mr-2" />
+              Nouveau devis
+            </Link>
           </Button>
         </div>
 
@@ -239,9 +240,11 @@ export default function DevisPage() {
               }
             </p>
             {!searchTerm && filterStatut === "tous" && (
-              <Button onClick={() => setShowForm(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Créer un devis
+              <Button asChild>
+                <Link href="/devis-db/new">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Créer un devis
+                </Link>
               </Button>
             )}
           </CardContent>
@@ -302,91 +305,6 @@ export default function DevisPage() {
               </CardContent>
             </Card>
           ))}
-        </div>
-      )}
-
-      {/* Formulaire simplifié */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle>Nouveau devis</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={async (e) => {
-                e.preventDefault()
-                const formData = new FormData(e.currentTarget)
-                const devisData = {
-                  titre: formData.get('titre') as string,
-                  montant: parseFloat(formData.get('montant') as string),
-                  clientId: formData.get('clientId') as string,
-                  statut: 'en_cours',
-                  dateEcheance: formData.get('dateEcheance') as string,
-                  description: formData.get('description') as string,
-                }
-                
-                try {
-                  const response = await fetch('/api/devis', {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(devisData),
-                  })
-                  
-                  if (response.ok) {
-                    await reload()
-                    setShowForm(false)
-                  }
-                } catch (error) {
-                  console.error('Erreur:', error)
-                }
-              }} className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Titre *</label>
-                  <input name="titre" required className="w-full mt-1 px-3 py-2 border rounded-md" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Montant (€) *</label>
-                  <input name="montant" type="number" required min="0" step="0.01" className="w-full mt-1 px-3 py-2 border rounded-md" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Client *</label>
-                  <select name="clientId" required className="w-full mt-1 px-3 py-2 border rounded-md">
-                    <option value="">Sélectionner un client/prospect</option>
-                    <optgroup label="Clients">
-                      {clients.map((client) => (
-                        <option key={client.id} value={client.id}>
-                          {client.nom} {client.entreprise && `- ${client.entreprise}`}
-                        </option>
-                      ))}
-                    </optgroup>
-                    <optgroup label="Prospects">
-                      {prospects.map((prospect) => (
-                        <option key={prospect.id} value={prospect.id}>
-                          {prospect.nom} {prospect.entreprise && `- ${prospect.entreprise}`}
-                        </option>
-                      ))}
-                    </optgroup>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Date d'échéance *</label>
-                  <input name="dateEcheance" type="date" required className="w-full mt-1 px-3 py-2 border rounded-md" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Description</label>
-                  <textarea name="description" rows={3} className="w-full mt-1 px-3 py-2 border rounded-md"></textarea>
-                </div>
-                <div className="flex gap-2 pt-4">
-                  <Button type="submit" className="flex-1">Créer</Button>
-                  <Button type="button" variant="outline" onClick={() => setShowForm(false)} className="flex-1">
-                    Annuler
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
         </div>
       )}
     </div>

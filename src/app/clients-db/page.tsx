@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Search, Edit, Trash2, Eye, Phone, Mail, Building, Users, TrendingUp, DollarSign, UserCheck, Download, Upload } from "lucide-react"
-import { cn } from "@/lib/utils"
 
 import { useClients } from "@/hooks/useDatabase"
 
@@ -27,9 +26,8 @@ interface Client {
 }
 
 export default function ClientsPage() {
-  const { clients, loading, createClient, reload } = useClients()
+  const { clients, loading, reload } = useClients()
   const [searchTerm, setSearchTerm] = useState("")
-  const [showForm, setShowForm] = useState(false)
   const [clientToDelete, setClientToDelete] = useState<string | null>(null)
 
   // Filtrer les clients
@@ -137,9 +135,11 @@ export default function ClientsPage() {
               {clients.length} client{clients.length > 1 ? 's' : ''} actif{clients.length > 1 ? 's' : ''}
             </p>
           </div>
-          <Button onClick={() => setShowForm(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Nouveau client
+          <Button asChild>
+            <Link href="/clients-db/new">
+              <Plus className="w-4 h-4 mr-2" />
+              Nouveau client
+            </Link>
           </Button>
         </div>
 
@@ -238,9 +238,11 @@ export default function ClientsPage() {
               {searchTerm ? 'Essayez une autre recherche' : 'Commencez par ajouter votre premier client'}
             </p>
             {!searchTerm && (
-              <Button onClick={() => setShowForm(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Ajouter un client
+              <Button asChild>
+                <Link href="/clients-db/new">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Ajouter un client
+                </Link>
               </Button>
             )}
           </CardContent>
@@ -314,62 +316,6 @@ export default function ClientsPage() {
               </CardContent>
             </Card>
           ))}
-        </div>
-      )}
-
-      {/* Formulaire de création */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle>Nouveau client</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={async (e) => {
-                e.preventDefault()
-                const formData = new FormData(e.currentTarget)
-                const clientData = {
-                  nom: formData.get('nom') as string,
-                  email: formData.get('email') as string,
-                  telephone: formData.get('telephone') as string,
-                  entreprise: formData.get('entreprise') as string,
-                  secteur: formData.get('secteur') as string,
-                  caTotal: 0,
-                }
-                
-                if (await createClient(clientData)) {
-                  setShowForm(false)
-                }
-              }} className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Nom *</label>
-                  <input name="nom" required className="w-full mt-1 px-3 py-2 border rounded-md" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Email</label>
-                  <input name="email" type="email" className="w-full mt-1 px-3 py-2 border rounded-md" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Téléphone</label>
-                  <input name="telephone" className="w-full mt-1 px-3 py-2 border rounded-md" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Entreprise</label>
-                  <input name="entreprise" className="w-full mt-1 px-3 py-2 border rounded-md" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Secteur</label>
-                  <input name="secteur" className="w-full mt-1 px-3 py-2 border rounded-md" />
-                </div>
-                <div className="flex gap-2 pt-4">
-                  <Button type="submit" className="flex-1">Créer</Button>
-                  <Button type="button" variant="outline" onClick={() => setShowForm(false)} className="flex-1">
-                    Annuler
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
         </div>
       )}
 

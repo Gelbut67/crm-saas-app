@@ -12,9 +12,8 @@ import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 
 export default function ProspectsPage() {
-  const { prospects, loading, createProspect, reload } = useProspects()
+  const { prospects, loading, reload } = useProspects()
   const [searchTerm, setSearchTerm] = useState("")
-  const [showForm, setShowForm] = useState(false)
   const [prospectToDelete, setProspectToDelete] = useState<string | null>(null)
 
   // Filtrer les prospects
@@ -130,9 +129,11 @@ export default function ProspectsPage() {
               {prospects.length} prospect{prospects.length > 1 ? 's' : ''} en suivi
             </p>
           </div>
-          <Button onClick={() => setShowForm(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Nouveau prospect
+          <Button asChild>
+            <Link href="/prospects-db/new">
+              <Plus className="w-4 h-4 mr-2" />
+              Nouveau prospect
+            </Link>
           </Button>
         </div>
 
@@ -238,9 +239,11 @@ export default function ProspectsPage() {
               {searchTerm ? 'Essayez une autre recherche' : 'Commencez par ajouter votre premier prospect'}
             </p>
             {!searchTerm && (
-              <Button onClick={() => setShowForm(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Ajouter un prospect
+              <Button asChild>
+                <Link href="/prospects-db/new">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Ajouter un prospect
+                </Link>
               </Button>
             )}
           </CardContent>
@@ -308,61 +311,6 @@ export default function ProspectsPage() {
               </CardContent>
             </Card>
           ))}
-        </div>
-      )}
-
-      {/* Formulaire de création */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle>Nouveau prospect</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={async (e) => {
-                e.preventDefault()
-                const formData = new FormData(e.currentTarget)
-                const prospectData = {
-                  nom: formData.get('nom') as string,
-                  email: formData.get('email') as string,
-                  telephone: formData.get('telephone') as string,
-                  entreprise: formData.get('entreprise') as string,
-                  secteur: formData.get('secteur') as string,
-                }
-                
-                if (await createProspect(prospectData)) {
-                  setShowForm(false)
-                }
-              }} className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Nom *</label>
-                  <input name="nom" required className="w-full mt-1 px-3 py-2 border rounded-md" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Email</label>
-                  <input name="email" type="email" className="w-full mt-1 px-3 py-2 border rounded-md" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Téléphone</label>
-                  <input name="telephone" className="w-full mt-1 px-3 py-2 border rounded-md" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Entreprise</label>
-                  <input name="entreprise" className="w-full mt-1 px-3 py-2 border rounded-md" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Secteur</label>
-                  <input name="secteur" className="w-full mt-1 px-3 py-2 border rounded-md" />
-                </div>
-                <div className="flex gap-2 pt-4">
-                  <Button type="submit" className="flex-1">Créer</Button>
-                  <Button type="button" variant="outline" onClick={() => setShowForm(false)} className="flex-1">
-                    Annuler
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
         </div>
       )}
 
