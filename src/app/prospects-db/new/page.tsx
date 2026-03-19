@@ -7,210 +7,280 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeft, Save, Building, Phone, Mail, User, UserPlus } from "lucide-react"
-import { useProspects } from "@/hooks/useDatabase"
+import { ArrowLeft, Save, Plus, Trash2, User } from "lucide-react"
+import Link from "next/link"
 
-const secteurOptions = [
-  "Technologie",
-  "Services",
-  "Commerce",
-  "Industrie",
-  "Santé",
-  "Éducation",
-  "Finance",
-  "Autre"
-]
+interface Contact {
+  nom: string
+  email: string
+  telephone: string
+  poste: string
+  isPrincipal: boolean
+}
 
 export default function NewProspectPage() {
   const router = useRouter()
-  const { createProspect } = useProspects()
-  const [formData, setFormData] = useState({
-    nom: "",
-    email: "",
-    telephone: "",
-    entreprise: "",
-    secteur: ""
-  })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [formData, setFormData] = useState({
+    entreprise: "",
+    secteur: "",
+  })
+  const [contacts, setContacts] = useState<Contact[]>([
+    { nom: "", email: "", telephone: "", poste: "", isPrincipal: true }
+  ])
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+  const handleAddContact = () => {
+    setContacts([...contacts, { nom: "", email: "", telephone: "", poste: "", isPrincipal: false }])
+  }
+
+  const handleRemoveContact = (index: number) => {
+    if (contacts.length > 1) {
+      setContacts(contacts.filter((_, i) => i !== index))
+    }
+  }
+
+  const handleContactChange = (index: number, field: keyof Contact, value: string | boolean) => {
+    const newContacts = [...contacts]
+    newContacts[index] = { ...newContacts[index], [field]: value }
+    
+    if (field === 'isPrincipal' && value === true) {
+      newContacts.forEach((contact, i) => {
+        if (i !== index) contact.isPrincipal = false
+      })
+    }
+    
+    setContacts(newContacts)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (!formData.nom.trim()) {
-      alert("Veuillez renseigner le nom du prospect")
-      return
-    }
-
     setIsSubmitting(true)
 
     try {
-      const prospectData = {
-        nom: formData.nom,
-        email: formData.email,
-        telephone: formData.telephone,
-        entreprise: formData.entreprise,
-        secteur: formData.secteur,
-      }
+      const response = await fetch('/api/prospects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nom: contacts[0].nom,
+          entreprise: formData.entreprise,
+          secteur: formData.secteur,
+          statut: 'prospect',
+        }),
+      })
 
-      const success = await createProspect(prospectData)
-      
-      if (success) {
-        alert("Prospect créé avec succès !")
-        router.push("/prospects-db")
-      } else {
-        // Afficher un message plus détaillé
-        const errorDetails = await fetch('/api/prospects', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(prospectData),
-        }).then(res => res.json()).catch(() => ({ error: 'Erreur inconnue' }))
+      if (response.ok) {
+        const prospect = await response.json()
         
-        alert(`Erreur lors de la création du prospect: ${errorDetails.error || 'Vérifiez les données saisies'}`)
+        for (const contact of contacts) {
+          if (contact.nom) {
+            await fetch('/api/contacts', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                clientId: prospect.id,
+                nom: contact.nom,
+                email: contact.email || null,
+                telephone: contact.telephone || null,
+                poste: contact.poste || null,
+                isPrincipal: contact.isPrincipal,
+              }),
+            })
+          }
+        }
+        
+        router.push('/prospects-db')
+      } else {
+        alert("Erreur lors de la création du prospect")
       }
     } catch (error) {
-      console.error("Erreur lors de la création du prospect:", error)
-      alert("Une erreur est survenue lors de la création du prospect")
+      console.error("Erreur:", error)
+      alert("Une erreur est survenue")
     } finally {
       setIsSubmitting(false)
     }
   }
 
   return (
-    <div className="p-6">
-      <div className="flex items-center gap-4 mb-6">
-        <Button variant="outline" size="sm" onClick={() => router.back()}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Retour
+    <div className="p-6 animate-in">
+      <div className="mb-6">
+        <Button variant="ghost" asChild className="mb-4">
+          <Link href="/prospects-db">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Retour aux prospects
+          </Link>
         </Button>
-        <div>
-          <h1 className="text-3xl font-bold">Nouveau Prospect</h1>
-          <p className="text-muted-foreground">
-            Créez une nouvelle fiche prospect
-          </p>
-        </div>
+        
+        <h1 className="text-3xl font-bold">Nouveau prospect</h1>
+        <p className="text-muted-foreground">
+          Créez un nouveau prospect avec ses contacts
+        </p>
       </div>
 
-      <Card className="max-w-2xl">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5" />
-            Informations du prospect
-          </CardTitle>
-          <CardDescription>
-            Remplissez les informations ci-dessous pour créer un nouveau prospect
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2">
+      <form onSubmit={handleSubmit} className="max-w-4xl space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Informations de l'entreprise</CardTitle>
+            <CardDescription>
+              Renseignez les informations du prospect
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="nom">Nom complet *</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    id="nom"
-                    placeholder="Jean Dupont"
-                    value={formData.nom}
-                    onChange={(e) => handleInputChange("nom", e.target.value)}
-                    className="pl-10"
-                    required
-                  />
-                </div>
+                <Label htmlFor="entreprise">Nom de l'entreprise *</Label>
+                <Input
+                  id="entreprise"
+                  value={formData.entreprise}
+                  onChange={(e) => setFormData({ ...formData, entreprise: e.target.value })}
+                  placeholder="Ex: Tech Solutions"
+                  required
+                />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="entreprise">Entreprise</Label>
-                <div className="relative">
-                  <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    id="entreprise"
-                    placeholder="Nom de l'entreprise"
-                    value={formData.entreprise}
-                    onChange={(e) => handleInputChange("entreprise", e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="jean.dupont@email.com"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="telephone">Téléphone</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    id="telephone"
-                    placeholder="06 12 34 56 78"
-                    value={formData.telephone}
-                    onChange={(e) => handleInputChange("telephone", e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
+                <Label htmlFor="secteur">Secteur d'activité</Label>
+                <Select
+                  value={formData.secteur}
+                  onValueChange={(value) => setFormData({ ...formData, secteur: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un secteur" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Technologie">Technologie</SelectItem>
+                    <SelectItem value="Services">Services</SelectItem>
+                    <SelectItem value="Commerce">Commerce</SelectItem>
+                    <SelectItem value="Industrie">Industrie</SelectItem>
+                    <SelectItem value="Consulting">Consulting</SelectItem>
+                    <SelectItem value="Santé">Santé</SelectItem>
+                    <SelectItem value="Éducation">Éducation</SelectItem>
+                    <SelectItem value="Finance">Finance</SelectItem>
+                    <SelectItem value="Autre">Autre</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
+          </CardContent>
+        </Card>
 
-            <div className="space-y-2">
-              <Label htmlFor="secteur">Secteur d'activité</Label>
-              <Select value={formData.secteur} onValueChange={(value) => handleInputChange("secteur", value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionnez un secteur" />
-                </SelectTrigger>
-                <SelectContent>
-                  {secteurOptions.map((secteur) => (
-                    <SelectItem key={secteur} value={secteur}>
-                      {secteur}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex gap-4 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => router.back()}
-                className="flex-1"
-              >
-                Annuler
-              </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex-1"
-              >
-                {isSubmitting ? (
-                  "Création en cours..."
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Créer le prospect
-                  </>
-                )}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Contacts</CardTitle>
+                <CardDescription>
+                  Ajoutez les contacts du prospect
+                </CardDescription>
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={handleAddContact}>
+                <Plus className="w-4 h-4 mr-2" />
+                Ajouter un contact
               </Button>
             </div>
-          </form>
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {contacts.map((contact, index) => (
+              <div key={index} className="p-4 border rounded-lg space-y-4">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    <span className="font-medium">Contact {index + 1}</span>
+                    {contact.isPrincipal && (
+                      <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded">
+                        Principal
+                      </span>
+                    )}
+                  </div>
+                  {contacts.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveContact(index)}
+                    >
+                      <Trash2 className="w-4 h-4 text-red-600" />
+                    </Button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor={`nom-${index}`}>Nom *</Label>
+                    <Input
+                      id={`nom-${index}`}
+                      value={contact.nom}
+                      onChange={(e) => handleContactChange(index, 'nom', e.target.value)}
+                      placeholder="Jean Dupont"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor={`poste-${index}`}>Poste</Label>
+                    <Input
+                      id={`poste-${index}`}
+                      value={contact.poste}
+                      onChange={(e) => handleContactChange(index, 'poste', e.target.value)}
+                      placeholder="Directeur Commercial"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor={`email-${index}`}>Email</Label>
+                    <Input
+                      id={`email-${index}`}
+                      type="email"
+                      value={contact.email}
+                      onChange={(e) => handleContactChange(index, 'email', e.target.value)}
+                      placeholder="jean.dupont@entreprise.com"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor={`telephone-${index}`}>Téléphone</Label>
+                    <Input
+                      id={`telephone-${index}`}
+                      value={contact.telephone}
+                      onChange={(e) => handleContactChange(index, 'telephone', e.target.value)}
+                      placeholder="06 12 34 56 78"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id={`principal-${index}`}
+                    checked={contact.isPrincipal}
+                    onChange={(e) => handleContactChange(index, 'isPrincipal', e.target.checked)}
+                    className="rounded"
+                  />
+                  <Label htmlFor={`principal-${index}`} className="cursor-pointer">
+                    Contact principal
+                  </Label>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <div className="flex gap-4">
+          <Button type="submit" disabled={isSubmitting}>
+            <Save className="w-4 h-4 mr-2" />
+            {isSubmitting ? "Création..." : "Créer le prospect"}
+          </Button>
+          
+          <Button type="button" variant="outline" asChild>
+            <Link href="/prospects-db">
+              Annuler
+            </Link>
+          </Button>
+        </div>
+      </form>
     </div>
   )
 }
