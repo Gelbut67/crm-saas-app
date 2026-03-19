@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { ArrowLeft, Save, FileText, Calendar, DollarSign, User, Building } from "lucide-react"
 import { useClients, useProspects, useDevis } from "@/hooks/useDatabase"
 
-export default function NewDevisPage() {
+function NewDevisForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { clients } = useClients()
@@ -262,5 +262,13 @@ export default function NewDevisPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function NewDevisPage() {
+  return (
+    <Suspense fallback={<div>Chargement...</div>}>
+      <NewDevisForm />
+    </Suspense>
   )
 }
