@@ -4,17 +4,87 @@ import { useState } from "react"
 import { useDevis, useClients, useProspects } from "@/hooks/useDatabase"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Plus, FileText, Calendar, DollarSign, User, Building2 } from "lucide-react"
+import { Plus, FileText, Calendar, DollarSign, User, Building2, Search, Edit, Trash2, Eye, Download, Upload, Filter } from "lucide-react"
 import Link from "next/link"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 
 export default function DevisPage() {
-  const { devis, loading, reload: reloadDevis } = useDevis()
+  const { devis, loading, reload } = useDevis()
   const { clients } = useClients()
   const { prospects } = useProspects()
+  const [searchTerm, setSearchTerm] = useState("")
+  const [filterStatut, setFilterStatut] = useState<string>("tous")
   const [showForm, setShowForm] = useState(false)
+
+  // Filtrer les devis
+  const filteredDevis = devis.filter(devi => {
+    const searchLower = searchTerm.toLowerCase()
+    const matchSearch = (
+      devi.titre.toLowerCase().includes(searchLower) ||
+      devi.client.nom.toLowerCase().includes(searchLower) ||
+      (devi.client.entreprise && devi.client.entreprise.toLowerCase().includes(searchLower))
+    )
+    const matchStatut = filterStatut === "tous" || devi.statut === filterStatut
+    return matchSearch && matchStatut
+  })
+
+  // Calculer les statistiques
+  const stats = {
+    total: devis.length,
+    enCours: devis.filter(d => d.statut === 'en_cours').length,
+    gagnes: devis.filter(d => d.statut === 'gagne').length,
+    perdus: devis.filter(d => d.statut === 'perdu').length,
+    caEnCours: devis.filter(d => d.statut === 'en_cours').reduce((sum, d) => sum + d.montant, 0),
+    caGagne: devis.filter(d => d.statut === 'gagne').reduce((sum, d) => sum + d.montant, 0),
+    caPerdu: devis.filter(d => d.statut === 'perdu').reduce((sum, d) => sum + d.montant, 0),
+  }
+
+  const tauxConversion = devis.length > 0 ? Math.round((stats.gagnes / devis.length) * 100) : 0
+
+  // Export CSV
+  const exportCSV = () => {
+    const headers = ['Titre', 'Client', 'Montant', 'Statut', 'Date création', 'Date échéance']
+    const csvContent = [
+      headers.join(','),
+      ...filteredDevis.map(d => [
+        d.titre,
+        `${d.client.nom} ${d.client.entreprise || ''}`.trim(),
+        d.montant.toString(),
+        d.statut,
+        new Date(d.dateCreation).toLocaleDateString('fr-FR'),
+        new Date(d.dateEcheance).toLocaleDateString('fr-FR')
+      ].join(','))
+    ].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', `devis_${new Date().toISOString().split('T')[0]}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  // Export Excel
+  const exportExcel = async () => {
+    const XLSX = await import('xlsx')
+    const worksheet = XLSX.utils.json_to_sheet(filteredDevis.map(d => ({
+      Titre: d.titre,
+      Client: `${d.client.nom} ${d.client.entreprise || ''}`.trim(),
+      Montant: d.montant,
+      Statut: d.statut,
+      'Date création': new Date(d.dateCreation).toLocaleDateString('fr-FR'),
+      'Date échéance': new Date(d.dateEcheance).toLocaleDateString('fr-FR')
+    })))
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Devis')
+    XLSX.writeFile(workbook, `devis_${new Date().toISOString().split('T')[0]}.xlsx`)
+  }
 
   const getStatutBadge = (statut: string) => {
     switch (statut) {
@@ -46,36 +116,139 @@ export default function DevisPage() {
 
   return (
     <div className="p-6 animate-in">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">Devis</h1>
-          <p className="text-muted-foreground">
-            {devis.length} devis{devis.length > 1 ? '' : ''}
-          </p>
+      {/* En-tête avec statistiques */}
+      <div className="mb-6">
+        <div className="flex justify-between items-start mb-6">
+          <div>
+            <h1 className="text-3xl font-bold">Devis</h1>
+            <p className="text-muted-foreground">
+              {devis.length} devis au total
+            </p>
+          </div>
+          <Button onClick={() => setShowForm(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Nouveau devis
+          </Button>
         </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Nouveau devis
-        </Button>
+
+        {/* Cartes de statistiques */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total devis</CardTitle>
+              <FileText className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.total}</div>
+              <p className="text-xs text-muted-foreground">
+                {stats.enCours} en cours
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">CA en cours</CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.caEnCours.toLocaleString()} €</div>
+              <p className="text-xs text-muted-foreground">
+                {stats.enCours} devis
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">CA gagné</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.caGagne.toLocaleString()} €</div>
+              <p className="text-xs text-muted-foreground">
+                {stats.gagnes} devis
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Taux de conversion</CardTitle>
+              <User className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{tauxConversion}%</div>
+              <p className="text-xs text-muted-foreground">
+                {stats.gagnes}/{stats.total}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Barre de recherche et filtres */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <Input
+              placeholder="Rechercher un devis..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <div className="flex gap-2">
+            <select 
+              value={filterStatut} 
+              onChange={(e) => setFilterStatut(e.target.value)}
+              className="px-3 py-2 border rounded-md bg-white"
+            >
+              <option value="tous">Tous les statuts</option>
+              <option value="en_cours">En cours</option>
+              <option value="gagne">Gagnés</option>
+              <option value="perdu">Perdus</option>
+            </select>
+            <Button variant="outline" onClick={exportCSV}>
+              <Download className="w-4 h-4 mr-2" />
+              CSV
+            </Button>
+            <Button variant="outline" onClick={exportExcel}>
+              <Download className="w-4 h-4 mr-2" />
+              Excel
+            </Button>
+            <Button variant="outline">
+              <Upload className="w-4 h-4 mr-2" />
+              Importer
+            </Button>
+          </div>
+        </div>
       </div>
 
-      {devis.length === 0 ? (
+      {/* Liste des devis */}
+      {filteredDevis.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <FileText className="w-12 h-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Aucun devis</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              {searchTerm || filterStatut !== "tous" ? 'Aucun devis trouvé' : 'Aucun devis'}
+            </h3>
             <p className="text-muted-foreground text-center mb-4">
-              Commencez par créer votre premier devis
+              {searchTerm || filterStatut !== "tous" 
+                ? 'Essayez de modifier votre recherche' 
+                : 'Commencez par créer votre premier devis'
+              }
             </p>
-            <Button onClick={() => setShowForm(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Créer un devis
-            </Button>
+            {!searchTerm && filterStatut === "tous" && (
+              <Button onClick={() => setShowForm(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Créer un devis
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4">
-          {devis.map((devi) => (
+          {filteredDevis.map((devi) => (
             <Card key={devi.id} className="hover:shadow-md transition-shadow">
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
@@ -114,7 +287,12 @@ export default function DevisPage() {
                       <div className="flex gap-2">
                         <Button variant="outline" size="sm" asChild>
                           <Link href={`/devis/${devi.id}`}>
-                            Voir détails
+                            <Eye className="w-4 h-4" />
+                          </Link>
+                        </Button>
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href={`/devis/${devi.id}/edit`}>
+                            <Edit className="w-4 h-4" />
                           </Link>
                         </Button>
                       </div>
@@ -157,7 +335,7 @@ export default function DevisPage() {
                   })
                   
                   if (response.ok) {
-                    await reloadDevis()
+                    await reload()
                     setShowForm(false)
                   }
                 } catch (error) {
