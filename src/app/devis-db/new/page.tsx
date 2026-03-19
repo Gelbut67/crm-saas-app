@@ -10,14 +10,19 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeft, Save } from "lucide-react"
-import { useDevis, useClients } from "@/hooks/useDatabase"
+import { useDevis, useClients, useProspects } from "@/hooks/useDatabase"
 
 function NewDevisForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { clients } = useClients()
+  const { prospects } = useProspects()
   const { createDevis } = useDevis()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  // Combiner clients et prospects
+  const allClientsAndProspects = [...clients, ...prospects]
+  
   const [formData, setFormData] = useState({
     titre: "",
     montant: "",
@@ -108,20 +113,26 @@ function NewDevisForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="client">Client</Label>
+              <Label htmlFor="client">Client / Prospect</Label>
               <Select
                 value={formData.clientId}
                 onValueChange={(value) => setFormData({ ...formData, clientId: value })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un client" />
+                  <SelectValue placeholder="Sélectionner un client ou prospect" />
                 </SelectTrigger>
                 <SelectContent>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.nom} {client.entreprise && `- ${client.entreprise}`}
+                  {allClientsAndProspects.length > 0 ? (
+                    allClientsAndProspects.map((item) => (
+                      <SelectItem key={item.id} value={item.id}>
+                        {item.entreprise || item.nom} {item.statut === 'prospect' && '(Prospect)'}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-clients" disabled>
+                      Aucun client ou prospect disponible
                     </SelectItem>
-                  ))}
+                  )}
                 </SelectContent>
               </Select>
             </div>
