@@ -4,6 +4,12 @@ import { prisma } from '@/lib/prisma'
 // GET - Récupérer tous les prospects
 export async function GET() {
   try {
+    console.log('API Prospects GET - Début de la requête')
+    
+    // Test de connexion à la DB
+    await prisma.$connect()
+    console.log('API Prospects GET - Connecté à la DB')
+    
     const prospects = await prisma.client.findMany({
       where: {
         statut: 'prospect'
@@ -19,6 +25,8 @@ export async function GET() {
         }
       }
     })
+    
+    console.log(`API Prospects GET - ${prospects.length} prospects trouvés`)
 
     // Formater pour le frontend
     const formattedProspects = prospects.map(prospect => ({
@@ -32,11 +40,22 @@ export async function GET() {
 
     return NextResponse.json(formattedProspects)
   } catch (error) {
-    console.error('Erreur:', error)
+    console.error('API Prospects GET - Erreur détaillée:', error)
+    
+    if (error instanceof Error) {
+      console.error('API Prospects GET - Message:', error.message)
+      console.error('API Prospects GET - Stack:', error.stack)
+    }
+    
     return NextResponse.json(
-      { error: 'Erreur lors de la récupération des prospects' },
+      { 
+        error: 'Erreur lors de la récupération des prospects',
+        details: error instanceof Error ? error.message : 'Erreur inconnue'
+      },
       { status: 500 }
     )
+  } finally {
+    await prisma.$disconnect()
   }
 }
 

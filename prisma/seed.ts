@@ -3,14 +3,15 @@ import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 async function main() {
-  // Vérifier si la base est vide
-  const clientsCount = await prisma.client.count()
-  
-  if (clientsCount === 0) {
-    console.log('Base de données vide, ajout des données de test...')
+  try {
+    // Vérifier si la base est vide
+    const clientsCount = await prisma.client.count()
     
-    // Créer des clients de test
-    const client1 = await prisma.client.create({
+    if (clientsCount === 0) {
+      console.log('Base de données vide, ajout des données de test...')
+      
+      // Créer des clients de test
+      const client1 = await prisma.client.create({
       data: {
         nom: 'Jean Dupont',
         email: 'jean.dupont@email.com',
