@@ -6,17 +6,39 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Plus, FileText, Calendar, DollarSign, User, Building2, Search, Edit, Trash2, Eye, Download, Upload, Filter } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Plus, FileText, Calendar, DollarSign, User, Building2, Search, Edit, Trash2, Eye, Download, Upload, Filter, MoreHorizontal, TrendingUp, TrendingDown, CheckCircle, XCircle } from "lucide-react"
 import Link from "next/link"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 
 export default function DevisPage() {
   const { devis, loading, reload } = useDevis()
-  const { clients } = useClients()
+  const { clients, reload: reloadClients } = useClients()
   const { prospects } = useProspects()
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatut, setFilterStatut] = useState<string>("tous")
+
+  // Fonction pour changer le statut d'un devis
+  const changerStatut = async (devisId: string, nouveauStatut: string) => {
+    try {
+      const response = await fetch(`/api/devis/${devisId}/statut`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ statut: nouveauStatut }),
+      })
+      
+      if (response.ok) {
+        await reload()
+        await reloadClients()
+      }
+    } catch (error) {
+      console.error('Erreur:', error)
+    }
+  }
 
   // Filtrer les devis
   const filteredDevis = devis.filter(devi => {
@@ -264,7 +286,12 @@ export default function DevisPage() {
                     <div className="space-y-1 text-sm text-muted-foreground mb-3">
                       <div className="flex items-center gap-2">
                         <User className="w-4 h-4" />
-                        {devi.client.nom}
+                        <Link 
+                          href={`/clients-db/${devi.clientId}`}
+                          className="hover:text-primary underline"
+                        >
+                          {devi.client.nom}
+                        </Link>
                         {devi.client.entreprise && (
                           <>
                             <Building2 className="w-4 h-4 ml-2" />
@@ -286,18 +313,67 @@ export default function DevisPage() {
                         <span className="text-2xl font-bold text-green-600">
                           {devi.montant.toLocaleString()} €
                         </span>
+                        {devi.client.caTotal && (
+                          <span className="text-sm text-muted-foreground">
+                            CA client: {devi.client.caTotal.toLocaleString()} €
+                          </span>
+                        )}
                       </div>
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm" asChild>
-                          <Link href={`/devis/${devi.id}`}>
-                            <Eye className="w-4 h-4" />
-                          </Link>
-                        </Button>
-                        <Button variant="outline" size="sm" asChild>
-                          <Link href={`/devis/${devi.id}/edit`}>
-                            <Edit className="w-4 h-4" />
-                          </Link>
-                        </Button>
+                        {devi.statut === 'en_cours' && (
+                          <>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => changerStatut(devi.id, 'gagne')}
+                              className="text-green-600 hover:text-green-700"
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => changerStatut(devi.id, 'perdu')}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <XCircle className="w-4 h-4" />
+                            </Button>
+                          </>
+                        )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm">
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link href={`/devis-db/${devi.id}`}>
+                                <Eye className="w-4 h-4 mr-2" />
+                                Voir
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link href={`/devis-db/${devi.id}/edit`}>
+                                <Edit className="w-4 h-4 mr-2" />
+                                Modifier
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => changerStatut(devi.id, 'en_cours')}>
+                              <TrendingUp className="w-4 h-4 mr-2" />
+                              Mettre en cours
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => changerStatut(devi.id, 'gagne')}>
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              Marquer comme gagné
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => changerStatut(devi.id, 'perdu')}>
+                              <XCircle className="w-4 h-4 mr-2" />
+                              Marquer comme perdu
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
                   </div>

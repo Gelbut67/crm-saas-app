@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Search, Edit, Trash2, Eye, Phone, Mail, Building, Users, TrendingUp, DollarSign, UserCheck, Download, Upload } from "lucide-react"
+import { Plus, Search, Edit, Trash2, Eye, Download, Upload, Mail, Phone, Users, Building2, FileText, Filter } from "lucide-react"
 
 import { useClients } from "@/hooks/useDatabase"
 
@@ -27,16 +27,17 @@ interface Client {
 
 export default function ClientsPage() {
   const { clients, loading, reload } = useClients()
+  const { devis } = useDevis()
   const [searchTerm, setSearchTerm] = useState("")
-  const [clientToDelete, setClientToDelete] = useState<string | null>(null)
+  const [showDeleteDialog, setShowDeleteDialog] = useState<string | null>(null)
 
   // Filtrer les clients
   const filteredClients = clients.filter(client => {
     const searchLower = searchTerm.toLowerCase()
     return (
       client.nom.toLowerCase().includes(searchLower) ||
-      (client.entreprise && client.entreprise.toLowerCase().includes(searchLower)) ||
       (client.email && client.email.toLowerCase().includes(searchLower)) ||
+      (client.entreprise && client.entreprise.toLowerCase().includes(searchLower)) ||
       (client.secteur && client.secteur.toLowerCase().includes(searchLower))
     )
   })
@@ -44,9 +45,8 @@ export default function ClientsPage() {
   // Calculer les statistiques
   const stats = {
     total: clients.length,
-    caTotal: clients.reduce((sum, c) => sum + c.caTotal, 0),
-    caMoyen: clients.length > 0 ? Math.round(clients.reduce((sum, c) => sum + c.caTotal, 0) / clients.length) : 0,
-    croissance: 0 // TODO: calculer depuis le mois dernier
+    caTotal: clients.reduce((sum, client) => sum + (client.caTotal || 0), 0),
+    caMoyen: clients.length > 0 ? clients.reduce((sum, client) => sum + (client.caTotal || 0), 0) / clients.length : 0,
   }
 
   // Export CSV
@@ -279,16 +279,57 @@ export default function ClientsPage() {
                       )}
                     </div>
 
-                    <div className="mt-4 flex items-center justify-between">
-                      <div className="text-sm">
-                        <span className="font-medium">CA total : </span>
-                        <span className="text-green-600 font-semibold">
-                          {client.caTotal.toLocaleString()} €
-                        </span>
+                    <div className="mt-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm">
+                          <span className="font-medium">CA total : </span>
+                          <span className="text-green-600 font-semibold">
+                            {client.caTotal.toLocaleString()} €
+                          </span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Client depuis {new Date(client.dateCreation).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
+                        </div>
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        Client depuis {new Date(client.dateCreation).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
-                      </div>
+                      
+                      {/* Devis récents */}
+                      {client.devis && client.devis.length > 0 && (
+                        <div className="pt-3 border-t">
+                          <div className="text-xs font-medium text-muted-foreground mb-2">
+                            Devis récents ({client.devis.length})
+                          </div>
+                          <div className="space-y-1">
+                            {client.devis.slice(0, 3).map((devis: any) => (
+                              <Link
+                                key={devis.id}
+                                href={`/devis-db/${devis.id}`}
+                                className="flex items-center justify-between text-xs p-2 rounded hover:bg-muted transition-colors"
+                              >
+                                <span className="truncate">{devis.titre}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold">
+                                    {devis.montant.toLocaleString()} €
+                                  </span>
+                                  {devis.statut === 'gagne' && (
+                                    <Badge className="text-xs bg-green-100 text-green-800">G</Badge>
+                                  )}
+                                  {devis.statut === 'en_cours' && (
+                                    <Badge className="text-xs bg-blue-100 text-blue-800">E</Badge>
+                                  )}
+                                  {devis.statut === 'perdu' && (
+                                    <Badge className="text-xs bg-red-100 text-red-800">P</Badge>
+                                  )}
+                                </div>
+                              </Link>
+                            ))}
+                            {client.devis.length > 3 && (
+                              <div className="text-xs text-muted-foreground text-center">
+                                +{client.devis.length - 3} autre(s) devis...
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                   
@@ -299,8 +340,13 @@ export default function ClientsPage() {
                       </Link>
                     </Button>
                     <Button variant="outline" size="sm" asChild>
-                      <Link href={`/clients/${client.id}/edit`}>
+                      <Link href={`/clients-db/${client.id}/edit`}>
                         <Edit className="w-4 h-4" />
+                      </Link>
+                    </Button>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/devis-db/new?clientId=${client.id}`}>
+                        <FileText className="w-4 h-4" />
                       </Link>
                     </Button>
                     <Button 

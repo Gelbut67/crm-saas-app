@@ -2,58 +2,32 @@
 
 import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, Save, FileText, Calendar, DollarSign, User, Building } from "lucide-react"
-import { useClients, useProspects, useDevis } from "@/hooks/useDatabase"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ArrowLeft, Save } from "lucide-react"
+import { useDevis, useClients } from "@/hooks/useDatabase"
 
 function NewDevisForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { clients } = useClients()
-  const { prospects } = useProspects()
-  const { reload: reloadDevis } = useDevis()
+  const { createDevis } = useDevis()
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     titre: "",
     montant: "",
-    clientId: "",
+    clientId: searchParams.get('clientId') || "",
     dateEcheance: "",
     description: ""
   })
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
-  // Pré-remplir avec le clientId si fourni dans l'URL
-  useEffect(() => {
-    const clientId = searchParams.get('clientId')
-    if (clientId) {
-      setFormData(prev => ({ ...prev, clientId }))
-    }
-  }, [searchParams])
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (!formData.titre.trim()) {
-      alert("Veuillez renseigner le titre du devis")
-      return
-    }
-    if (!formData.clientId) {
-      alert("Veuillez sélectionner un client")
-      return
-    }
-    if (!formData.montant || parseFloat(formData.montant) <= 0) {
-      alert("Veuillez renseigner un montant valide")
-      return
-    }
-
     setIsSubmitting(true)
 
     try {
@@ -61,21 +35,14 @@ function NewDevisForm() {
         titre: formData.titre,
         montant: parseFloat(formData.montant),
         clientId: formData.clientId,
-        statut: 'en_cours',
-        dateEcheance: formData.dateEcheance,
+        dateEcheance: new Date(formData.dateEcheance),
         description: formData.description,
+        statut: 'en_cours'
       }
 
-      const response = await fetch('/api/devis', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(devisData),
-      })
+      const success = await createDevis(devisData)
       
-      if (response.ok) {
-        await reloadDevis()
+      if (success) {
         alert("Devis créé avec succès !")
         router.push("/devis-db")
       } else {
@@ -89,173 +56,108 @@ function NewDevisForm() {
     }
   }
 
-  // Définir la date d'échéance par défaut à 30 jours
-  useEffect(() => {
-    if (!formData.dateEcheance) {
-      const defaultDate = new Date()
-      defaultDate.setDate(defaultDate.getDate() + 30)
-      setFormData(prev => ({ 
-        ...prev, 
-        dateEcheance: defaultDate.toISOString().split('T')[0] 
-      }))
-    }
-  }, [])
-
   return (
-    <div className="p-6">
-      <div className="flex items-center gap-4 mb-6">
-        <Button variant="outline" size="sm" onClick={() => router.back()}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Retour
+    <div className="p-6 animate-in">
+      <div className="mb-6">
+        <Button variant="ghost" asChild className="mb-4">
+          <Link href="/devis-db">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Retour aux devis
+          </Link>
         </Button>
-        <div>
-          <h1 className="text-3xl font-bold">Nouveau Devis</h1>
-          <p className="text-muted-foreground">
-            Créez un nouveau devis pour votre client
-          </p>
-        </div>
+        
+        <h1 className="text-3xl font-bold">Nouveau devis</h1>
+        <p className="text-muted-foreground">
+          Créez un nouveau devis pour un client
+        </p>
       </div>
 
       <Card className="max-w-2xl">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Informations du devis
-          </CardTitle>
+          <CardTitle>Informations du devis</CardTitle>
           <CardDescription>
-            Remplissez les informations ci-dessous pour créer un nouveau devis
+            Remplissez les informations pour créer un nouveau devis
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="titre">Titre du devis *</Label>
-                <div className="relative">
-                  <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    id="titre"
-                    placeholder="Ex: Développement site web"
-                    value={formData.titre}
-                    onChange={(e) => handleInputChange("titre", e.target.value)}
-                    className="pl-10"
-                    required
-                  />
-                </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="titre">Titre du devis</Label>
+                <Input
+                  id="titre"
+                  value={formData.titre}
+                  onChange={(e) => setFormData({ ...formData, titre: e.target.value })}
+                  placeholder="Ex: Développement site web"
+                  required
+                />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="montant">Montant (€) *</Label>
-                <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    id="montant"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0.00"
-                    value={formData.montant}
-                    onChange={(e) => handleInputChange("montant", e.target.value)}
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="dateEcheance">Date d'échéance *</Label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    id="dateEcheance"
-                    type="date"
-                    value={formData.dateEcheance}
-                    onChange={(e) => handleInputChange("dateEcheance", e.target.value)}
-                    className="pl-10"
-                    required
-                  />
-                </div>
+                <Label htmlFor="montant">Montant (€)</Label>
+                <Input
+                  id="montant"
+                  type="number"
+                  step="0.01"
+                  value={formData.montant}
+                  onChange={(e) => setFormData({ ...formData, montant: e.target.value })}
+                  placeholder="10000"
+                  required
+                />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="clientId">Client/Prospect *</Label>
-              <Select value={formData.clientId} onValueChange={(value) => handleInputChange("clientId", value)}>
+              <Label htmlFor="client">Client</Label>
+              <Select
+                value={formData.clientId}
+                onValueChange={(value) => setFormData({ ...formData, clientId: value })}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Sélectionnez un client ou prospect" />
+                  <SelectValue placeholder="Sélectionner un client" />
                 </SelectTrigger>
                 <SelectContent>
-                  <optgroup label="Clients">
-                    {clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4" />
-                          {client.nom}
-                          {client.entreprise && (
-                            <>
-                              <span>-</span>
-                              <Building className="h-4 w-4" />
-                              {client.entreprise}
-                            </>
-                          )}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </optgroup>
-                  <optgroup label="Prospects">
-                    {prospects.map((prospect) => (
-                      <SelectItem key={prospect.id} value={prospect.id}>
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4" />
-                          {prospect.nom}
-                          {prospect.entreprise && (
-                            <>
-                              <span>-</span>
-                              <Building className="h-4 w-4" />
-                              {prospect.entreprise}
-                            </>
-                          )}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </optgroup>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.nom} {client.entreprise && `- ${client.entreprise}`}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="dateEcheance">Date d'échéance</Label>
+              <Input
+                id="dateEcheance"
+                type="date"
+                value={formData.dateEcheance}
+                onChange={(e) => setFormData({ ...formData, dateEcheance: e.target.value })}
+                required
+              />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
-                placeholder="Description détaillée du devis..."
                 value={formData.description}
-                onChange={(e) => handleInputChange("description", e.target.value)}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Description détaillée du devis..."
                 rows={4}
               />
             </div>
 
-            <div className="flex gap-4 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => router.back()}
-                className="flex-1"
-              >
-                Annuler
+            <div className="flex gap-4">
+              <Button type="submit" disabled={isSubmitting}>
+                <Save className="w-4 h-4 mr-2" />
+                {isSubmitting ? "Création..." : "Créer le devis"}
               </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex-1"
-              >
-                {isSubmitting ? (
-                  "Création en cours..."
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Créer le devis
-                  </>
-                )}
+              
+              <Button type="button" variant="outline" asChild>
+                <Link href="/devis-db">
+                  Annuler
+                </Link>
               </Button>
             </div>
           </form>
