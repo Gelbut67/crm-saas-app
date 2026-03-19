@@ -8,6 +8,9 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { TrendingUp, Users, FileText, DollarSign, Plus } from 'lucide-react'
 import Link from "next/link"
 import { useObjectifsCA } from "@/hooks/useObjectifsCA"
+import { PrismaClient } from '@prisma/client'
+
+const prisma = new PrismaClient()
 
 // Helper function pour formater les dates
 const formatDate = (date: Date | string) => {
@@ -30,14 +33,18 @@ interface Client {
   secteur?: string
   caTotal: number
   dateCreation: Date | string
-  contacts: any[]
+  contacts: Array<{
+    nom: string
+    email?: string
+    telephone?: string
+  }>
 }
 
 interface Devis {
   id: string
   titre: string
   montant: number
-  statut: 'en_cours' | 'gagne' | 'facture' | 'perdu'
+  statut: 'en_cours' | 'gagne' | 'perdu'
   dateEcheance: string
   dateCreation: string
   client: {
@@ -51,7 +58,11 @@ interface Prospect {
   nomEntreprise: string
   secteur?: string
   dateCreation: Date | string
-  contacts: any[]
+  contacts: Array<{
+    nom: string
+    email?: string
+    telephone?: string
+  }>
 }
 
 export function Dashboard() {
@@ -78,27 +89,16 @@ export function Dashboard() {
     }
   }, [])
 
-  const loadData = () => {
+  const loadData = async () => {
+    setLoading(true)
     try {
-      // Charger les clients
-      const savedClients = localStorage.getItem('clients')
-      if (savedClients) {
-        const parsedClients = JSON.parse(savedClients)
-        setClients(parsedClients)
-      }
-
-      // Charger les devis
-      const savedDevis = localStorage.getItem('devis')
-      if (savedDevis) {
-        const parsedDevis = JSON.parse(savedDevis)
-        setDevis(parsedDevis)
-      }
-
-      // Charger les prospects
-      const savedProspects = localStorage.getItem('prospects')
-      if (savedProspects) {
-        const parsedProspects = JSON.parse(savedProspects)
-        setProspects(parsedProspects)
+      // Charger les données depuis la base de données
+      const response = await fetch('/api/dashboard')
+      if (response.ok) {
+        const data = await response.json()
+        setClients(data.clients || [])
+        setDevis(data.devis || [])
+        setProspects(data.prospects || [])
       }
     } catch (error) {
       console.error("Erreur lors du chargement des données:", error)
@@ -108,7 +108,7 @@ export function Dashboard() {
   }
 
   // Calculer les statistiques réelles
-  const caTotal = devis.filter(d => d.statut === 'gagne' || d.statut === 'facture').reduce((sum, d) => sum + d.montant, 0)
+  const caTotal = devis.filter(d => d.statut === 'gagne').reduce((sum, d) => sum + d.montant, 0)
   const clientsActifs = clients.length
   const devisEnCours = devis.filter(d => d.statut === 'en_cours').reduce((sum, d) => sum + d.montant, 0)
   const tauxConversion = devis.length > 0 ? Math.round((devis.filter(d => d.statut === 'gagne').length / devis.length) * 100) : 0
@@ -117,7 +117,6 @@ export function Dashboard() {
   const pipelineData = [
     { name: 'En cours', value: devis.filter(d => d.statut === 'en_cours').reduce((sum, d) => sum + d.montant, 0), color: '#3b82f6' },
     { name: 'Gagné', value: devis.filter(d => d.statut === 'gagne').reduce((sum, d) => sum + d.montant, 0), color: '#10b981' },
-    { name: 'Facturé', value: devis.filter(d => d.statut === 'facture').reduce((sum, d) => sum + d.montant, 0), color: '#8b5cf6' },
     { name: 'Perdu', value: devis.filter(d => d.statut === 'perdu').reduce((sum, d) => sum + d.montant, 0), color: '#ef4444' },
   ]
 
@@ -135,13 +134,13 @@ export function Dashboard() {
       const monthName = months[targetDate.getMonth()]
       const targetYear = targetDate.getFullYear()
       
-      // Filtrer les devis gagnés et facturés pour ce mois
+      // Filtrer les devis gagnés pour ce mois
       const monthDevis = devis.filter(d => {
         if (!d.dateCreation) return false
         const devisDate = new Date(d.dateCreation)
         return devisDate.getMonth() === targetDate.getMonth() && 
                devisDate.getFullYear() === targetYear &&
-               (d.statut === 'gagne' || d.statut === 'facture')
+               d.statut === 'gagne'
       })
       
       // Calculer le CA total pour ce mois
