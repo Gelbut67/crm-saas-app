@@ -258,13 +258,12 @@ export default function NewProspectPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor={`nom-${index}`}>Nom *</Label>
+                    <Label htmlFor={`nom-${index}`}>Nom</Label>
                     <Input
                       id={`nom-${index}`}
                       value={contact.nom}
                       onChange={(e) => handleContactChange(index, 'nom', e.target.value)}
                       placeholder="Jean Dupont"
-                      required
                     />
                   </div>
 
