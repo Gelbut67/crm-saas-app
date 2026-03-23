@@ -38,7 +38,7 @@ function NewDevisForm() {
     try {
       const devisData = {
         titre: formData.titre,
-        montant: parseFloat(formData.montant),
+        montantTotal: parseFloat(formData.montant),
         clientId: formData.clientId,
         dateEcheance: new Date(formData.dateEcheance),
         description: formData.description,
