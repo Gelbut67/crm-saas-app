@@ -176,11 +176,11 @@ export default function ProspectDetailPage() {
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      {format(new Date(devis.dateCreation), 'dd MMM yyyy', { locale: fr })}
-                    </span>
                     <span className="font-semibold text-green-600">
-                      {devis.montantTotal?.toLocaleString()} €
+                      {devis.montantTotal?.toLocaleString() || 0} €
+                    </span>
+                    <span className="text-muted-foreground">
+                      {format(new Date(devis.dateEcheance), 'dd MMM yyyy', { locale: fr })}
                     </span>
                   </div>
                 </Link>
