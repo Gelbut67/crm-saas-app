@@ -89,7 +89,7 @@ function NewDevisForm() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="titre">Titre du devis</Label>
+                <Label htmlFor="titre">Titre du devis *</Label>
                 <Input
                   id="titre"
                   value={formData.titre}
@@ -108,7 +108,6 @@ function NewDevisForm() {
                   value={formData.montant}
                   onChange={(e) => setFormData({ ...formData, montant: e.target.value })}
                   placeholder="10000"
-                  required
                 />
               </div>
             </div>
@@ -164,7 +163,6 @@ function NewDevisForm() {
                   type="date"
                   value={formData.dateEcheance}
                   onChange={(e) => setFormData({ ...formData, dateEcheance: e.target.value })}
-                  required
                 />
               </div>
             </div>

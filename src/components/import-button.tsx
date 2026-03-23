@@ -39,12 +39,9 @@ export function ImportButton({ onImport, disabled = false, type = 'prospects' }:
   const validateProspectRow = (row: any, index: number): { valid: boolean; errors: ImportError[]; prospect?: any } => {
     const errors: ImportError[] = []
     
-    if (!row.nom || typeof row.nom !== 'string' || row.nom.trim().length === 0) {
-      errors.push({ row: index + 1, field: 'nom', message: 'Le nom est requis' })
-    }
-    
-    if (!row.email || typeof row.email !== 'string' || !row.email.includes('@')) {
-      errors.push({ row: index + 1, field: 'email', message: 'Email invalide' })
+    // Seul le nom d'entreprise est obligatoire
+    if (!row.entreprise || typeof row.entreprise !== 'string' || row.entreprise.trim().length === 0) {
+      errors.push({ row: index + 1, field: 'entreprise', message: 'Le nom de l\'entreprise est requis' })
     }
     
     if (errors.length > 0) {
@@ -53,24 +50,24 @@ export function ImportButton({ onImport, disabled = false, type = 'prospects' }:
     
     const prospect = {
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-      nomEntreprise: row.entreprise ? row.entreprise.trim() : row.nom.trim(), // Utiliser le nom comme entreprise si non fourni
+      nomEntreprise: row.entreprise.trim(),
       secteur: row.secteur ? row.secteur.trim() : '',
       adresse: row.adresse ? row.adresse.trim() : '',
       codePostal: row.codepostal ? row.codepostal.trim() : '',
       ville: row.ville ? row.ville.trim() : '',
       departement: row.departement ? row.departement.trim() : '',
       dateCreation: new Date(),
-      contacts: [
+      contacts: row.nom ? [
         {
           id: Date.now().toString() + "-1",
           nom: row.nom.trim(),
-          email: row.email.trim(),
+          email: row.email ? row.email.trim() : '',
           telephone: row.telephone ? row.telephone.trim() : '',
           poste: "Contact principal",
           isPrincipal: true,
           dateCreation: new Date()
         }
-      ]
+      ] : []
     }
     
     return { valid: true, errors: [], prospect }
@@ -206,7 +203,7 @@ export function ImportButton({ onImport, disabled = false, type = 'prospects' }:
           validationFunction = validateDevisRow
           break
         default: // prospects
-          requiredHeaders = ['nom', 'email']
+          requiredHeaders = ['entreprise']
           validationFunction = validateProspectRow
       }
       
