@@ -239,9 +239,9 @@ export default function ClientDetailPage() {
                       <span className="font-medium">{devis.titre}</span>
                       {getStatutBadge(devis.statut)}
                     </div>
-                    <div className="flex items-center justify-between text-sm text-muted-foreground">
-                      <span>{devis.montant.toLocaleString()} €</span>
-                      <span>{format(new Date(devis.dateEcheance), 'dd MMM yyyy', { locale: fr })}</span>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-semibold text-green-600">{devis.montantTotal?.toLocaleString() || 0} €</span>
+                      <span className="text-muted-foreground">{format(new Date(devis.dateEcheance), 'dd MMM yyyy', { locale: fr })}</span>
                     </div>
                   </Link>
                 ))}
