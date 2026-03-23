@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 
 export interface DevisFilterOptions {
   search: string
-  sortBy: "titre" | "montant" | "dateCreation" | "dateEcheance"
+  sortBy: "titre" | "client" | "montant" | "dateCreation" | "dateEcheance"
   sortOrder: "asc" | "desc"
   statut: string
   montantMin: string
@@ -52,34 +52,33 @@ export function useDevisFiltersDB(devis: any[]) {
 
     // Tri
     result.sort((a, b) => {
-      let aValue: any
-      let bValue: any
+      let comparison = 0
 
       switch (filters.sortBy) {
+        case "client":
+          const aClient = (a.client?.entreprise || a.client?.nom || "").toLowerCase()
+          const bClient = (b.client?.entreprise || b.client?.nom || "").toLowerCase()
+          comparison = aClient.localeCompare(bClient, 'fr')
+          break
         case "titre":
-          aValue = a.titre?.toLowerCase() || ""
-          bValue = b.titre?.toLowerCase() || ""
+          const aTitre = (a.titre || "").toLowerCase()
+          const bTitre = (b.titre || "").toLowerCase()
+          comparison = aTitre.localeCompare(bTitre, 'fr')
           break
         case "montant":
-          aValue = a.montant || 0
-          bValue = b.montant || 0
+          comparison = (a.montant || 0) - (b.montant || 0)
           break
         case "dateCreation":
-          aValue = new Date(a.dateCreation).getTime()
-          bValue = new Date(b.dateCreation).getTime()
+          comparison = new Date(a.dateCreation).getTime() - new Date(b.dateCreation).getTime()
           break
         case "dateEcheance":
-          aValue = new Date(a.dateEcheance).getTime()
-          bValue = new Date(b.dateEcheance).getTime()
+          comparison = new Date(a.dateEcheance).getTime() - new Date(b.dateEcheance).getTime()
           break
         default:
-          aValue = new Date(a.dateCreation).getTime()
-          bValue = new Date(b.dateCreation).getTime()
+          comparison = new Date(a.dateCreation).getTime() - new Date(b.dateCreation).getTime()
       }
 
-      if (aValue < bValue) return filters.sortOrder === "asc" ? -1 : 1
-      if (aValue > bValue) return filters.sortOrder === "asc" ? 1 : -1
-      return 0
+      return filters.sortOrder === "asc" ? comparison : -comparison
     })
 
     return result

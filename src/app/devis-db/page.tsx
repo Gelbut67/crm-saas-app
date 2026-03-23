@@ -226,10 +226,11 @@ export default function DevisDBPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="client">Client (A-Z)</SelectItem>
+                    <SelectItem value="titre">Titre (A-Z)</SelectItem>
                     <SelectItem value="dateCreation">Date création</SelectItem>
                     <SelectItem value="dateEcheance">Date échéance</SelectItem>
                     <SelectItem value="montant">Montant</SelectItem>
-                    <SelectItem value="titre">Titre</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

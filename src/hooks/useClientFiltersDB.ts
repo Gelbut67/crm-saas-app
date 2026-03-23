@@ -68,38 +68,37 @@ export function useClientFiltersDB(clients: any[]) {
 
     // Tri
     result.sort((a, b) => {
-      let aValue: any
-      let bValue: any
+      let comparison = 0
 
       switch (filters.sortBy) {
         case "entreprise":
-          aValue = (a.entreprise || a.nom)?.toLowerCase() || ""
-          bValue = (b.entreprise || b.nom)?.toLowerCase() || ""
+          const aEntreprise = (a.entreprise || a.nom || "").toLowerCase()
+          const bEntreprise = (b.entreprise || b.nom || "").toLowerCase()
+          comparison = aEntreprise.localeCompare(bEntreprise, 'fr')
           break
         case "nom":
-          aValue = a.nom?.toLowerCase() || ""
-          bValue = b.nom?.toLowerCase() || ""
+          const aNom = (a.nom || "").toLowerCase()
+          const bNom = (b.nom || "").toLowerCase()
+          comparison = aNom.localeCompare(bNom, 'fr')
           break
         case "caTotal":
-          aValue = a.caTotal || 0
-          bValue = b.caTotal || 0
+          comparison = (a.caTotal || 0) - (b.caTotal || 0)
           break
         case "dateCreation":
-          aValue = new Date(a.dateCreation).getTime()
-          bValue = new Date(b.dateCreation).getTime()
+          comparison = new Date(a.dateCreation).getTime() - new Date(b.dateCreation).getTime()
           break
         case "derniereInteraction":
-          aValue = a.interactions?.[0]?.date ? new Date(a.interactions[0].date).getTime() : 0
-          bValue = b.interactions?.[0]?.date ? new Date(b.interactions[0].date).getTime() : 0
+          const aInteraction = a.interactions?.[0]?.date ? new Date(a.interactions[0].date).getTime() : 0
+          const bInteraction = b.interactions?.[0]?.date ? new Date(b.interactions[0].date).getTime() : 0
+          comparison = aInteraction - bInteraction
           break
         default:
-          aValue = a.nom?.toLowerCase() || ""
-          bValue = b.nom?.toLowerCase() || ""
+          const aDefault = (a.nom || "").toLowerCase()
+          const bDefault = (b.nom || "").toLowerCase()
+          comparison = aDefault.localeCompare(bDefault, 'fr')
       }
 
-      if (aValue < bValue) return filters.sortOrder === "asc" ? -1 : 1
-      if (aValue > bValue) return filters.sortOrder === "asc" ? 1 : -1
-      return 0
+      return filters.sortOrder === "asc" ? comparison : -comparison
     })
 
     return result

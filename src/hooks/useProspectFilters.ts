@@ -47,7 +47,9 @@ export function useProspectFilters(prospects: any[]) {
 
       switch (filters.sortBy) {
         case "entreprise":
-          comparison = (a.entreprise || a.nomEntreprise || "").localeCompare(b.entreprise || b.nomEntreprise || "")
+          const aEntreprise = (a.entreprise || a.nomEntreprise || "").toLowerCase()
+          const bEntreprise = (b.entreprise || b.nomEntreprise || "").toLowerCase()
+          comparison = aEntreprise.localeCompare(bEntreprise, 'fr')
           break
         case "caTotal":
           comparison = (a.caTotal || 0) - (b.caTotal || 0)
@@ -62,10 +64,14 @@ export function useProspectFilters(prospects: any[]) {
           comparison = aLastInteraction.getTime() - bLastInteraction.getTime()
           break
         case "departement":
-          comparison = (a.departement || "").localeCompare(b.departement || "")
+          const aDept = (a.departement || "").toLowerCase()
+          const bDept = (b.departement || "").toLowerCase()
+          comparison = aDept.localeCompare(bDept, 'fr')
           break
         default:
-          comparison = (a.entreprise || a.nomEntreprise || "").localeCompare(b.entreprise || b.nomEntreprise || "")
+          const aDefault = (a.entreprise || a.nomEntreprise || "").toLowerCase()
+          const bDefault = (b.entreprise || b.nomEntreprise || "").toLowerCase()
+          comparison = aDefault.localeCompare(bDefault, 'fr')
       }
 
       return filters.sortOrder === "desc" ? -comparison : comparison
