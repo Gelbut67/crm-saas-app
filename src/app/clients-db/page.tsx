@@ -47,10 +47,13 @@ export default function ClientsDBPage() {
     id: client.id,
     nomEntreprise: client.entreprise || client.nom,
     secteur: client.secteur || '',
+    adresse: client.adresse || '',
+    codePostal: client.codePostal || '',
+    ville: client.ville || '',
+    departement: client.departement || '',
     caTotal: client.caTotal || 0,
     dateCreation: new Date(client.dateCreation).toLocaleDateString('fr-FR'),
-    contacts: client.contacts?.map((c: any) => c.nom).join(', ') || '',
-    nbDevis: client.devis?.length || 0
+    contacts: client.contacts || []
   }))
 
   if (loading) {

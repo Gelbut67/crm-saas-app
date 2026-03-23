@@ -12,16 +12,19 @@ import {
 import { 
   exportClientsToCSV, 
   exportClientsToExcel,
+  exportProspectsToCSV,
+  exportProspectsToExcel,
   exportDevisToCSV,
   exportDevisToExcel,
   downloadFile,
   ClientExport,
+  ProspectExport,
   DevisExport
 } from "@/lib/export"
 
 interface ExportButtonProps {
-  type: "clients" | "devis"
-  data: ClientExport[] | DevisExport[]
+  type: "clients" | "prospects" | "devis"
+  data: ClientExport[] | ProspectExport[] | DevisExport[]
   disabled?: boolean
 }
 
@@ -58,6 +61,17 @@ export function ExportButton({ type, data, disabled = false }: ExportButtonProps
           downloadFile(blob, filename)
           return
         }
+      } else if (type === "prospects") {
+        const prospects = data as ProspectExport[]
+        
+        if (format === "csv") {
+          await exportProspectsToCSV(prospects)
+          filename = "prospects_export.csv"
+        } else {
+          await exportProspectsToExcel(prospects)
+          filename = "prospects_export.xlsx"
+        }
+        return
       } else {
         const devis = data as DevisExport[]
         
@@ -92,7 +106,9 @@ export function ExportButton({ type, data, disabled = false }: ExportButtonProps
   }
 
   const getExportLabel = () => {
-    return type === "clients" ? "clients" : "devis"
+    if (type === "clients") return "clients"
+    if (type === "prospects") return "prospects"
+    return "devis"
   }
 
   return (

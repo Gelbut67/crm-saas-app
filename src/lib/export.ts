@@ -47,6 +47,10 @@ export interface ClientExport {
   caTotal: number
   dateCreation: Date | string
   contacts: Contact[]
+  adresse?: string
+  ville?: string
+  codePostal?: string
+  departement?: string
 }
 
 export interface ProspectExport {
@@ -55,6 +59,10 @@ export interface ProspectExport {
   secteur?: string
   dateCreation: Date | string
   contacts: Contact[]
+  adresse?: string
+  ville?: string
+  codePostal?: string
+  departement?: string
 }
 
 export interface DevisExport {
@@ -74,6 +82,10 @@ export async function exportClientsToCSV(clients: ClientExport[]) {
     { key: 'id', label: 'ID' },
     { key: 'nomEntreprise', label: 'Entreprise' },
     { key: 'secteur', label: 'Secteur' },
+    { key: 'adresse', label: 'Adresse' },
+    { key: 'codePostal', label: 'Code Postal' },
+    { key: 'ville', label: 'Ville' },
+    { key: 'departement', label: 'Département' },
     { key: 'caTotal', label: 'CA Total' },
     { key: 'dateCreation', label: 'Date de création' },
     { key: 'contactPrincipal', label: 'Contact Principal' },
@@ -113,13 +125,17 @@ export async function exportDevisToCSV(devis: DevisExport[]) {
 // Export clients vers Excel (simplifié)
 export async function exportClientsToExcel(clients: ClientExport[]) {
   // Créer un tableau HTML qui peut être ouvert dans Excel
-  const headers = ['ID', 'Entreprise', 'Secteur', 'CA Total', 'Date de création', 'Contact Principal', 'Email Principal', 'Téléphone Principal']
+  const headers = ['ID', 'Entreprise', 'Secteur', 'Adresse', 'Code Postal', 'Ville', 'Département', 'CA Total', 'Date de création', 'Contact Principal', 'Email Principal', 'Téléphone Principal']
   const rows = clients.map(client => {
     const principalContact = client.contacts.find(c => c.isPrincipal)
     return [
       client.id,
       client.nomEntreprise,
       client.secteur || '',
+      client.adresse || '',
+      client.codePostal || '',
+      client.ville || '',
+      client.departement || '',
       client.caTotal,
       new Date(client.dateCreation).toLocaleDateString('fr-FR'),
       principalContact?.nom || '',
@@ -136,6 +152,64 @@ export async function exportClientsToExcel(clients: ClientExport[]) {
   `
 
   downloadFile(htmlContent, 'clients_export.xls', 'application/vnd.ms-excel')
+}
+
+// Export prospects vers CSV
+export async function exportProspectsToCSV(prospects: ProspectExport[]) {
+  const headers = [
+    { key: 'id', label: 'ID' },
+    { key: 'nomEntreprise', label: 'Entreprise' },
+    { key: 'secteur', label: 'Secteur' },
+    { key: 'adresse', label: 'Adresse' },
+    { key: 'codePostal', label: 'Code Postal' },
+    { key: 'ville', label: 'Ville' },
+    { key: 'departement', label: 'Département' },
+    { key: 'dateCreation', label: 'Date de création' },
+    { key: 'contactPrincipal', label: 'Contact Principal' },
+    { key: 'emailPrincipal', label: 'Email Principal' },
+    { key: 'telephonePrincipal', label: 'Téléphone Principal' }
+  ]
+
+  // Transformer les données pour l'export
+  const exportData = prospects.map(prospect => ({
+    ...prospect,
+    contactPrincipal: prospect.contacts.find(c => c.isPrincipal)?.nom || '',
+    emailPrincipal: prospect.contacts.find(c => c.isPrincipal)?.email || '',
+    telephonePrincipal: prospect.contacts.find(c => c.isPrincipal)?.telephone || ''
+  }))
+
+  const csvContent = generateCSV(exportData, headers)
+  downloadFile(csvContent, 'prospects_export.csv', 'text/csv')
+}
+
+// Export prospects vers Excel (simplifié)
+export async function exportProspectsToExcel(prospects: ProspectExport[]) {
+  const headers = ['ID', 'Entreprise', 'Secteur', 'Adresse', 'Code Postal', 'Ville', 'Département', 'Date de création', 'Contact Principal', 'Email Principal', 'Téléphone Principal']
+  const rows = prospects.map(prospect => {
+    const principalContact = prospect.contacts.find(c => c.isPrincipal)
+    return [
+      prospect.id,
+      prospect.nomEntreprise,
+      prospect.secteur || '',
+      prospect.adresse || '',
+      prospect.codePostal || '',
+      prospect.ville || '',
+      prospect.departement || '',
+      new Date(prospect.dateCreation).toLocaleDateString('fr-FR'),
+      principalContact?.nom || '',
+      principalContact?.email || '',
+      principalContact?.telephone || ''
+    ]
+  })
+
+  const htmlContent = `
+    <table>
+      <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
+      ${rows.map(row => `<tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>`).join('')}
+    </table>
+  `
+
+  downloadFile(htmlContent, 'prospects_export.xls', 'application/vnd.ms-excel')
 }
 
 // Export devis vers Excel (simplifié)

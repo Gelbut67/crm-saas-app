@@ -96,10 +96,12 @@ export default function ProspectsDBPage() {
     id: prospect.id,
     nomEntreprise: prospect.entreprise || prospect.nom,
     secteur: prospect.secteur || '',
-    caTotal: 0,
+    adresse: prospect.adresse || '',
+    codePostal: prospect.codePostal || '',
+    ville: prospect.ville || '',
+    departement: prospect.departement || '',
     dateCreation: new Date(prospect.dateCreation).toLocaleDateString('fr-FR'),
-    contacts: prospect.contacts?.map((c: any) => c.nom).join(', ') || '',
-    nbDevis: 0
+    contacts: prospect.contacts || []
   }))
 
   if (loading) {
@@ -129,8 +131,8 @@ export default function ProspectsDBPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <ExportButton type="clients" data={exportData} />
-            <ImportButton type="clients" />
+            <ExportButton type="prospects" data={exportData} />
+            <ImportButton type="prospects" />
             <Button asChild>
               <Link href="/prospects-db/new">
                 <Plus className="w-4 h-4 mr-2" />
