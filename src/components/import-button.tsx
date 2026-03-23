@@ -438,7 +438,7 @@ export function ImportButton({ onImport, disabled = false, type = 'prospects' }:
                 </Button>
                 {importResults.success > 0 && (
                   <Button asChild className="flex-1">
-                    <a href={`/${type === 'prospects' ? 'prospects' : type === 'clients' ? 'clients' : 'devis'}`}>
+                    <a href={`/${type === 'prospects' ? 'prospects-db' : type === 'clients' ? 'clients-db' : 'devis-db'}`}>
                       Voir les {getTypeLabel()}
                     </a>
                   </Button>
