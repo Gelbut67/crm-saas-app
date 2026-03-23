@@ -17,6 +17,10 @@ model Client {
   telephone     String?
   entreprise    String?
   secteur       String?
+  adresse       String?
+  codePostal    String?
+  ville         String?
+  departement   String?
   statut        String    @default("prospect") // prospect, client
   dateCreation  DateTime  @default(now())
   caTotal       Float     @default(0)

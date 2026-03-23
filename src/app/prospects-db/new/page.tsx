@@ -24,6 +24,10 @@ export default function NewProspectPage() {
   const [formData, setFormData] = useState({
     entreprise: "",
     secteur: "",
+    adresse: "",
+    codePostal: "",
+    ville: "",
+    departement: "",
   })
   const [contacts, setContacts] = useState<Contact[]>([
     { nom: "", email: "", telephone: "", poste: "", isPrincipal: true }
@@ -63,9 +67,12 @@ export default function NewProspectPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          nom: contacts[0].nom,
           entreprise: formData.entreprise,
           secteur: formData.secteur,
+          adresse: formData.adresse,
+          codePostal: formData.codePostal,
+          ville: formData.ville,
+          departement: formData.departement,
           statut: 'prospect',
         }),
       })
@@ -162,6 +169,48 @@ export default function NewProspectPage() {
                     <SelectItem value="Autre">Autre</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="adresse">Adresse</Label>
+              <Input
+                id="adresse"
+                value={formData.adresse}
+                onChange={(e) => setFormData({ ...formData, adresse: e.target.value })}
+                placeholder="123 rue de la République"
+              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="codePostal">Code postal</Label>
+                <Input
+                  id="codePostal"
+                  value={formData.codePostal}
+                  onChange={(e) => setFormData({ ...formData, codePostal: e.target.value })}
+                  placeholder="75001"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ville">Ville</Label>
+                <Input
+                  id="ville"
+                  value={formData.ville}
+                  onChange={(e) => setFormData({ ...formData, ville: e.target.value })}
+                  placeholder="Paris"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="departement">Département</Label>
+                <Input
+                  id="departement"
+                  value={formData.departement}
+                  onChange={(e) => setFormData({ ...formData, departement: e.target.value })}
+                  placeholder="75"
+                />
               </div>
             </div>
           </CardContent>

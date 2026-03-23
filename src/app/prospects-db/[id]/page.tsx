@@ -5,7 +5,7 @@ import { useParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Mail, Phone, User, Edit, MessageSquare, UserPlus } from "lucide-react"
+import { ArrowLeft, Edit, Plus, MessageSquare, Phone, Mail, Building, User, UserPlus, MapPin } from "lucide-react"
 import Link from "next/link"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
@@ -99,7 +99,7 @@ export default function ProspectDetailPage() {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-3xl font-bold mb-2">{prospect.entreprise || prospect.nom}</h1>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mb-2">
               <Badge variant="secondary">Prospect</Badge>
               {prospect.secteur && (
                 <Badge variant="outline">{prospect.secteur}</Badge>
@@ -108,6 +108,15 @@ export default function ProspectDetailPage() {
                 Depuis {format(new Date(prospect.dateCreation), 'dd MMMM yyyy', { locale: fr })}
               </span>
             </div>
+            {(prospect.adresse || prospect.codePostal || prospect.ville) && (
+              <div className="text-sm text-muted-foreground">
+                <MapPin className="w-4 h-4 inline mr-1" />
+                {prospect.adresse && <span>{prospect.adresse}</span>}
+                {prospect.adresse && (prospect.codePostal || prospect.ville) && <span>, </span>}
+                {prospect.codePostal && <span>{prospect.codePostal} </span>}
+                {prospect.ville && <span>{prospect.ville}</span>}
+              </div>
+            )}
           </div>
           <div className="flex gap-2">
             <Button onClick={convertToClient} disabled={converting}>

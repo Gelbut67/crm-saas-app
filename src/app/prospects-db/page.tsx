@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Search, Edit, Trash2, Eye, Phone, Mail, Building, Users, TrendingUp, UserPlus, User } from "lucide-react"
 import { useProspects, useClients } from "@/hooks/useDatabase"
-import { useClientFiltersDB } from "@/hooks/useClientFiltersDB"
+import { useProspectFilters } from "@/hooks/useProspectFilters"
 import { AdvancedFilters } from "@/components/advanced-filters"
 import { ExportButton } from "@/components/export-button"
 import { ImportButton } from "@/components/import-button"
@@ -16,7 +16,7 @@ import { useEffect, useState as useReactState } from "react"
 export default function ProspectsDBPage() {
   const { prospects, loading, reload } = useProspects()
   const { clients } = useClients()
-  const { filters, setFilters, filteredClients: filteredProspects, resetFilters } = useClientFiltersDB(prospects)
+  const { filters, setFilters, filteredAndSortedProspects, filteredCount, totalCount, resetFilters } = useProspectFilters(prospects)
   const [showDeleteDialog, setShowDeleteDialog] = useState<string | null>(null)
   const [convertingProspect, setConvertingProspect] = useState<string | null>(null)
   const [totalConverted, setTotalConverted] = useReactState(0)
@@ -188,22 +188,22 @@ export default function ProspectsDBPage() {
           onFiltersChange={setFilters}
           onReset={resetFilters}
           totalCount={prospects.length}
-          filteredCount={filteredProspects.length}
+          filteredCount={filteredCount}
         />
       </div>
 
       {/* Liste des prospects */}
-      {filteredProspects.length === 0 ? (
+      {filteredAndSortedProspects.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Users className="w-12 h-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">
-              {filters.search || filters.secteur || filters.entreprise ? 'Aucun prospect trouvé' : 'Aucun prospect'}
+              {filters.search || filters.secteur || filters.entreprise || filters.departement || filters.caMin || filters.caMax ? 'Aucun prospect trouvé' : 'Aucun prospect'}
             </h3>
             <p className="text-muted-foreground text-center mb-4">
-              {filters.search || filters.secteur || filters.entreprise ? 'Essayez de modifier vos filtres' : 'Commencez par ajouter votre premier prospect'}
+              {filters.search || filters.secteur || filters.entreprise || filters.departement || filters.caMin || filters.caMax ? 'Essayez de modifier vos filtres' : 'Commencez par ajouter votre premier prospect'}
             </p>
-            {!filters.search && !filters.secteur && !filters.entreprise && (
+            {!filters.search && !filters.secteur && !filters.entreprise && !filters.departement && !filters.caMin && !filters.caMax && (
               <Button asChild>
                 <Link href="/prospects-db/new">
                   <Plus className="w-4 h-4 mr-2" />
@@ -215,7 +215,7 @@ export default function ProspectsDBPage() {
         </Card>
       ) : (
         <div className="grid gap-4">
-          {filteredProspects.map((prospect) => {
+          {filteredAndSortedProspects.map((prospect) => {
             const principalContact = prospect.contacts?.find((c: any) => c.isPrincipal) || prospect.contacts?.[0]
             const otherContactsCount = (prospect.contacts?.length || 0) - 1
             

@@ -88,6 +88,10 @@ export async function POST(request: Request) {
         telephone: data.telephone?.trim() || null,
         entreprise: data.entreprise?.trim() || null,
         secteur: data.secteur?.trim() || null,
+        adresse: data.adresse?.trim() || null,
+        codePostal: data.codePostal?.trim() || null,
+        ville: data.ville?.trim() || null,
+        departement: data.departement?.trim() || null,
         statut: 'prospect',
         dateCreation: new Date(),
       }

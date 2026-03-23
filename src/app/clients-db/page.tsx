@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Search, Edit, Trash2, Eye, Phone, Mail, Building, Users, TrendingUp, DollarSign, FileText, User } from "lucide-react"
 import { useClients, useDevis } from "@/hooks/useDatabase"
-import { useClientFiltersDB } from "@/hooks/useClientFiltersDB"
+import { useClientFilters } from "@/components/advanced-filters"
 import { AdvancedFilters } from "@/components/advanced-filters"
 import { ExportButton } from "@/components/export-button"
 import { ImportButton } from "@/components/import-button"
@@ -16,7 +16,7 @@ import { ImportButton } from "@/components/import-button"
 export default function ClientsDBPage() {
   const { clients, loading, reload } = useClients()
   const { devis } = useDevis()
-  const { filters, setFilters, filteredClients, resetFilters } = useClientFiltersDB(clients)
+  const { filters, setFilters, filteredAndSortedClients, filteredCount, totalCount, resetFilters } = useClientFilters(clients)
   const [showDeleteDialog, setShowDeleteDialog] = useState<string | null>(null)
 
   // Calculer les statistiques
@@ -139,22 +139,22 @@ export default function ClientsDBPage() {
           onFiltersChange={setFilters}
           onReset={resetFilters}
           totalCount={clients.length}
-          filteredCount={filteredClients.length}
+          filteredCount={filteredCount}
         />
       </div>
 
       {/* Liste des clients */}
-      {filteredClients.length === 0 ? (
+      {filteredAndSortedClients.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Users className="w-12 h-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">
-              {filters.search || filters.secteur || filters.entreprise ? 'Aucun client trouvé' : 'Aucun client'}
+              {filters.search || filters.secteur || filters.entreprise || filters.departement || filters.caMin || filters.caMax ? 'Aucun client trouvé' : 'Aucun client'}
             </h3>
             <p className="text-muted-foreground text-center mb-4">
-              {filters.search || filters.secteur || filters.entreprise ? 'Essayez de modifier vos filtres' : 'Commencez par ajouter votre premier client'}
+              {filters.search || filters.secteur || filters.entreprise || filters.departement || filters.caMin || filters.caMax ? 'Essayez de modifier vos filtres' : 'Commencez par ajouter votre premier client'}
             </p>
-            {!filters.search && !filters.secteur && !filters.entreprise && (
+            {!filters.search && !filters.secteur && !filters.entreprise && !filters.departement && !filters.caMin && !filters.caMax && (
               <Button asChild>
                 <Link href="/clients-db/new">
                   <Plus className="w-4 h-4 mr-2" />
@@ -166,7 +166,7 @@ export default function ClientsDBPage() {
         </Card>
       ) : (
         <div className="grid gap-4">
-          {filteredClients.map((client) => {
+          {filteredAndSortedClients.map((client) => {
             const principalContact = client.contacts?.find((c: any) => c.isPrincipal) || client.contacts?.[0]
             const otherContactsCount = (client.contacts?.length || 0) - 1
             

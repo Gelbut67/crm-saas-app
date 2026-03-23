@@ -5,7 +5,7 @@ import { useParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Mail, Phone, Building2, Calendar, Plus, FileText, MessageSquare, User, Edit, DollarSign } from "lucide-react"
+import { ArrowLeft, Edit, Plus, DollarSign, FileText, MessageSquare, Phone, Mail, Building, User, MapPin } from "lucide-react"
 import Link from "next/link"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
@@ -93,7 +93,7 @@ export default function ClientDetailPage() {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-3xl font-bold mb-2">{client.entreprise || client.nom}</h1>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mb-2">
               {client.secteur && (
                 <Badge variant="outline">{client.secteur}</Badge>
               )}
@@ -101,6 +101,15 @@ export default function ClientDetailPage() {
                 Client depuis {format(new Date(client.dateCreation), 'dd MMMM yyyy', { locale: fr })}
               </span>
             </div>
+            {(client.adresse || client.codePostal || client.ville) && (
+              <div className="text-sm text-muted-foreground">
+                <MapPin className="w-4 h-4 inline mr-1" />
+                {client.adresse && <span>{client.adresse}</span>}
+                {client.adresse && (client.codePostal || client.ville) && <span>, </span>}
+                {client.codePostal && <span>{client.codePostal} </span>}
+                {client.ville && <span>{client.ville}</span>}
+              </div>
+            )}
           </div>
           <div className="flex gap-2">
             <Button asChild>
