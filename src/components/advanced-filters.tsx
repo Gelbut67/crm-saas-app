@@ -23,7 +23,7 @@ import {
 
 export interface FilterOptions {
   search: string
-  sortBy: "nom" | "caTotal" | "dateCreation" | "derniereInteraction" | "departement"
+  sortBy: "nom" | "entreprise" | "caTotal" | "dateCreation" | "derniereInteraction" | "departement"
   sortOrder: "asc" | "desc"
   secteur: string
   entreprise: string
@@ -262,6 +262,18 @@ export function AdvancedFilters({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="entreprise-asc">
+                    <div className="flex items-center gap-2">
+                      <Building className="h-4 w-4" />
+                      Entreprise (A-Z)
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="entreprise-desc">
+                    <div className="flex items-center gap-2">
+                      <Building className="h-4 w-4" />
+                      Entreprise (Z-A)
+                    </div>
+                  </SelectItem>
                   <SelectItem value="nom-asc">Nom (A-Z)</SelectItem>
                   <SelectItem value="nom-desc">Nom (Z-A)</SelectItem>
                   <SelectItem value="caTotal-desc">

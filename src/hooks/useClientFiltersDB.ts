@@ -2,10 +2,11 @@ import { useState, useMemo } from 'react'
 
 export interface FilterOptions {
   search: string
-  sortBy: "nom" | "caTotal" | "dateCreation" | "derniereInteraction"
+  sortBy: "nom" | "entreprise" | "caTotal" | "dateCreation" | "derniereInteraction"
   sortOrder: "asc" | "desc"
   secteur: string
   entreprise: string
+  departement: string
   caMin: string
   caMax: string
 }
@@ -17,6 +18,7 @@ export function useClientFiltersDB(clients: any[]) {
     sortOrder: "asc",
     secteur: "",
     entreprise: "",
+    departement: "",
     caMin: "",
     caMax: ""
   })
@@ -70,6 +72,10 @@ export function useClientFiltersDB(clients: any[]) {
       let bValue: any
 
       switch (filters.sortBy) {
+        case "entreprise":
+          aValue = (a.entreprise || a.nom)?.toLowerCase() || ""
+          bValue = (b.entreprise || b.nom)?.toLowerCase() || ""
+          break
         case "nom":
           aValue = a.nom?.toLowerCase() || ""
           bValue = b.nom?.toLowerCase() || ""
@@ -106,6 +112,7 @@ export function useClientFiltersDB(clients: any[]) {
       sortOrder: "asc",
       secteur: "",
       entreprise: "",
+      departement: "",
       caMin: "",
       caMax: ""
     })

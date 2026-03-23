@@ -2,7 +2,7 @@ import { useState } from "react"
 
 export interface FilterOptions {
   search: string
-  sortBy: "nom" | "caTotal" | "dateCreation" | "derniereInteraction" | "departement"
+  sortBy: "nom" | "entreprise" | "caTotal" | "dateCreation" | "derniereInteraction" | "departement"
   sortOrder: "asc" | "desc"
   secteur: string
   entreprise: string
@@ -46,6 +46,9 @@ export function useProspectFilters(prospects: any[]) {
       let comparison = 0
 
       switch (filters.sortBy) {
+        case "entreprise":
+          comparison = (a.entreprise || a.nomEntreprise || "").localeCompare(b.entreprise || b.nomEntreprise || "")
+          break
         case "caTotal":
           comparison = (a.caTotal || 0) - (b.caTotal || 0)
           break

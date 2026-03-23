@@ -216,105 +216,103 @@ export default function ProspectsDBPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
-          {filteredAndSortedProspects.map((prospect) => {
-            const principalContact = prospect.contacts?.find((c: any) => c.isPrincipal) || prospect.contacts?.[0]
-            const otherContactsCount = (prospect.contacts?.length || 0) - 1
-            
-            return (
-              <Card key={prospect.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="text-lg font-semibold">{prospect.entreprise || prospect.nom}</h3>
-                        <Badge variant="secondary">Prospect</Badge>
-                        {prospect.secteur && (
-                          <Badge variant="outline">{prospect.secteur}</Badge>
-                        )}
-                      </div>
-                      
-                      {/* Adresse */}
-                      {(prospect.ville || prospect.departement) && (
-                        <div className="text-sm text-muted-foreground mb-2">
-                          {prospect.ville && <span>{prospect.ville}</span>}
-                          {prospect.ville && prospect.departement && <span> • </span>}
-                          {prospect.departement && <span>Dép. {prospect.departement}</span>}
-                        </div>
-                      )}
-                      
-                      {/* Contact principal */}
-                      {principalContact && (
-                        <div className="space-y-1 text-sm text-muted-foreground mb-3">
-                          <div className="flex items-center gap-2">
-                            <User className="w-4 h-4" />
-                            <span className="font-medium">{principalContact.nom}</span>
-                            {principalContact.poste && (
-                              <span className="text-xs">• {principalContact.poste}</span>
-                            )}
-                          </div>
-                          {principalContact.email && (
-                            <div className="flex items-center gap-2">
-                              <Mail className="w-4 h-4" />
-                              {principalContact.email}
-                            </div>
-                          )}
-                          {principalContact.telephone && (
-                            <div className="flex items-center gap-2">
-                              <Phone className="w-4 h-4" />
-                              {principalContact.telephone}
-                            </div>
-                          )}
-                          {otherContactsCount > 0 && (
-                            <div className="text-xs text-muted-foreground mt-1">
-                              + {otherContactsCount} autre{otherContactsCount > 1 ? 's' : ''} contact{otherContactsCount > 1 ? 's' : ''}
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="mt-4">
-                        <div className="text-xs text-muted-foreground">
-                          Prospect depuis {new Date(prospect.dateCreation).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
-                        </div>
-                      </div>
-                    </div>
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-muted/50 border-b">
+                  <tr>
+                    <th className="text-left p-3 font-medium text-sm">Entreprise</th>
+                    <th className="text-left p-3 font-medium text-sm">Secteur</th>
+                    <th className="text-left p-3 font-medium text-sm">Localisation</th>
+                    <th className="text-left p-3 font-medium text-sm">Contact principal</th>
+                    <th className="text-center p-3 font-medium text-sm">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredAndSortedProspects.map((prospect) => {
+                    const principalContact = prospect.contacts?.find((c: any) => c.isPrincipal) || prospect.contacts?.[0]
+                    const otherContactsCount = (prospect.contacts?.length || 0) - 1
                     
-                    <div className="flex gap-2 ml-4">
-                      <Button 
-                        variant="default" 
-                        size="sm"
-                        onClick={() => convertToClient(prospect.id)}
-                        disabled={convertingProspect === prospect.id}
-                      >
-                        <UserPlus className="w-4 h-4 mr-2" />
-                        {convertingProspect === prospect.id ? 'Conversion...' : 'Convertir'}
-                      </Button>
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/prospects-db/${prospect.id}`}>
-                          <Eye className="w-4 h-4" />
-                        </Link>
-                      </Button>
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/prospects-db/${prospect.id}/edit`}>
-                          <Edit className="w-4 h-4" />
-                        </Link>
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => setShowDeleteDialog(prospect.id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
+                    return (
+                      <tr key={prospect.id} className="border-b hover:bg-muted/30 transition-colors">
+                        <td className="p-3">
+                          <div className="flex items-center gap-2">
+                            <div className="font-medium">{prospect.entreprise || prospect.nom}</div>
+                            <Badge variant="secondary" className="text-xs">Prospect</Badge>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Prospect depuis {new Date(prospect.dateCreation).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          {prospect.secteur && (
+                            <Badge variant="outline" className="text-xs">{prospect.secteur}</Badge>
+                          )}
+                        </td>
+                        <td className="p-3">
+                          <div className="text-sm">
+                            {prospect.ville && <div>{prospect.ville}</div>}
+                            {prospect.departement && <div className="text-xs text-muted-foreground">Dép. {prospect.departement}</div>}
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          {principalContact ? (
+                            <div className="text-sm">
+                              <div className="font-medium">{principalContact.nom}</div>
+                              {principalContact.email && (
+                                <div className="text-xs text-muted-foreground">{principalContact.email}</div>
+                              )}
+                              {principalContact.telephone && (
+                                <div className="text-xs text-muted-foreground">{principalContact.telephone}</div>
+                              )}
+                              {otherContactsCount > 0 && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  +{otherContactsCount} autre{otherContactsCount > 1 ? 's' : ''}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Aucun contact</span>
+                          )}
+                        </td>
+                        <td className="p-3">
+                          <div className="flex items-center justify-center gap-1">
+                            <Button 
+                              variant="default" 
+                              size="sm"
+                              onClick={() => convertToClient(prospect.id)}
+                              disabled={convertingProspect === prospect.id}
+                            >
+                              <UserPlus className="w-4 h-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" asChild>
+                              <Link href={`/prospects-db/${prospect.id}`}>
+                                <Eye className="w-4 h-4" />
+                              </Link>
+                            </Button>
+                            <Button variant="ghost" size="sm" asChild>
+                              <Link href={`/prospects-db/${prospect.id}/edit`}>
+                                <Edit className="w-4 h-4" />
+                              </Link>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setShowDeleteDialog(prospect.id)}
+                            >
+                              <Trash2 className="w-4 h-4 text-red-600" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Confirmation de suppression */}

@@ -276,128 +276,129 @@ export default function DevisDBPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
-          {filteredDevis.map((devi) => (
-            <Card key={devi.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="text-lg font-semibold">{devi.titre}</h3>
-                      {getStatutBadge(devi.statut)}
-                    </div>
-                    
-                    <div className="space-y-1 text-sm text-muted-foreground mb-3">
-                      <div className="flex items-center gap-2">
-                        <User className="w-4 h-4" />
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-muted/50 border-b">
+                  <tr>
+                    <th className="text-left p-3 font-medium text-sm">Titre</th>
+                    <th className="text-left p-3 font-medium text-sm">Client</th>
+                    <th className="text-left p-3 font-medium text-sm">Échéance</th>
+                    <th className="text-right p-3 font-medium text-sm">Montant</th>
+                    <th className="text-center p-3 font-medium text-sm">Statut</th>
+                    <th className="text-center p-3 font-medium text-sm">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredDevis.map((devi) => (
+                    <tr key={devi.id} className="border-b hover:bg-muted/30 transition-colors">
+                      <td className="p-3">
+                        <div className="font-medium">{devi.titre}</div>
+                        {devi.description && (
+                          <div className="text-xs text-muted-foreground truncate max-w-xs">
+                            {devi.description}
+                          </div>
+                        )}
+                      </td>
+                      <td className="p-3">
                         <Link 
                           href={`/clients-db/${devi.clientId}`}
-                          className="hover:text-primary underline"
+                          className="hover:text-primary underline text-sm"
                         >
-                          {devi.client.nom}
+                          {devi.client.entreprise || devi.client.nom}
                         </Link>
-                        {devi.client.entreprise && (
-                          <>
-                            <Building2 className="w-4 h-4 ml-2" />
-                            {devi.client.entreprise}
-                          </>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
-                        Échéance : {format(new Date(devi.dateEcheance), 'dd MMM yyyy', { locale: fr })}
-                      </div>
-                      {devi.description && (
-                        <p className="text-muted-foreground mt-2">{devi.description}</p>
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <span className="text-2xl font-bold text-green-600">
+                      </td>
+                      <td className="p-3">
+                        <div className="text-sm">
+                          {format(new Date(devi.dateEcheance), 'dd MMM yyyy', { locale: fr })}
+                        </div>
+                      </td>
+                      <td className="p-3 text-right">
+                        <div className="font-semibold text-green-600">
                           {devi.montant.toLocaleString()} €
-                        </span>
-                        {devi.client.caTotal && (
-                          <span className="text-sm text-muted-foreground">
-                            CA client: {devi.client.caTotal.toLocaleString()} €
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        {devi.statut === 'en_cours' && (
-                          <>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => changerStatut(devi.id, 'gagne')}
-                              className="text-green-600 hover:text-green-700"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => changerStatut(devi.id, 'facture')}
-                              className="text-purple-600 hover:text-purple-700"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => changerStatut(devi.id, 'perdu')}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              <XCircle className="w-4 h-4" />
-                            </Button>
-                          </>
-                        )}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm">
-                              <MoreHorizontal className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/devis-db/${devi.id}`}>
-                                <Eye className="w-4 h-4 mr-2" />
-                                Voir
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link href={`/devis-db/${devi.id}/edit`}>
-                                <Edit className="w-4 h-4 mr-2" />
-                                Modifier
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => changerStatut(devi.id, 'en_cours')}>
-                              <TrendingUp className="w-4 h-4 mr-2" />
-                              Mettre en cours
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => changerStatut(devi.id, 'gagne')}>
-                              <CheckCircle className="w-4 h-4 mr-2" />
-                              Marquer comme gagné
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => changerStatut(devi.id, 'facture')}>
-                              <CheckCircle className="w-4 h-4 mr-2 text-purple-600" />
-                              Marquer comme facturé
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => changerStatut(devi.id, 'perdu')}>
-                              <XCircle className="w-4 h-4 mr-2" />
-                              Marquer comme perdu
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                        </div>
+                      </td>
+                      <td className="p-3 text-center">
+                        {getStatutBadge(devi.statut)}
+                      </td>
+                      <td className="p-3">
+                        <div className="flex items-center justify-center gap-1">
+                          {devi.statut === 'en_cours' && (
+                            <>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => changerStatut(devi.id, 'gagne')}
+                                className="text-green-600 hover:text-green-700"
+                                title="Gagné"
+                              >
+                                <CheckCircle className="w-4 h-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => changerStatut(devi.id, 'facture')}
+                                className="text-purple-600 hover:text-purple-700"
+                                title="Facturé"
+                              >
+                                <CheckCircle className="w-4 h-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => changerStatut(devi.id, 'perdu')}
+                                className="text-red-600 hover:text-red-700"
+                                title="Perdu"
+                              >
+                                <XCircle className="w-4 h-4" />
+                              </Button>
+                            </>
+                          )}
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link href={`/devis-db/${devi.id}`}>
+                              <Eye className="w-4 h-4" />
+                            </Link>
+                          </Button>
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link href={`/devis-db/${devi.id}/edit`}>
+                              <Edit className="w-4 h-4" />
+                            </Link>
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => changerStatut(devi.id, 'en_cours')}>
+                                <TrendingUp className="w-4 h-4 mr-2" />
+                                Mettre en cours
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => changerStatut(devi.id, 'gagne')}>
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                Marquer comme gagné
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => changerStatut(devi.id, 'facture')}>
+                                <CheckCircle className="w-4 h-4 mr-2 text-purple-600" />
+                                Marquer comme facturé
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => changerStatut(devi.id, 'perdu')}>
+                                <XCircle className="w-4 h-4 mr-2" />
+                                Marquer comme perdu
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   )
