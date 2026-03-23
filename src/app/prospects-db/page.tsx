@@ -92,7 +92,7 @@ export default function ProspectsDBPage() {
   }
 
   // Préparer les données pour l'export
-  const exportData = filteredProspects.map(prospect => ({
+  const exportData = filteredAndSortedProspects.map(prospect => ({
     id: prospect.id,
     nomEntreprise: prospect.entreprise || prospect.nom,
     secteur: prospect.secteur || '',
