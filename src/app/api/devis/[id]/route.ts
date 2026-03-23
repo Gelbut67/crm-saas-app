@@ -68,7 +68,7 @@ export async function PUT(
       },
       data: {
         titre: data.titre,
-        montantTotal: data.montantTotal || data.montant,
+        montant: data.montant,
         statut: data.statut,
         dateEcheance: new Date(data.dateEcheance),
         description: data.description,
@@ -80,8 +80,7 @@ export async function PUT(
     })
 
     // Si le statut ou le montant a changé, recalculer le CA du client
-    const nouveauMontant = data.montantTotal || data.montant
-    if (ancienDevis.statut !== data.statut || ancienDevis.montantTotal !== nouveauMontant || ancienDevis.clientId !== data.clientId) {
+    if (ancienDevis.statut !== data.statut || ancienDevis.montant !== data.montant || ancienDevis.clientId !== data.clientId) {
       // Recalculer le CA de l'ancien client si nécessaire
       if (ancienDevis.clientId !== data.clientId) {
         const anciensDevis = await prisma.devis.findMany({
@@ -90,7 +89,7 @@ export async function PUT(
         
         const caAncienClient = anciensDevis
           .filter(d => d.statut === 'gagne' || d.statut === 'facture')
-          .reduce((sum, d) => sum + (d.montantTotal || 0), 0)
+          .reduce((sum, d) => sum + d.montant, 0)
         
         await prisma.client.update({
           where: { id: ancienDevis.clientId },
@@ -105,7 +104,7 @@ export async function PUT(
       
       const caNouveauClient = nouveauxDevis
         .filter(d => d.statut === 'gagne' || d.statut === 'facture')
-        .reduce((sum, d) => sum + (d.montantTotal || 0), 0)
+        .reduce((sum, d) => sum + d.montant, 0)
       
       await prisma.client.update({
         where: { id: data.clientId },

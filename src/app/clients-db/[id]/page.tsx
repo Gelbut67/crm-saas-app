@@ -240,7 +240,7 @@ export default function ClientDetailPage() {
                       {getStatutBadge(devis.statut)}
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="font-semibold text-green-600">{devis.montantTotal?.toLocaleString() || 0} €</span>
+                      <span className="font-semibold text-green-600">{devis.montant?.toLocaleString() || 0} €</span>
                       <span className="text-muted-foreground">{format(new Date(devis.dateEcheance), 'dd MMM yyyy', { locale: fr })}</span>
                     </div>
                   </Link>

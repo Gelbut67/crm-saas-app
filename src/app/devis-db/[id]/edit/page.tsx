@@ -54,7 +54,7 @@ export default function EditDevisPage() {
           setDevis(devisData)
           setFormData({
             titre: devisData.titre,
-            montant: (devisData.montantTotal || devisData.montant || 0).toString(),
+            montant: (devisData.montant || 0).toString(),
             statut: devisData.statut,
             dateEcheance: format(new Date(devisData.dateEcheance), 'yyyy-MM-dd'),
             description: devisData.description || "",
@@ -92,7 +92,7 @@ export default function EditDevisPage() {
         },
         body: JSON.stringify({
           titre: formData.titre,
-          montantTotal: parseFloat(formData.montant),
+          montant: parseFloat(formData.montant),
           statut: formData.statut,
           dateEcheance: new Date(formData.dateEcheance).toISOString(),
           description: formData.description,
