@@ -44,7 +44,7 @@ interface Devis {
   id: string
   titre: string
   montant: number
-  statut: 'en_cours' | 'gagne' | 'perdu'
+  statut: 'en_cours' | 'gagne' | 'perdu' | 'facture'
   dateEcheance: string
   dateCreation: string
   client: {
@@ -108,15 +108,16 @@ export function Dashboard() {
   }
 
   // Calculer les statistiques réelles
-  const caTotal = devis.filter(d => d.statut === 'gagne').reduce((sum, d) => sum + d.montant, 0)
+  const caTotal = devis.filter(d => d.statut === 'gagne' || d.statut === 'facture').reduce((sum, d) => sum + d.montant, 0)
   const clientsActifs = clients.length
   const devisEnCours = devis.filter(d => d.statut === 'en_cours').reduce((sum, d) => sum + d.montant, 0)
-  const tauxConversion = devis.length > 0 ? Math.round((devis.filter(d => d.statut === 'gagne').length / devis.length) * 100) : 0
+  const tauxConversion = devis.length > 0 ? Math.round((devis.filter(d => d.statut === 'gagne' || d.statut === 'facture').length / devis.length) * 100) : 0
 
   // Données pour le graphique pipeline
   const pipelineData = [
     { name: 'En cours', value: devis.filter(d => d.statut === 'en_cours').reduce((sum, d) => sum + d.montant, 0), color: '#3b82f6' },
     { name: 'Gagné', value: devis.filter(d => d.statut === 'gagne').reduce((sum, d) => sum + d.montant, 0), color: '#10b981' },
+    { name: 'Facturé', value: devis.filter(d => d.statut === 'facture').reduce((sum, d) => sum + d.montant, 0), color: '#8b5cf6' },
     { name: 'Perdu', value: devis.filter(d => d.statut === 'perdu').reduce((sum, d) => sum + d.montant, 0), color: '#ef4444' },
   ]
 
@@ -134,13 +135,13 @@ export function Dashboard() {
       const monthName = months[targetDate.getMonth()]
       const targetYear = targetDate.getFullYear()
       
-      // Filtrer les devis gagnés pour ce mois
+      // Filtrer les devis gagnés ou facturés pour ce mois
       const monthDevis = devis.filter(d => {
         if (!d.dateCreation) return false
         const devisDate = new Date(d.dateCreation)
         return devisDate.getMonth() === targetDate.getMonth() && 
                devisDate.getFullYear() === targetYear &&
-               d.statut === 'gagne'
+               (d.statut === 'gagne' || d.statut === 'facture')
       })
       
       // Calculer le CA total pour ce mois
@@ -163,7 +164,7 @@ export function Dashboard() {
     {
       title: "CA Total",
       value: `${caTotal.toLocaleString()} €`,
-      description: `${devis.filter(d => d.statut === 'gagne').length} devis gagnés / Objectif: ${objectifs.annuel.toLocaleString()} €`,
+      description: `${devis.filter(d => d.statut === 'gagne' || d.statut === 'facture').length} devis gagnés / Objectif: ${objectifs.annuel.toLocaleString()} €`,
       icon: DollarSign,
       trend: caTotal > 0 ? "up" : "stable",
       progress: Math.min((caTotal / objectifs.annuel) * 100, 100)
@@ -185,7 +186,7 @@ export function Dashboard() {
     {
       title: "Taux de conversion",
       value: `${tauxConversion}%`,
-      description: `${devis.filter(d => d.statut === 'gagne').length}/${devis.length} devis`,
+      description: `${devis.filter(d => d.statut === 'gagne' || d.statut === 'facture').length}/${devis.length} devis`,
       icon: TrendingUp,
       trend: tauxConversion > 50 ? "up" : "stable"
     },
