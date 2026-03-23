@@ -55,6 +55,10 @@ export function ImportButton({ onImport, disabled = false, type = 'prospects' }:
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
       nomEntreprise: row.entreprise ? row.entreprise.trim() : row.nom.trim(), // Utiliser le nom comme entreprise si non fourni
       secteur: row.secteur ? row.secteur.trim() : '',
+      adresse: row.adresse ? row.adresse.trim() : '',
+      codePostal: row.codepostal ? row.codepostal.trim() : '',
+      ville: row.ville ? row.ville.trim() : '',
+      departement: row.departement ? row.departement.trim() : '',
       dateCreation: new Date(),
       contacts: [
         {
@@ -87,6 +91,10 @@ export function ImportButton({ onImport, disabled = false, type = 'prospects' }:
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
       nomEntreprise: row.nomentreprise.trim(),
       secteur: row.secteur ? row.secteur.trim() : '',
+      adresse: row.adresse ? row.adresse.trim() : '',
+      codePostal: row.codepostal ? row.codepostal.trim() : '',
+      ville: row.ville ? row.ville.trim() : '',
+      departement: row.departement ? row.departement.trim() : '',
       caTotal: row.catotal ? parseFloat(row.catotal) : 0,
       dateCreation: new Date(),
       contacts: row.contactnom ? [
@@ -303,9 +311,9 @@ export function ImportButton({ onImport, disabled = false, type = 'prospects' }:
     switch (type) {
       case 'clients':
         template = [
-          ['nomEntreprise', 'secteur', 'caTotal', 'contactNom', 'contactEmail', 'contactTelephone'],
-          ['Entreprise ABC', 'Technologie', '25000', 'Jean Dupont', 'jean.dupont@email.com', '06 12 34 56 78'],
-          ['Société XYZ', 'Services', '15000', 'Marie Martin', 'marie.martin@email.com', '06 98 76 54 32']
+          ['nomEntreprise', 'secteur', 'adresse', 'codePostal', 'ville', 'departement', 'caTotal', 'contactNom', 'contactEmail', 'contactTelephone'],
+          ['Entreprise ABC', 'Technologie', '123 Rue de la Paix', '75001', 'Paris', '75', '25000', 'Jean Dupont', 'jean.dupont@email.com', '06 12 34 56 78'],
+          ['Société XYZ', 'Services', '456 Avenue des Champs', '69001', 'Lyon', '69', '15000', 'Marie Martin', 'marie.martin@email.com', '06 98 76 54 32']
         ]
         filename = 'template_clients.xlsx'
         break
@@ -321,9 +329,9 @@ export function ImportButton({ onImport, disabled = false, type = 'prospects' }:
         
       default: // prospects
         template = [
-          ['nom', 'email', 'telephone', 'entreprise', 'secteur'],
-          ['Jean Dupont', 'jean.dupont@email.com', '06 12 34 56 78', 'Entreprise ABC', 'Technologie'],
-          ['Marie Martin', 'marie.martin@email.com', '06 98 76 54 32', 'Société XYZ', 'Services']
+          ['nom', 'email', 'telephone', 'entreprise', 'secteur', 'adresse', 'codePostal', 'ville', 'departement'],
+          ['Jean Dupont', 'jean.dupont@email.com', '06 12 34 56 78', 'Entreprise ABC', 'Technologie', '123 Rue de la Paix', '75001', 'Paris', '75'],
+          ['Marie Martin', 'marie.martin@email.com', '06 98 76 54 32', 'Société XYZ', 'Services', '456 Avenue des Champs', '69001', 'Lyon', '69']
         ]
         filename = 'template_prospects.xlsx'
     }
