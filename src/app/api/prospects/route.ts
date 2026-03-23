@@ -74,16 +74,16 @@ export async function POST(request: Request) {
     const data = await request.json()
     
     // Validation basique
-    if (!data.nom || data.nom.trim() === '') {
+    if (!data.entreprise || data.entreprise.trim() === '') {
       return NextResponse.json(
-        { error: 'Le nom du prospect est obligatoire' },
+        { error: 'Le nom de l\'entreprise est obligatoire' },
         { status: 400 }
       )
     }
     
     const prospect = await prisma.client.create({
       data: {
-        nom: data.nom.trim(),
+        nom: data.entreprise.trim(),
         email: data.email?.trim() || null,
         telephone: data.telephone?.trim() || null,
         entreprise: data.entreprise?.trim() || null,
