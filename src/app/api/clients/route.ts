@@ -59,22 +59,22 @@ export async function GET() {
   }
 }
 
-// POST - Créer un nouveau client
+// POST - Créer un nouveau client ou prospect
 export async function POST(request: Request) {
   try {
     const data = await request.json()
     
-    // Validation basique
-    if (!data.nom || data.nom.trim() === '') {
+    // Validation basique - soit nom soit entreprise doit être fourni
+    if (!data.nom && !data.entreprise) {
       return NextResponse.json(
-        { error: 'Le nom du client est obligatoire' },
+        { error: 'Le nom ou l\'entreprise est obligatoire' },
         { status: 400 }
       )
     }
     
     const client = await prisma.client.create({
       data: {
-        nom: data.nom.trim(),
+        nom: data.nom?.trim() || data.entreprise?.trim() || '',
         email: data.email?.trim() || null,
         telephone: data.telephone?.trim() || null,
         entreprise: data.entreprise?.trim() || null,
@@ -84,7 +84,7 @@ export async function POST(request: Request) {
         ville: data.ville?.trim() || null,
         departement: data.departement?.trim() || null,
         caTotal: parseFloat(data.caTotal) || 0,
-        statut: 'client',
+        statut: data.statut || 'client',
         dateCreation: new Date(),
       }
     })
@@ -93,7 +93,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Erreur:', error)
     return NextResponse.json(
-      { error: 'Erreur lors de la création du client: ' + (error instanceof Error ? error.message : 'Erreur inconnue') },
+      { error: 'Erreur lors de la création: ' + (error instanceof Error ? error.message : 'Erreur inconnue') },
       { status: 500 }
     )
   }
