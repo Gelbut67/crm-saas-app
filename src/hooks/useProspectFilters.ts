@@ -14,7 +14,7 @@ export interface FilterOptions {
 export function useProspectFilters(prospects: any[]) {
   const [filters, setFilters] = useState<FilterOptions>({
     search: "",
-    sortBy: "nom",
+    sortBy: "entreprise",
     sortOrder: "asc",
     secteur: "",
     entreprise: "",
@@ -80,7 +80,7 @@ export function useProspectFilters(prospects: any[]) {
   const resetFilters = () => {
     setFilters({
       search: "",
-      sortBy: "nom",
+      sortBy: "entreprise",
       sortOrder: "asc",
       secteur: "",
       entreprise: "",

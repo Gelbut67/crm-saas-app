@@ -60,7 +60,7 @@ export function AdvancedFilters({
     filters.departement ||
     filters.caMin || 
     filters.caMax ||
-    filters.sortBy !== "nom" ||
+    filters.sortBy !== "entreprise" ||
     filters.sortOrder !== "asc"
 
   const secteurOptions = [
@@ -409,7 +409,7 @@ export function AdvancedFilters({
                   />
                 </Badge>
               )}
-              {(filters.sortBy !== "nom" || filters.sortOrder !== "asc") && (
+              {(filters.sortBy !== "entreprise" || filters.sortOrder !== "asc") && (
                 <Badge variant="secondary" className="flex items-center gap-1">
                   <ArrowUpDown className="h-3 w-3" />
                   Tri: {filters.sortBy === "entreprise" ? "Entreprise" :
@@ -421,7 +421,7 @@ export function AdvancedFilters({
                   <X 
                     className="h-3 w-3 cursor-pointer" 
                     onClick={() => {
-                      updateFilter("sortBy", "nom")
+                      updateFilter("sortBy", "entreprise")
                       updateFilter("sortOrder", "asc")
                     }}
                   />
@@ -439,7 +439,7 @@ export function AdvancedFilters({
 export function useClientFilters(clients: any[]) {
   const [filters, setFilters] = useState<FilterOptions>({
     search: "",
-    sortBy: "nom",
+    sortBy: "entreprise",
     sortOrder: "asc",
     secteur: "",
     entreprise: "",
@@ -512,7 +512,7 @@ export function useClientFilters(clients: any[]) {
   const resetFilters = () => {
     setFilters({
       search: "",
-      sortBy: "nom",
+      sortBy: "entreprise",
       sortOrder: "asc",
       secteur: "",
       entreprise: "",
