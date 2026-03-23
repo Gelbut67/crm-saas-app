@@ -43,7 +43,7 @@ export default function ClientsDBPage() {
   }
 
   // Préparer les données pour l'export
-  const exportData = filteredClients.map(client => ({
+  const exportData = filteredAndSortedClients.map(client => ({
     id: client.id,
     nomEntreprise: client.entreprise || client.nom,
     secteur: client.secteur || '',
