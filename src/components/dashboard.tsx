@@ -96,9 +96,14 @@ export function Dashboard() {
       const response = await fetch('/api/dashboard')
       if (response.ok) {
         const data = await response.json()
+        console.log('Dashboard data:', data)
+        console.log('Devis:', data.devis)
+        console.log('Devis statuts:', data.devis?.map((d: any) => d.statut))
         setClients(data.clients || [])
         setDevis(data.devis || [])
         setProspects(data.prospects || [])
+      } else {
+        console.error('API response not ok:', response.status)
       }
     } catch (error) {
       console.error("Erreur lors du chargement des données:", error)
@@ -112,6 +117,15 @@ export function Dashboard() {
   const clientsActifs = clients.length
   const devisEnCours = devis.filter(d => d.statut === 'en_cours').reduce((sum, d) => sum + d.montant, 0)
   const tauxConversion = devis.length > 0 ? Math.round((devis.filter(d => d.statut === 'gagne' || d.statut === 'facture').length / devis.length) * 100) : 0
+  
+  console.log('Stats calculées:', {
+    totalDevis: devis.length,
+    devisEnCours: devis.filter(d => d.statut === 'en_cours').length,
+    devisEnCoursTotal: devisEnCours,
+    devisGagnes: devis.filter(d => d.statut === 'gagne' || d.statut === 'facture').length,
+    caTotal,
+    tauxConversion
+  })
 
   // Données pour le graphique pipeline
   const pipelineData = [
