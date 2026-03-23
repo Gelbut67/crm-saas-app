@@ -70,23 +70,24 @@ export function Dashboard() {
   const [devis, setDevis] = useState<Devis[]>([])
   const [prospects, setProspects] = useState<Prospect[]>([])
   const [loading, setLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const objectifs = useObjectifsCA()
 
   useEffect(() => {
-    loadData()
+    loadData(true) // Premier chargement avec loading screen
     
     // Écouter les mises à jour pour actualiser en temps réel
     const handleDataUpdate = () => {
-      loadData()
+      loadData(false) // Rafraîchissement silencieux
     }
     
     window.addEventListener('clientUpdated', handleDataUpdate)
     window.addEventListener('devisUpdated', handleDataUpdate)
     
-    // Rafraîchir automatiquement toutes les 10 secondes
+    // Rafraîchir automatiquement toutes les 30 secondes (au lieu de 10)
     const intervalId = setInterval(() => {
-      loadData()
-    }, 10000)
+      loadData(false) // Rafraîchissement silencieux
+    }, 30000)
     
     return () => {
       window.removeEventListener('clientUpdated', handleDataUpdate)
@@ -95,8 +96,12 @@ export function Dashboard() {
     }
   }, [])
 
-  const loadData = async () => {
-    setLoading(true)
+  const loadData = async (showLoading = false) => {
+    if (showLoading) {
+      setLoading(true)
+    } else {
+      setIsRefreshing(true)
+    }
     try {
       // Charger les données depuis la base de données avec cache-busting
       const response = await fetch(`/api/dashboard?t=${Date.now()}`, {
@@ -121,6 +126,7 @@ export function Dashboard() {
       console.error("Erreur lors du chargement des données:", error)
     } finally {
       setLoading(false)
+      setIsRefreshing(false)
     }
   }
 
@@ -240,13 +246,14 @@ export function Dashboard() {
         </div>
         <div className="flex gap-3">
           <Button 
-            onClick={() => loadData()} 
+            onClick={() => loadData(true)} 
             variant="ghost" 
             size="sm"
             className="hover-lift"
+            disabled={isRefreshing}
           >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Actualiser
+            <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Actualisation...' : 'Actualiser'}
           </Button>
           <Button asChild className="button-modern">
             <Link href="/devis-db/new">
