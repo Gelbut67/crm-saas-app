@@ -28,7 +28,8 @@ function NewDevisForm() {
     montant: "",
     clientId: searchParams.get('clientId') || "",
     dateEcheance: "",
-    description: ""
+    description: "",
+    statut: "en_cours"
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -42,7 +43,7 @@ function NewDevisForm() {
         clientId: formData.clientId,
         dateEcheance: new Date(formData.dateEcheance),
         description: formData.description,
-        statut: 'en_cours'
+        statut: formData.statut
       }
 
       const success = await createDevis(devisData)
@@ -137,15 +138,35 @@ function NewDevisForm() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="dateEcheance">Date d'échéance</Label>
-              <Input
-                id="dateEcheance"
-                type="date"
-                value={formData.dateEcheance}
-                onChange={(e) => setFormData({ ...formData, dateEcheance: e.target.value })}
-                required
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="statut">Statut</Label>
+                <Select
+                  value={formData.statut}
+                  onValueChange={(value) => setFormData({ ...formData, statut: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un statut" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="en_cours">En cours</SelectItem>
+                    <SelectItem value="gagne">Gagné</SelectItem>
+                    <SelectItem value="perdu">Perdu</SelectItem>
+                    <SelectItem value="facture">Facturé</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="dateEcheance">Date d'échéance</Label>
+                <Input
+                  id="dateEcheance"
+                  type="date"
+                  value={formData.dateEcheance}
+                  onChange={(e) => setFormData({ ...formData, dateEcheance: e.target.value })}
+                  required
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
