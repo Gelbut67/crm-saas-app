@@ -49,25 +49,13 @@ export function ImportButton({ onImport, disabled = false, type = 'prospects' }:
     }
     
     const prospect = {
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-      nomEntreprise: row.entreprise.trim(),
+      entreprise: row.entreprise.trim(),
       secteur: row.secteur ? row.secteur.trim() : '',
       adresse: row.adresse ? row.adresse.trim() : '',
       codePostal: row.codepostal ? row.codepostal.trim() : '',
       ville: row.ville ? row.ville.trim() : '',
       departement: row.departement ? row.departement.trim() : '',
-      dateCreation: new Date(),
-      contacts: row.nom ? [
-        {
-          id: Date.now().toString() + "-1",
-          nom: row.nom.trim(),
-          email: row.email ? row.email.trim() : '',
-          telephone: row.telephone ? row.telephone.trim() : '',
-          poste: "Contact principal",
-          isPrincipal: true,
-          dateCreation: new Date()
-        }
-      ] : []
+      statut: 'prospect'
     }
     
     return { valid: true, errors: [], prospect }
@@ -85,26 +73,13 @@ export function ImportButton({ onImport, disabled = false, type = 'prospects' }:
     }
     
     const client = {
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-      nomEntreprise: row.nomentreprise.trim(),
+      entreprise: row.nomentreprise.trim(),
       secteur: row.secteur ? row.secteur.trim() : '',
       adresse: row.adresse ? row.adresse.trim() : '',
       codePostal: row.codepostal ? row.codepostal.trim() : '',
       ville: row.ville ? row.ville.trim() : '',
       departement: row.departement ? row.departement.trim() : '',
-      caTotal: row.catotal ? parseFloat(row.catotal) : 0,
-      dateCreation: new Date(),
-      contacts: row.contactnom ? [
-        {
-          id: Date.now().toString() + "-1",
-          nom: row.contactnom.trim(),
-          email: row.contactemail ? row.contactemail.trim() : '',
-          telephone: row.contacttelephone ? row.contacttelephone.trim() : '',
-          poste: "Contact principal",
-          isPrincipal: true,
-          dateCreation: new Date()
-        }
-      ] : []
+      statut: 'client'
     }
     
     return { valid: true, errors: [], client }
@@ -238,30 +213,45 @@ export function ImportButton({ onImport, disabled = false, type = 'prospects' }:
         }
       })
 
-      // Sauvegarde dans localStorage selon le type
+      // Sauvegarde dans la base de données via API
       if (validData.length > 0) {
-        let storageKey: string
+        let apiEndpoint: string
         let eventKey: string
         
         switch (type) {
           case 'clients':
-            storageKey = 'clients'
+            apiEndpoint = '/api/clients'
             eventKey = 'clientAdded'
             break
           case 'devis':
-            storageKey = 'devis'
+            apiEndpoint = '/api/devis'
             eventKey = 'devisAdded'
             break
           default: // prospects
-            storageKey = 'prospects'
+            apiEndpoint = '/api/clients'
             eventKey = 'prospectAdded'
         }
         
-        console.log(`Saving ${validData.length} items to ${storageKey}:`, validData)
-        const existingData = JSON.parse(localStorage.getItem(storageKey) || '[]')
-        const updatedData = [...existingData, ...validData]
-        localStorage.setItem(storageKey, JSON.stringify(updatedData))
-        console.log(`Updated ${storageKey}:`, updatedData)
+        console.log(`Saving ${validData.length} items to database via ${apiEndpoint}:`, validData)
+        
+        // Sauvegarder chaque élément via l'API
+        for (const item of validData) {
+          try {
+            const response = await fetch(apiEndpoint, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(item),
+            })
+            
+            if (!response.ok) {
+              console.error(`Failed to save item:`, item, response.statusText)
+            }
+          } catch (error) {
+            console.error(`Error saving item:`, item, error)
+          }
+        }
         
         // Déclencher l'événement pour recharger la liste
         window.dispatchEvent(new CustomEvent(eventKey))
