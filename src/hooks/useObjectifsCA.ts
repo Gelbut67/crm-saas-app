@@ -12,19 +12,23 @@ export function useObjectifsCA() {
   })
 
   useEffect(() => {
-    // Charger les objectifs depuis localStorage
-    if (typeof window !== 'undefined') {
-      const savedObjectifs = localStorage.getItem('objectifsCA')
-      if (savedObjectifs) {
-        try {
-          const parsed = JSON.parse(savedObjectifs)
-          setObjectifs(parsed)
-        } catch (error) {
-          console.error("Erreur lors du chargement des objectifs:", error)
+    // Charger les objectifs depuis l'API
+    const loadObjectifs = async () => {
+      try {
+        const response = await fetch('/api/settings?key=objectifsCA')
+        if (response.ok) {
+          const data = await response.json()
+          setObjectifs(data.value)
         }
+      } catch (error) {
+        console.error("Erreur lors du chargement des objectifs:", error)
       }
+    }
 
-      // Écouter les mises à jour
+    loadObjectifs()
+
+    // Écouter les mises à jour
+    if (typeof window !== 'undefined') {
       const handleObjectifsUpdated = (event: CustomEvent) => {
         setObjectifs(event.detail)
       }

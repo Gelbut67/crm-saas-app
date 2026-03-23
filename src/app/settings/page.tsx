@@ -20,30 +20,48 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    // Charger les objectifs depuis localStorage
-    if (typeof window !== 'undefined') {
-      const savedObjectifs = localStorage.getItem('objectifsCA')
-      if (savedObjectifs) {
-        try {
-          const parsed = JSON.parse(savedObjectifs)
-          setObjectifs(parsed)
-        } catch (error) {
-          console.error("Erreur lors du chargement des objectifs:", error)
+    // Charger les objectifs depuis l'API
+    const loadObjectifs = async () => {
+      try {
+        const response = await fetch('/api/settings?key=objectifsCA')
+        if (response.ok) {
+          const data = await response.json()
+          setObjectifs(data.value)
+        } else if (response.status === 404) {
+          // Paramètre non trouvé, utiliser les valeurs par défaut
+          console.log('Utilisation des objectifs par défaut')
         }
+      } catch (error) {
+        console.error("Erreur lors du chargement des objectifs:", error)
       }
     }
+    
+    loadObjectifs()
   }, [])
 
-  const handleSave = () => {
+  const handleSave = async () => {
     try {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('objectifsCA', JSON.stringify(objectifs))
-        
+      const response = await fetch('/api/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          key: 'objectifsCA',
+          value: objectifs
+        })
+      })
+
+      if (response.ok) {
         // Déclencher un événement pour notifier les autres pages
-        window.dispatchEvent(new CustomEvent('objectifsUpdated', { detail: objectifs }))
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('objectifsUpdated', { detail: objectifs }))
+        }
+        setSaved(true)
+        setTimeout(() => setSaved(false), 2000)
+      } else {
+        console.error("Erreur lors de la sauvegarde")
       }
-      setSaved(true)
-      setTimeout(() => setSaved(false), 2000)
     } catch (error) {
       console.error("Erreur lors de la sauvegarde:", error)
     }

@@ -73,3 +73,12 @@ model Devis {
   
   @@map("devis")
 }
+
+model Settings {
+  id              String   @id @default(cuid())
+  key             String   @unique
+  value           String
+  dateModification DateTime @default(now()) @updatedAt
+  
+  @@map("settings")
+}
