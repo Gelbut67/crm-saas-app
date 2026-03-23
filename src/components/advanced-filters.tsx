@@ -487,11 +487,25 @@ export function useClientFilters(clients: any[]) {
       return filters.sortOrder === "desc" ? -comparison : comparison
     })
 
+  const resetFilters = () => {
+    setFilters({
+      search: "",
+      sortBy: "nom",
+      sortOrder: "asc",
+      secteur: "",
+      entreprise: "",
+      departement: "",
+      caMin: "",
+      caMax: ""
+    })
+  }
+
   return {
     filters,
     setFilters,
     filteredAndSortedClients,
     filteredCount: filteredAndSortedClients.length,
-    totalCount: clients.length
+    totalCount: clients.length,
+    resetFilters
   }
 }
