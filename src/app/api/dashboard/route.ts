@@ -69,6 +69,11 @@ export async function GET() {
       }]
     }))
 
+    console.log('Dashboard API - Total devis:', devis.length)
+    console.log('Dashboard API - Devis statuts:', devis.map(d => ({ titre: d.titre, statut: d.statut, montant: d.montant })))
+    console.log('Dashboard API - Clients actifs:', clientsActifs.length)
+    console.log('Dashboard API - Prospects:', prospects.length)
+
     return NextResponse.json({
       clients: formattedClients,
       devis: formattedDevis,
