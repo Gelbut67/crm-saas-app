@@ -182,6 +182,15 @@ export default function ClientsDBPage() {
                         )}
                       </div>
                       
+                      {/* Adresse */}
+                      {(client.ville || client.departement) && (
+                        <div className="text-sm text-muted-foreground mb-2">
+                          {client.ville && <span>{client.ville}</span>}
+                          {client.ville && client.departement && <span> • </span>}
+                          {client.departement && <span>Dép. {client.departement}</span>}
+                        </div>
+                      )}
+                      
                       {/* Contact principal */}
                       {principalContact && (
                         <div className="space-y-1 text-sm text-muted-foreground mb-3">

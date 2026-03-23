@@ -79,6 +79,10 @@ export async function PUT(
       data: {
         entreprise: data.entreprise?.trim() || null,
         secteur: data.secteur?.trim() || null,
+        adresse: data.adresse?.trim() || null,
+        codePostal: data.codePostal?.trim() || null,
+        ville: data.ville?.trim() || null,
+        departement: data.departement?.trim() || null,
       }
     })
 

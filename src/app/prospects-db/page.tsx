@@ -232,6 +232,15 @@ export default function ProspectsDBPage() {
                         )}
                       </div>
                       
+                      {/* Adresse */}
+                      {(prospect.ville || prospect.departement) && (
+                        <div className="text-sm text-muted-foreground mb-2">
+                          {prospect.ville && <span>{prospect.ville}</span>}
+                          {prospect.ville && prospect.departement && <span> • </span>}
+                          {prospect.departement && <span>Dép. {prospect.departement}</span>}
+                        </div>
+                      )}
+                      
                       {/* Contact principal */}
                       {principalContact && (
                         <div className="space-y-1 text-sm text-muted-foreground mb-3">
