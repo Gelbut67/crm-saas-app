@@ -168,147 +168,98 @@ export default function ClientsDBPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
-          {filteredAndSortedClients.map((client) => {
-            const principalContact = client.contacts?.find((c: any) => c.isPrincipal) || client.contacts?.[0]
-            const otherContactsCount = (client.contacts?.length || 0) - 1
-            
-            return (
-              <Card key={client.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="text-lg font-semibold">{client.entreprise || client.nom}</h3>
-                        {client.secteur && (
-                          <Badge variant="outline">{client.secteur}</Badge>
-                        )}
-                      </div>
-                      
-                      {/* Adresse */}
-                      {(client.ville || client.departement) && (
-                        <div className="text-sm text-muted-foreground mb-2">
-                          {client.ville && <span>{client.ville}</span>}
-                          {client.ville && client.departement && <span> • </span>}
-                          {client.departement && <span>Dép. {client.departement}</span>}
-                        </div>
-                      )}
-                      
-                      {/* Contact principal */}
-                      {principalContact && (
-                        <div className="space-y-1 text-sm text-muted-foreground mb-3">
-                          <div className="flex items-center gap-2">
-                            <User className="w-4 h-4" />
-                            <span className="font-medium">{principalContact.nom}</span>
-                            {principalContact.poste && (
-                              <span className="text-xs">• {principalContact.poste}</span>
-                            )}
-                          </div>
-                          {principalContact.email && (
-                            <div className="flex items-center gap-2">
-                              <Mail className="w-4 h-4" />
-                              {principalContact.email}
-                            </div>
-                          )}
-                          {principalContact.telephone && (
-                            <div className="flex items-center gap-2">
-                              <Phone className="w-4 h-4" />
-                              {principalContact.telephone}
-                            </div>
-                          )}
-                          {otherContactsCount > 0 && (
-                            <div className="text-xs text-muted-foreground mt-1">
-                              + {otherContactsCount} autre{otherContactsCount > 1 ? 's' : ''} contact{otherContactsCount > 1 ? 's' : ''}
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="mt-4 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="text-sm">
-                            <span className="font-medium">CA total : </span>
-                            <span className="text-green-600 font-semibold">
-                              {client.caTotal.toLocaleString()} €
-                            </span>
-                          </div>
+        <Card>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-muted/50 border-b">
+                  <tr>
+                    <th className="text-left p-3 font-medium text-sm">Entreprise</th>
+                    <th className="text-left p-3 font-medium text-sm">Secteur</th>
+                    <th className="text-left p-3 font-medium text-sm">Localisation</th>
+                    <th className="text-left p-3 font-medium text-sm">Contact principal</th>
+                    <th className="text-right p-3 font-medium text-sm">CA Total</th>
+                    <th className="text-center p-3 font-medium text-sm">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredAndSortedClients.map((client) => {
+                    const principalContact = client.contacts?.find((c: any) => c.isPrincipal) || client.contacts?.[0]
+                    const otherContactsCount = (client.contacts?.length || 0) - 1
+                    
+                    return (
+                      <tr key={client.id} className="border-b hover:bg-muted/30 transition-colors">
+                        <td className="p-3">
+                          <div className="font-medium">{client.entreprise || client.nom}</div>
                           <div className="text-xs text-muted-foreground">
                             Client depuis {new Date(client.dateCreation).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
                           </div>
-                        </div>
-                        
-                        {/* Devis récents */}
-                        {client.devis && client.devis.length > 0 && (
-                          <div className="pt-3 border-t">
-                            <div className="text-xs font-medium text-muted-foreground mb-2">
-                              Devis récents ({client.devis.length})
-                            </div>
-                            <div className="space-y-1">
-                              {client.devis.slice(0, 3).map((devis: any) => (
-                                <Link
-                                  key={devis.id}
-                                  href={`/devis-db/${devis.id}`}
-                                  className="flex items-center justify-between text-xs p-2 rounded hover:bg-muted transition-colors"
-                                >
-                                  <span className="truncate">{devis.titre}</span>
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-semibold">
-                                      {devis.montant.toLocaleString()} €
-                                    </span>
-                                    {devis.statut === 'gagne' && (
-                                      <Badge className="text-xs bg-green-100 text-green-800">G</Badge>
-                                    )}
-                                    {devis.statut === 'en_cours' && (
-                                      <Badge className="text-xs bg-blue-100 text-blue-800">E</Badge>
-                                    )}
-                                    {devis.statut === 'perdu' && (
-                                      <Badge className="text-xs bg-red-100 text-red-800">P</Badge>
-                                    )}
-                                  </div>
-                                </Link>
-                              ))}
-                              {client.devis.length > 3 && (
-                                <div className="text-xs text-muted-foreground text-center">
-                                  +{client.devis.length - 3} autre(s) devis...
+                        </td>
+                        <td className="p-3">
+                          {client.secteur && (
+                            <Badge variant="outline" className="text-xs">{client.secteur}</Badge>
+                          )}
+                        </td>
+                        <td className="p-3">
+                          <div className="text-sm">
+                            {client.ville && <div>{client.ville}</div>}
+                            {client.departement && <div className="text-xs text-muted-foreground">Dép. {client.departement}</div>}
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          {principalContact ? (
+                            <div className="text-sm">
+                              <div className="font-medium">{principalContact.nom}</div>
+                              {principalContact.email && (
+                                <div className="text-xs text-muted-foreground">{principalContact.email}</div>
+                              )}
+                              {principalContact.telephone && (
+                                <div className="text-xs text-muted-foreground">{principalContact.telephone}</div>
+                              )}
+                              {otherContactsCount > 0 && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  +{otherContactsCount} autre{otherContactsCount > 1 ? 's' : ''}
                                 </div>
                               )}
                             </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Aucun contact</span>
+                          )}
+                        </td>
+                        <td className="p-3 text-right">
+                          <div className="font-semibold text-green-600">
+                            {client.caTotal.toLocaleString()} €
                           </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="flex gap-2 ml-4">
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/clients-db/${client.id}`}>
-                          <Eye className="w-4 h-4" />
-                        </Link>
-                      </Button>
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/clients-db/${client.id}/edit`}>
-                          <Edit className="w-4 h-4" />
-                        </Link>
-                      </Button>
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/devis-db/new?clientId=${client.id}`}>
-                          <FileText className="w-4 h-4" />
-                        </Link>
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => setShowDeleteDialog(client.id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
+                        </td>
+                        <td className="p-3">
+                          <div className="flex items-center justify-center gap-1">
+                            <Button variant="ghost" size="sm" asChild>
+                              <Link href={`/clients-db/${client.id}`}>
+                                <Eye className="w-4 h-4" />
+                              </Link>
+                            </Button>
+                            <Button variant="ghost" size="sm" asChild>
+                              <Link href={`/clients-db/${client.id}/edit`}>
+                                <Edit className="w-4 h-4" />
+                              </Link>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setShowDeleteDialog(client.id)}
+                            >
+                              <Trash2 className="w-4 h-4 text-red-600" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Confirmation de suppression */}
