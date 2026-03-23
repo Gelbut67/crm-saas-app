@@ -83,10 +83,10 @@ export function Dashboard() {
     window.addEventListener('clientUpdated', handleDataUpdate)
     window.addEventListener('devisUpdated', handleDataUpdate)
     
-    // Rafraîchir automatiquement toutes les 30 secondes
+    // Rafraîchir automatiquement toutes les 10 secondes
     const intervalId = setInterval(() => {
       loadData()
-    }, 30000)
+    }, 10000)
     
     return () => {
       window.removeEventListener('clientUpdated', handleDataUpdate)
@@ -98,8 +98,14 @@ export function Dashboard() {
   const loadData = async () => {
     setLoading(true)
     try {
-      // Charger les données depuis la base de données
-      const response = await fetch('/api/dashboard')
+      // Charger les données depuis la base de données avec cache-busting
+      const response = await fetch(`/api/dashboard?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      })
       if (response.ok) {
         const data = await response.json()
         console.log('Dashboard data:', data)

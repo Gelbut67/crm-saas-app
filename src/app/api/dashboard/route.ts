@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export async function GET() {
   try {
     // Récupérer tous les clients
@@ -74,11 +77,18 @@ export async function GET() {
     console.log('Dashboard API - Clients actifs:', clientsActifs.length)
     console.log('Dashboard API - Prospects:', prospects.length)
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       clients: formattedClients,
       devis: formattedDevis,
       prospects: formattedProspects,
     })
+    
+    // Désactiver complètement le cache
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    response.headers.set('Pragma', 'no-cache')
+    response.headers.set('Expires', '0')
+    
+    return response
   } catch (error) {
     console.error('Erreur dashboard:', error)
     return NextResponse.json(
