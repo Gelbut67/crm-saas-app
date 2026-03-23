@@ -412,7 +412,8 @@ export function AdvancedFilters({
               {(filters.sortBy !== "nom" || filters.sortOrder !== "asc") && (
                 <Badge variant="secondary" className="flex items-center gap-1">
                   <ArrowUpDown className="h-3 w-3" />
-                  Tri: {filters.sortBy === "caTotal" ? "CA" : 
+                  Tri: {filters.sortBy === "entreprise" ? "Entreprise" :
+                         filters.sortBy === "caTotal" ? "CA" : 
                          filters.sortBy === "dateCreation" ? "Date" : 
                          filters.sortBy === "derniereInteraction" ? "Interaction" : 
                          filters.sortBy === "departement" ? "Département" : "Nom"}
@@ -477,6 +478,11 @@ export function useClientFilters(clients: any[]) {
       let comparison = 0
 
       switch (filters.sortBy) {
+        case "entreprise":
+          const aEntreprise = (a.entreprise || a.nom || "").toLowerCase()
+          const bEntreprise = (b.entreprise || b.nom || "").toLowerCase()
+          comparison = aEntreprise.localeCompare(bEntreprise, 'fr')
+          break
         case "caTotal":
           comparison = a.caTotal - b.caTotal
           break
@@ -490,10 +496,14 @@ export function useClientFilters(clients: any[]) {
           comparison = aLastInteraction.getTime() - bLastInteraction.getTime()
           break
         case "departement":
-          comparison = (a.departement || "").localeCompare(b.departement || "")
+          const aDept = (a.departement || "").toLowerCase()
+          const bDept = (b.departement || "").toLowerCase()
+          comparison = aDept.localeCompare(bDept, 'fr')
           break
         default:
-          comparison = a.nom.localeCompare(b.nom)
+          const aNom = (a.nom || "").toLowerCase()
+          const bNom = (b.nom || "").toLowerCase()
+          comparison = aNom.localeCompare(bNom, 'fr')
       }
 
       return filters.sortOrder === "desc" ? -comparison : comparison
