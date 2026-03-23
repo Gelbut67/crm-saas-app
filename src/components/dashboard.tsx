@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
-import { TrendingUp, Users, FileText, DollarSign, Plus } from 'lucide-react'
+import { TrendingUp, Users, FileText, DollarSign, Plus, RefreshCw } from 'lucide-react'
 import Link from "next/link"
 import { useObjectifsCA } from "@/hooks/useObjectifsCA"
 import { PrismaClient } from '@prisma/client'
@@ -83,9 +83,15 @@ export function Dashboard() {
     window.addEventListener('clientUpdated', handleDataUpdate)
     window.addEventListener('devisUpdated', handleDataUpdate)
     
+    // Rafraîchir automatiquement toutes les 30 secondes
+    const intervalId = setInterval(() => {
+      loadData()
+    }, 30000)
+    
     return () => {
       window.removeEventListener('clientUpdated', handleDataUpdate)
       window.removeEventListener('devisUpdated', handleDataUpdate)
+      clearInterval(intervalId)
     }
   }, [])
 
@@ -227,6 +233,15 @@ export function Dashboard() {
           </p>
         </div>
         <div className="flex gap-3">
+          <Button 
+            onClick={() => loadData()} 
+            variant="ghost" 
+            size="sm"
+            className="hover-lift"
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Actualiser
+          </Button>
           <Button asChild className="button-modern">
             <Link href="/devis-db/new">
               <Plus className="mr-2 h-4 w-4" />

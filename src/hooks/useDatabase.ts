@@ -135,6 +135,8 @@ export function useDevis() {
       
       if (response.ok) {
         await loadDevis()
+        // Déclencher l'événement pour mettre à jour le dashboard
+        window.dispatchEvent(new CustomEvent('devisUpdated'))
         return true
       } else {
         const errorData = await response.json()

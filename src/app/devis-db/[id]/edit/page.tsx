@@ -101,6 +101,8 @@ export default function EditDevisPage() {
       })
 
       if (response.ok) {
+        // Déclencher l'événement pour mettre à jour le dashboard
+        window.dispatchEvent(new CustomEvent('devisUpdated'))
         router.push(`/devis-db/${params.id}`)
       } else {
         alert("Erreur lors de la modification du devis")
