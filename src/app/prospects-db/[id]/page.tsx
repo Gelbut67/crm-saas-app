@@ -5,7 +5,7 @@ import { useParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Edit, Plus, MessageSquare, Phone, Mail, Building, User, UserPlus, MapPin } from "lucide-react"
+import { ArrowLeft, Edit, Plus, MessageSquare, Phone, Mail, Building, User, UserPlus, MapPin, FileText } from "lucide-react"
 import Link from "next/link"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
@@ -132,6 +132,74 @@ export default function ProspectDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Devis */}
+      <Card className="mb-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Devis</CardTitle>
+              <CardDescription>
+                Liste des devis pour ce prospect
+              </CardDescription>
+            </div>
+            <Button asChild>
+              <Link href={`/devis-db/new?clientId=${prospect.id}`}>
+                <Plus className="w-4 h-4 mr-2" />
+                Nouveau devis
+              </Link>
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {prospect.devis && prospect.devis.length > 0 ? (
+            <div className="space-y-3">
+              {prospect.devis.map((devis: any) => (
+                <Link 
+                  key={devis.id} 
+                  href={`/devis-db/${devis.id}`}
+                  className="block p-4 border rounded-lg hover:bg-accent transition-colors"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      <span className="font-medium">{devis.titre}</span>
+                    </div>
+                    <Badge variant={
+                      devis.statut === 'accepte' ? 'default' :
+                      devis.statut === 'refuse' ? 'destructive' :
+                      devis.statut === 'en_cours' ? 'secondary' : 'outline'
+                    }>
+                      {devis.statut === 'accepte' ? 'Accepté' :
+                       devis.statut === 'refuse' ? 'Refusé' :
+                       devis.statut === 'en_cours' ? 'En cours' : 'Brouillon'}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      {format(new Date(devis.dateCreation), 'dd MMM yyyy', { locale: fr })}
+                    </span>
+                    <span className="font-semibold text-green-600">
+                      {devis.montantTotal?.toLocaleString()} €
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-sm text-muted-foreground mb-4">Aucun devis</p>
+              <Button asChild variant="outline">
+                <Link href={`/devis-db/new?clientId=${prospect.id}`}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Créer un devis
+                </Link>
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Contacts */}

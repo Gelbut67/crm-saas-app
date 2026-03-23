@@ -22,6 +22,11 @@ export async function GET(
           orderBy: {
             date: 'desc'
           }
+        },
+        devis: {
+          orderBy: {
+            dateCreation: 'desc'
+          }
         }
       }
     })
@@ -44,6 +49,11 @@ export async function GET(
       interactions: (prospect as any).interactions?.map((int: any) => ({
         ...int,
         date: int.date.toISOString()
+      })) || [],
+      devis: (prospect as any).devis?.map((devis: any) => ({
+        ...devis,
+        dateCreation: devis.dateCreation.toISOString(),
+        dateEcheance: devis.dateEcheance.toISOString()
       })) || []
     }
 
