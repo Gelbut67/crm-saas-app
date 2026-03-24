@@ -14,6 +14,8 @@ interface Contact {
   nom: string
   email: string
   telephone: string
+  telephoneFixe: string
+  telephonePortable: string
   poste: string
   isPrincipal: boolean
 }
@@ -30,11 +32,11 @@ export default function NewProspectPage() {
     departement: "",
   })
   const [contacts, setContacts] = useState<Contact[]>([
-    { nom: "", email: "", telephone: "", poste: "", isPrincipal: true }
+    { nom: "", email: "", telephone: "", telephoneFixe: "", telephonePortable: "", poste: "", isPrincipal: true }
   ])
 
   const handleAddContact = () => {
-    setContacts([...contacts, { nom: "", email: "", telephone: "", poste: "", isPrincipal: false }])
+    setContacts([...contacts, { nom: "", email: "", telephone: "", telephoneFixe: "", telephonePortable: "", poste: "", isPrincipal: false }])
   }
 
   const handleRemoveContact = (index: number) => {
@@ -92,6 +94,8 @@ export default function NewProspectPage() {
                 nom: contact.nom,
                 email: contact.email || null,
                 telephone: contact.telephone || null,
+                telephoneFixe: contact.telephoneFixe || null,
+                telephonePortable: contact.telephonePortable || null,
                 poste: contact.poste || null,
                 isPrincipal: contact.isPrincipal,
               }),
@@ -289,11 +293,21 @@ export default function NewProspectPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor={`telephone-${index}`}>Téléphone</Label>
+                    <Label htmlFor={`telephoneFixe-${index}`}>Téléphone Fixe</Label>
                     <Input
-                      id={`telephone-${index}`}
-                      value={contact.telephone}
-                      onChange={(e) => handleContactChange(index, 'telephone', e.target.value)}
+                      id={`telephoneFixe-${index}`}
+                      value={contact.telephoneFixe}
+                      onChange={(e) => handleContactChange(index, 'telephoneFixe', e.target.value)}
+                      placeholder="01 23 45 67 89"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor={`telephonePortable-${index}`}>Téléphone Portable</Label>
+                    <Input
+                      id={`telephonePortable-${index}`}
+                      value={contact.telephonePortable}
+                      onChange={(e) => handleContactChange(index, 'telephonePortable', e.target.value)}
                       placeholder="06 12 34 56 78"
                     />
                   </div>

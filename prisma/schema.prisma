@@ -11,19 +11,21 @@ datasource db {
 }
 
 model Client {
-  id            String    @id @default(cuid())
-  nom           String
-  email         String?
-  telephone     String?
-  entreprise    String?
-  secteur       String?
-  adresse       String?
-  codePostal    String?
-  ville         String?
-  departement   String?
-  statut        String    @default("prospect") // prospect, client
-  dateCreation  DateTime  @default(now())
-  caTotal       Float     @default(0)
+  id               String    @id @default(cuid())
+  nom              String
+  email            String?
+  telephone        String?
+  telephoneFixe    String?
+  telephonePortable String?
+  entreprise       String?
+  secteur          String?
+  adresse          String?
+  codePostal       String?
+  ville            String?
+  departement      String?
+  statut           String    @default("prospect") // prospect, client
+  dateCreation     DateTime  @default(now())
+  caTotal          Float     @default(0)
   
   contacts      Contact[]
   interactions  Interaction[]
@@ -33,14 +35,16 @@ model Client {
 }
 
 model Contact {
-  id           String   @id @default(cuid())
-  clientId     String
-  nom          String
-  email        String?
-  telephone    String?
-  poste        String?
-  isPrincipal  Boolean  @default(false)
-  dateCreation DateTime @default(now())
+  id               String   @id @default(cuid())
+  clientId         String
+  nom              String
+  email            String?
+  telephone        String?
+  telephoneFixe    String?
+  telephonePortable String?
+  poste            String?
+  isPrincipal      Boolean  @default(false)
+  dateCreation     DateTime @default(now())
   
   client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   

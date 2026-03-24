@@ -239,11 +239,21 @@ export default function ProspectDetailPage() {
                           </a>
                         </div>
                       )}
-                      {contact.telephone && (
+                      {contact.telephoneFixe && (
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <Phone className="w-3 h-3" />
-                          <a href={`tel:${contact.telephone}`} className="hover:text-primary">
-                            {contact.telephone}
+                          <span className="text-xs">Fixe:</span>
+                          <a href={`tel:${contact.telephoneFixe}`} className="hover:text-primary">
+                            {contact.telephoneFixe}
+                          </a>
+                        </div>
+                      )}
+                      {contact.telephonePortable && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Phone className="w-3 h-3" />
+                          <span className="text-xs">Mobile:</span>
+                          <a href={`tel:${contact.telephonePortable}`} className="hover:text-primary">
+                            {contact.telephonePortable}
                           </a>
                         </div>
                       )}
