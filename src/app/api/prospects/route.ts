@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+// Désactiver le cache pour cette route
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 // GET - Récupérer tous les prospects
 export async function GET() {
   try {
@@ -47,7 +51,13 @@ export async function GET() {
       })) || []
     }))
 
-    return NextResponse.json(formattedProspects)
+    return NextResponse.json(formattedProspects, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    })
   } catch (error) {
     console.error('API Prospects GET - Erreur détaillée:', error)
     

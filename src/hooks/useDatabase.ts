@@ -21,6 +21,18 @@ export function useClients() {
 
   useEffect(() => {
     loadClients()
+    
+    // Écouter les événements de mise à jour
+    const handleClientAdded = () => loadClients()
+    const handleProspectConverted = () => loadClients()
+    
+    window.addEventListener('clientAdded', handleClientAdded)
+    window.addEventListener('prospectConverted', handleProspectConverted)
+    
+    return () => {
+      window.removeEventListener('clientAdded', handleClientAdded)
+      window.removeEventListener('prospectConverted', handleProspectConverted)
+    }
   }, [loadClients])
 
   const createClient = async (clientData: any) => {
@@ -71,6 +83,18 @@ export function useProspects() {
 
   useEffect(() => {
     loadProspects()
+    
+    // Écouter les événements de mise à jour
+    const handleProspectAdded = () => loadProspects()
+    const handleProspectConverted = () => loadProspects()
+    
+    window.addEventListener('prospectAdded', handleProspectAdded)
+    window.addEventListener('prospectConverted', handleProspectConverted)
+    
+    return () => {
+      window.removeEventListener('prospectAdded', handleProspectAdded)
+      window.removeEventListener('prospectConverted', handleProspectConverted)
+    }
   }, [loadProspects])
 
   const createProspect = async (prospectData: any) => {
@@ -121,6 +145,18 @@ export function useDevis() {
 
   useEffect(() => {
     loadDevis()
+    
+    // Écouter les événements de mise à jour
+    const handleDevisAdded = () => loadDevis()
+    const handleDevisUpdated = () => loadDevis()
+    
+    window.addEventListener('devisAdded', handleDevisAdded)
+    window.addEventListener('devisUpdated', handleDevisUpdated)
+    
+    return () => {
+      window.removeEventListener('devisAdded', handleDevisAdded)
+      window.removeEventListener('devisUpdated', handleDevisUpdated)
+    }
   }, [loadDevis])
 
   const createDevis = async (devisData: any) => {

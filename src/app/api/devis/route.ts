@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+// Désactiver le cache pour cette route
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 // GET - Récupérer tous les devis
 export async function GET() {
   try {
@@ -27,7 +31,13 @@ export async function GET() {
       dateEcheance: devi.dateEcheance.toISOString()
     }))
 
-    return NextResponse.json(formattedDevis)
+    return NextResponse.json(formattedDevis, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    })
   } catch (error) {
     console.error('Erreur:', error)
     return NextResponse.json(

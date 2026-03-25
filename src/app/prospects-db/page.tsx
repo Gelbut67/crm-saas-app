@@ -79,6 +79,8 @@ export default function ProspectsDBPage() {
       
       if (response.ok) {
         await reload()
+        // Déclencher l'événement pour mettre à jour les listes
+        window.dispatchEvent(new CustomEvent('prospectConverted'))
         alert('Prospect converti en client avec succès !')
       } else {
         alert('Erreur lors de la conversion')
