@@ -82,11 +82,14 @@ export async function POST(request: Request) {
       )
     }
     
+    // Créer le client/prospect
     const client = await prisma.client.create({
       data: {
         nom: data.nom?.trim() || data.entreprise?.trim() || '',
         email: data.email?.trim() || null,
         telephone: data.telephone?.trim() || null,
+        telephonePortable: data.telephonePortable?.trim() || null,
+        telephoneFixe: data.telephoneFixe?.trim() || null,
         entreprise: data.entreprise?.trim() || null,
         secteur: data.secteur?.trim() || null,
         adresse: data.adresse?.trim() || null,
@@ -98,6 +101,21 @@ export async function POST(request: Request) {
         dateCreation: new Date(),
       }
     })
+
+    // Créer un contact principal si des informations de contact sont fournies
+    if (data.nom || data.email || data.telephonePortable || data.telephoneFixe) {
+      await prisma.contact.create({
+        data: {
+          clientId: client.id,
+          nom: data.nom?.trim() || data.entreprise?.trim() || 'Contact principal',
+          email: data.email?.trim() || null,
+          telephonePortable: data.telephonePortable?.trim() || null,
+          telephoneFixe: data.telephoneFixe?.trim() || null,
+          isPrincipal: true,
+          dateCreation: new Date(),
+        }
+      })
+    }
 
     return NextResponse.json(client)
   } catch (error) {
