@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { 
   Download, 
   FileSpreadsheet,
@@ -30,6 +31,7 @@ interface ExportButtonProps {
 
 export function ExportButton({ type, data, disabled = false }: ExportButtonProps) {
   const [isExporting, setIsExporting] = useState<string | null>(null)
+  const [selectedStatut, setSelectedStatut] = useState<string>("tous")
 
   const handleExport = async (format: "csv" | "excel") => {
     if (disabled || data.length === 0) return
@@ -39,9 +41,15 @@ export function ExportButton({ type, data, disabled = false }: ExportButtonProps
     try {
       let filename = ""
       let content = ""
+      
+      // Filtrer les données selon le statut sélectionné pour les devis
+      let filteredData = data
+      if (type === "devis" && selectedStatut !== "tous") {
+        filteredData = (data as DevisExport[]).filter(d => d.statut === selectedStatut)
+      }
 
       if (type === "clients") {
-        const clients = data as ClientExport[]
+        const clients = filteredData as ClientExport[]
         
         if (format === "csv") {
           await exportClientsToCSV(clients)
@@ -62,7 +70,7 @@ export function ExportButton({ type, data, disabled = false }: ExportButtonProps
           return
         }
       } else if (type === "prospects") {
-        const prospects = data as ProspectExport[]
+        const prospects = filteredData as ProspectExport[]
         
         if (format === "csv") {
           await exportProspectsToCSV(prospects)
@@ -73,7 +81,7 @@ export function ExportButton({ type, data, disabled = false }: ExportButtonProps
         }
         return
       } else {
-        const devis = data as DevisExport[]
+        const devis = filteredData as DevisExport[]
         
         if (format === "csv") {
           await exportDevisToCSV(devis)
@@ -113,8 +121,25 @@ export function ExportButton({ type, data, disabled = false }: ExportButtonProps
 
   return (
     <div className="flex items-center gap-2">
+      {type === "devis" && (
+        <Select value={selectedStatut} onValueChange={setSelectedStatut}>
+          <SelectTrigger className="w-[140px] h-9">
+            <SelectValue placeholder="Statut" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="tous">Tous les devis</SelectItem>
+            <SelectItem value="en_cours">En cours</SelectItem>
+            <SelectItem value="gagne">Gagné</SelectItem>
+            <SelectItem value="facture">Facturé</SelectItem>
+            <SelectItem value="perdu">Perdu</SelectItem>
+          </SelectContent>
+        </Select>
+      )}
+      
       <Badge variant="secondary" className="text-xs">
-        {data.length} {getExportLabel()}
+        {type === "devis" && selectedStatut !== "tous" 
+          ? (data as DevisExport[]).filter(d => d.statut === selectedStatut).length
+          : data.length} {getExportLabel()}
       </Badge>
       
       <Button
