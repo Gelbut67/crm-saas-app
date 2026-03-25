@@ -36,6 +36,12 @@ export function ImportButton({ onImport, disabled = false, type = 'prospects' }:
   const [showResults, setShowResults] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Helper pour convertir les valeurs en string de manière sécurisée
+  const toSafeString = (value: any): string => {
+    if (value === null || value === undefined) return ''
+    return String(value).trim()
+  }
+
   const validateProspectRow = (row: any, index: number): { valid: boolean; errors: ImportError[]; prospect?: any } => {
     const errors: ImportError[] = []
     
@@ -49,16 +55,16 @@ export function ImportButton({ onImport, disabled = false, type = 'prospects' }:
     }
     
     const prospect = {
-      entreprise: row.entreprise.trim(),
-      secteur: row.secteur ? row.secteur.trim() : '',
-      adresse: row.adresse ? row.adresse.trim() : '',
-      codePostal: row.codepostal ? row.codepostal.trim() : '',
-      ville: row.ville ? row.ville.trim() : '',
-      departement: row.departement ? row.departement.trim() : '',
-      telephonePortable: row.telephoneportable ? row.telephoneportable.trim() : '',
-      telephoneFixe: row.telephonefixe ? row.telephonefixe.trim() : '',
-      nom: row.nom ? row.nom.trim() : '',
-      email: row.email ? row.email.trim() : '',
+      entreprise: toSafeString(row.entreprise),
+      secteur: toSafeString(row.secteur),
+      adresse: toSafeString(row.adresse),
+      codePostal: toSafeString(row.codepostal),
+      ville: toSafeString(row.ville),
+      departement: toSafeString(row.departement),
+      telephonePortable: toSafeString(row.telephoneportable),
+      telephoneFixe: toSafeString(row.telephonefixe),
+      nom: toSafeString(row.nom),
+      email: toSafeString(row.email),
       statut: 'prospect'
     }
     
@@ -77,12 +83,12 @@ export function ImportButton({ onImport, disabled = false, type = 'prospects' }:
     }
     
     const client = {
-      entreprise: row.nomentreprise.trim(),
-      secteur: row.secteur ? row.secteur.trim() : '',
-      adresse: row.adresse ? row.adresse.trim() : '',
-      codePostal: row.codepostal ? row.codepostal.trim() : '',
-      ville: row.ville ? row.ville.trim() : '',
-      departement: row.departement ? row.departement.trim() : '',
+      entreprise: toSafeString(row.nomentreprise),
+      secteur: toSafeString(row.secteur),
+      adresse: toSafeString(row.adresse),
+      codePostal: toSafeString(row.codepostal),
+      ville: toSafeString(row.ville),
+      departement: toSafeString(row.departement),
       statut: 'client'
     }
     
@@ -114,15 +120,15 @@ export function ImportButton({ onImport, disabled = false, type = 'prospects' }:
     
     const devis = {
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-      titre: row.titre.trim(),
+      titre: toSafeString(row.titre),
       montant: parseFloat(row.montant),
       statut: row.statut,
       dateEcheance: row.dateEcheance || new Date().toISOString().split('T')[0],
       dateCreation: new Date().toISOString().split('T')[0],
-      description: row.description ? row.description.trim() : '',
+      description: toSafeString(row.description),
       client: {
-        nom: row.client.trim(),
-        entreprise: row.clientEntreprise ? row.clientEntreprise.trim() : ''
+        nom: toSafeString(row.client),
+        entreprise: toSafeString(row.clientEntreprise)
       }
     }
     
