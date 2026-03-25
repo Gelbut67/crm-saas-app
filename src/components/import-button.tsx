@@ -55,6 +55,10 @@ export function ImportButton({ onImport, disabled = false, type = 'prospects' }:
       codePostal: row.codepostal ? row.codepostal.trim() : '',
       ville: row.ville ? row.ville.trim() : '',
       departement: row.departement ? row.departement.trim() : '',
+      telephonePortable: row.telephoneportable ? row.telephoneportable.trim() : '',
+      telephoneFixe: row.telephonefixe ? row.telephonefixe.trim() : '',
+      nom: row.nom ? row.nom.trim() : '',
+      email: row.email ? row.email.trim() : '',
       statut: 'prospect'
     }
     
@@ -316,9 +320,9 @@ export function ImportButton({ onImport, disabled = false, type = 'prospects' }:
         
       default: // prospects
         template = [
-          ['nom', 'email', 'telephone', 'entreprise', 'secteur', 'adresse', 'codePostal', 'ville', 'departement'],
-          ['Jean Dupont', 'jean.dupont@email.com', '06 12 34 56 78', 'Entreprise ABC', 'Technologie', '123 Rue de la Paix', '75001', 'Paris', '75'],
-          ['Marie Martin', 'marie.martin@email.com', '06 98 76 54 32', 'Société XYZ', 'Services', '456 Avenue des Champs', '69001', 'Lyon', '69']
+          ['nom', 'email', 'telephonePortable', 'telephoneFixe', 'entreprise', 'secteur', 'adresse', 'codePostal', 'ville', 'departement'],
+          ['Jean Dupont', 'jean.dupont@email.com', '06 12 34 56 78', '01 23 45 67 89', 'Entreprise ABC', 'Technologie', '123 Rue de la Paix', '75001', 'Paris', '75'],
+          ['Marie Martin', 'marie.martin@email.com', '06 98 76 54 32', '', 'Société XYZ', 'Services', '456 Avenue des Champs', '69001', 'Lyon', '69']
         ]
         filename = 'template_prospects.xlsx'
     }
