@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Plus, FileText, Calendar, DollarSign, User, Building2, Eye, Edit, MoreHorizontal, TrendingUp, CheckCircle, XCircle, Users } from "lucide-react"
+import { Plus, FileText, Calendar, DollarSign, User, Building2, Eye, Edit, MoreHorizontal, TrendingUp, CheckCircle, XCircle, Users, Trash2 } from "lucide-react"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 import { useDevis, useClients } from "@/hooks/useDatabase"
@@ -19,6 +19,7 @@ export default function DevisDBPage() {
   const { devis, loading, reload } = useDevis()
   const { clients, reload: reloadClients } = useClients()
   const { filters, setFilters, filteredDevis, resetFilters } = useDevisFiltersDB(devis)
+  const [showDeleteDialog, setShowDeleteDialog] = useState<string | null>(null)
 
   // Fonction pour changer le statut d'un devis
   const changerStatut = async (devisId: string, nouveauStatut: string) => {
@@ -34,6 +35,23 @@ export default function DevisDBPage() {
       if (response.ok) {
         await reload()
         await reloadClients()
+      }
+    } catch (error) {
+      console.error('Erreur:', error)
+    }
+  }
+
+  // Fonction pour supprimer un devis
+  const supprimerDevis = async (devisId: string) => {
+    try {
+      const response = await fetch(`/api/devis/${devisId}`, {
+        method: 'DELETE'
+      })
+      
+      if (response.ok) {
+        await reload()
+        await reloadClients()
+        setShowDeleteDialog(null)
       }
     } catch (error) {
       console.error('Erreur:', error)
@@ -389,6 +407,14 @@ export default function DevisDBPage() {
                                 <XCircle className="w-4 h-4 mr-2" />
                                 Marquer comme perdu
                               </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                onClick={() => setShowDeleteDialog(devi.id)}
+                                className="text-red-600 focus:text-red-600"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Supprimer le devis
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
@@ -400,6 +426,38 @@ export default function DevisDBPage() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Confirmation de suppression */}
+      {showDeleteDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <Card className="w-full max-w-sm">
+            <CardHeader>
+              <CardTitle>Supprimer le devis ?</CardTitle>
+              <CardDescription>
+                Cette action est irréversible. Le CA du client sera recalculé automatiquement.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-2">
+                <Button 
+                  variant="destructive" 
+                  onClick={() => supprimerDevis(showDeleteDialog)}
+                  className="flex-1"
+                >
+                  Supprimer
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowDeleteDialog(null)}
+                  className="flex-1"
+                >
+                  Annuler
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   )
