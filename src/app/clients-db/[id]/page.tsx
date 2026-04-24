@@ -9,6 +9,7 @@ import { ArrowLeft, Edit, Plus, DollarSign, FileText, MessageSquare, Phone, Mail
 import Link from "next/link"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
+import { Interactions } from "@/components/interactions"
 
 export default function ClientDetailPage() {
   const params = useParams()
@@ -276,31 +277,10 @@ export default function ClientDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Interactions récentes */}
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Interactions récentes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {client.interactions && client.interactions.length > 0 ? (
-              <div className="space-y-3">
-                {client.interactions.slice(0, 10).map((interaction: any) => (
-                  <div key={interaction.id} className="p-3 border rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <Badge variant="outline">{interaction.type}</Badge>
-                      <span className="text-sm text-muted-foreground">
-                        {format(new Date(interaction.date), 'dd MMM yyyy à HH:mm', { locale: fr })}
-                      </span>
-                    </div>
-                    <p className="text-sm">{interaction.contenu}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">Aucune interaction</p>
-            )}
-          </CardContent>
-        </Card>
+        {/* Interactions */}
+        <div className="md:col-span-2">
+          <Interactions clientId={client.id} />
+        </div>
       </div>
     </div>
   )

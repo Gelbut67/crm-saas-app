@@ -9,6 +9,7 @@ import { ArrowLeft, Edit, Plus, MessageSquare, Phone, Mail, Building, User, User
 import Link from "next/link"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
+import { Interactions } from "@/components/interactions"
 
 export default function ProspectDetailPage() {
   const params = useParams()
@@ -267,37 +268,8 @@ export default function ProspectDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Interactions récentes */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Interactions</CardTitle>
-              <Badge variant="outline">{prospect.interactions?.length || 0}</Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {prospect.interactions && prospect.interactions.length > 0 ? (
-              <div className="space-y-3">
-                {prospect.interactions.slice(0, 10).map((interaction: any) => (
-                  <div key={interaction.id} className="p-3 border rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <Badge variant="outline">{interaction.type}</Badge>
-                      <span className="text-sm text-muted-foreground">
-                        {format(new Date(interaction.date), 'dd MMM yyyy à HH:mm', { locale: fr })}
-                      </span>
-                    </div>
-                    <p className="text-sm">{interaction.contenu}</p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <MessageSquare className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-sm text-muted-foreground">Aucune interaction</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Interactions */}
+        <Interactions clientId={prospect.id} />
       </div>
     </div>
   )
