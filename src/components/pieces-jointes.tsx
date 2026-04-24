@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Upload, File, Download, Trash2, Loader2, Paperclip } from "lucide-react"
+import { Upload, File, Download, Trash2, Loader2, Paperclip, Eye, X } from "lucide-react"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 
@@ -26,6 +26,7 @@ export function PiecesJointes({ devisId }: PiecesJointesProps) {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [viewingPiece, setViewingPiece] = useState<PieceJointe | null>(null)
 
   useEffect(() => {
     loadPieces()
@@ -123,6 +124,47 @@ export function PiecesJointes({ devisId }: PiecesJointesProps) {
     document.body.removeChild(link)
   }
 
+  const handleView = (piece: PieceJointe) => {
+    setViewingPiece(piece)
+  }
+
+  const canPreview = (typeFichier: string | null) => {
+    if (!typeFichier) return false
+    return [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-excel',
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp'
+    ].includes(typeFichier)
+  }
+
+  const getViewerUrl = (piece: PieceJointe) => {
+    const type = piece.typeFichier
+    
+    // Pour les images, afficher directement
+    if (type?.startsWith('image/')) {
+      return piece.urlFichier
+    }
+    
+    // Pour les PDF, afficher directement
+    if (type === 'application/pdf') {
+      return piece.urlFichier
+    }
+    
+    // Pour Word et Excel, utiliser Google Docs Viewer
+    if (type?.includes('word') || type?.includes('excel') || type?.includes('spreadsheet')) {
+      // Encoder l'URL en base64 pour Google Docs Viewer
+      return `https://docs.google.com/viewer?url=${encodeURIComponent(piece.urlFichier)}&embedded=true`
+    }
+    
+    return null
+  }
+
   const formatFileSize = (bytes: number | null) => {
     if (!bytes) return 'N/A'
     if (bytes < 1024) return bytes + ' B'
@@ -132,6 +174,7 @@ export function PiecesJointes({ devisId }: PiecesJointesProps) {
 
   if (loading) {
     return (
+      <>
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -145,10 +188,12 @@ export function PiecesJointes({ devisId }: PiecesJointesProps) {
           </div>
         </CardContent>
       </Card>
+      </>
     )
   }
 
   return (
+    <>
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
@@ -215,6 +260,16 @@ export function PiecesJointes({ devisId }: PiecesJointesProps) {
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
+                  {canPreview(piece.typeFichier) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleView(piece)}
+                      title="Visualiser"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="sm"
@@ -247,5 +302,62 @@ export function PiecesJointes({ devisId }: PiecesJointesProps) {
         </p>
       </CardContent>
     </Card>
+
+    {/* Modal de prévisualisation */}
+    {viewingPiece && (
+      <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50" onClick={() => setViewingPiece(null)}>
+        <div className="bg-white rounded-lg w-full max-w-6xl h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between p-4 border-b">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold truncate">{viewingPiece.nomFichier}</h3>
+              <p className="text-sm text-muted-foreground">
+                {formatFileSize(viewingPiece.tailleFichier)} • {format(new Date(viewingPiece.dateAjout), 'dd MMM yyyy', { locale: fr })}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleDownload(viewingPiece)}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Télécharger
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setViewingPiece(null)}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-hidden">
+            {viewingPiece.typeFichier?.startsWith('image/') ? (
+              <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                <img 
+                  src={viewingPiece.urlFichier} 
+                  alt={viewingPiece.nomFichier}
+                  className="max-w-full max-h-full object-contain"
+                />
+              </div>
+            ) : viewingPiece.typeFichier === 'application/pdf' ? (
+              <iframe
+                src={viewingPiece.urlFichier}
+                className="w-full h-full"
+                title={viewingPiece.nomFichier}
+              />
+            ) : (
+              <iframe
+                src={getViewerUrl(viewingPiece) || ''}
+                className="w-full h-full"
+                title={viewingPiece.nomFichier}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+  </>
   )
 }
