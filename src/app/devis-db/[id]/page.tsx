@@ -9,6 +9,7 @@ import { ArrowLeft, Edit, FileText, Calendar, DollarSign, User, Building2, Mail,
 import Link from "next/link"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
+import { PiecesJointes } from "@/components/pieces-jointes"
 
 interface Devis {
   id: string
@@ -209,6 +210,8 @@ export default function DevisDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          <PiecesJointes devisId={devis.id} />
         </div>
       </div>
     </div>

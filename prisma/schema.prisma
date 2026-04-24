@@ -73,9 +73,24 @@ model Devis {
   description  String?
   dateCreation DateTime @default(now())
   
-  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client       Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  piecesJointes PieceJointe[]
   
   @@map("devis")
+}
+
+model PieceJointe {
+  id           String   @id @default(cuid())
+  devisId      String
+  nomFichier   String
+  urlFichier   String
+  typeFichier  String?
+  tailleFichier Int?
+  dateAjout    DateTime @default(now())
+  
+  devis        Devis    @relation(fields: [devisId], references: [id], onDelete: Cascade)
+  
+  @@map("pieces_jointes")
 }
 
 model Settings {
