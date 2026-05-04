@@ -41,6 +41,14 @@ const createDefaultIcon = () => new L.DivIcon({
   popupAnchor: [0, -15]
 })
 
+const createNumberedIcon = (number: number, isFixed: boolean = false) => new L.DivIcon({
+  className: 'custom-div-icon',
+  html: `<div style="background-color: ${isFixed ? '#ef4444' : '#3b82f6'}; width: 35px; height: 35px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; color: white;">${number}</div>`,
+  iconSize: [35, 35],
+  iconAnchor: [17.5, 17.5],
+  popupAnchor: [0, -17.5]
+})
+
 interface TourneeMapProps {
   visites: Array<{
     client: {
@@ -166,7 +174,7 @@ export function TourneeMap({ visites, pointDepart }: TourneeMapProps) {
             <Marker 
               key={index} 
               position={[visite.coordonnees.lat, visite.coordonnees.lon]}
-              icon={visite.heureRdv ? fixedIcon : defaultIcon}
+              icon={createNumberedIcon(visite.ordre, !!visite.heureRdv)}
             >
               <Popup>
                 <div className="space-y-1">
