@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import OpenAI from 'openai'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-})
+const genAI = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null
 
 // Fonction pour calculer la distance entre deux points (formule de Haversine simplifiée)
 function calculerDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -201,10 +199,10 @@ export async function POST(request: Request) {
       return { ...client, heureRdv: rdv.heureRdv }
     }).filter(Boolean) : []
 
-    // Utiliser OpenAI pour optimiser la tournée
+    // Utiliser Google Gemini pour optimiser la tournée
     let itineraireOptimise
     
-    if (process.env.OPENAI_API_KEY && clientsLibres.length > 0) {
+    if (genAI && clientsLibres.length > 0) {
       try {
         // Préparer les données pour l'IA
         const prompt = `Tu es un expert en optimisation de tournées commerciales. 
@@ -229,18 +227,12 @@ OBJECTIF: Crée un itinéraire optimal qui:
 RÉPONDS UNIQUEMENT avec un JSON contenant un tableau 'itineraire' avec les IDs des clients dans l'ordre optimal, sans explication.
 Format: {"itineraire": ["id1", "id2", "id3", ...]}`
 
-        const completion = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
-          messages: [
-            { role: "system", content: "Tu es un expert en optimisation logistique. Tu réponds uniquement en JSON valide, sans markdown ni explication." },
-            { role: "user", content: prompt }
-          ],
-          temperature: 0.3,
-          max_tokens: 1000
-        })
-
-        const reponse = completion.choices[0].message.content
-        const resultat = JSON.parse(reponse!.replace(/```json\n?|```/g, '').trim())
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
+        const result = await model.generateContent(prompt)
+        const response = await result.response
+        const text = response.text()
+        
+        const resultat = JSON.parse(text.replace(/```json\n?|```/g, '').trim())
         
         // Reconstruire l'itinéraire avec les distances
         itineraireOptimise = []
@@ -267,13 +259,13 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
           }
         }
       } catch (error) {
-        console.error('Erreur OpenAI:', error)
+        console.error('Erreur Gemini:', error)
         // Fallback sur l'algorithme classique
         const pointDepart = clientsAvecCoordonnees[0].coordonnees
         itineraireOptimise = optimiserItineraire(clientsAvecCoordonnees, pointDepart)
       }
     } else {
-      // Pas d'API OpenAI ou pas de clients libres, utiliser l'algorithme classique
+      // Pas d'API Gemini ou pas de clients libres, utiliser l'algorithme classique
       const pointDepart = clientsAvecCoordonnees[0].coordonnees
       itineraireOptimise = optimiserItineraire(clientsAvecCoordonnees, pointDepart)
     }
