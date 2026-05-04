@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { MapPin } from 'lucide-react'
@@ -16,23 +16,29 @@ if (typeof window !== 'undefined') {
   })
 }
 
-// Fonction pour créer les icônes (appelée dans le composant)
-const createHomeIcon = () => new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
+// Fonction pour créer les icônes avec DivIcon (plus stable que Icon)
+const createHomeIcon = () => new L.DivIcon({
+  className: 'custom-div-icon',
+  html: `<div style="background-color: #22c55e; width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 16px;">🏠</div>`,
+  iconSize: [30, 30],
+  iconAnchor: [15, 15],
+  popupAnchor: [0, -15]
 })
 
-const createFixedIcon = () => new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
+const createFixedIcon = () => new L.DivIcon({
+  className: 'custom-div-icon',
+  html: `<div style="background-color: #ef4444; width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 16px;">📍</div>`,
+  iconSize: [30, 30],
+  iconAnchor: [15, 15],
+  popupAnchor: [0, -15]
+})
+
+const createDefaultIcon = () => new L.DivIcon({
+  className: 'custom-div-icon',
+  html: `<div style="background-color: #3b82f6; width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 16px;">📌</div>`,
+  iconSize: [30, 30],
+  iconAnchor: [15, 15],
+  popupAnchor: [0, -15]
 })
 
 interface TourneeMapProps {
@@ -95,9 +101,10 @@ export function TourneeMap({ visites, pointDepart }: TourneeMapProps) {
     )
   }
   
-  // Créer les icônes
-  const homeIcon = createHomeIcon()
-  const fixedIcon = createFixedIcon()
+  // Créer les icônes une seule fois avec useMemo
+  const homeIcon = useMemo(() => createHomeIcon(), [])
+  const fixedIcon = useMemo(() => createFixedIcon(), [])
+  const defaultIcon = useMemo(() => createDefaultIcon(), [])
   
   // Centre par défaut (Paris)
   const defaultCenter: [number, number] = [48.8566, 2.3522]
@@ -160,7 +167,7 @@ export function TourneeMap({ visites, pointDepart }: TourneeMapProps) {
             <Marker 
               key={index} 
               position={[visite.coordonnees.lat, visite.coordonnees.lon]}
-              icon={visite.heureRdv ? fixedIcon : undefined}
+              icon={visite.heureRdv ? fixedIcon : defaultIcon}
             >
               <Popup>
                 <div className="space-y-1">
