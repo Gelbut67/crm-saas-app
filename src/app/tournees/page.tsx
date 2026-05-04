@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { MapPin, Clock, Users, Navigation, FileText, Loader2, Download, Calendar } from "lucide-react"
-import { useClients } from "@/hooks/useDatabase"
+import { useClients, useProspects } from "@/hooks/useDatabase"
 import { RdvFixesManager } from "@/components/rdv-fixes-manager"
 
 interface VisiteOptimisee {
@@ -30,6 +30,12 @@ interface VisiteOptimisee {
 
 export default function TourneesPage() {
   const { clients, loading: loadingClients } = useClients()
+  const { prospects, loading: loadingProspects } = useProspects()
+  
+  // Combiner clients et prospects
+  const allClientsAndProspects = [...clients, ...prospects]
+  const loading = loadingClients || loadingProspects
+  
   const [typeTournee, setTypeTournee] = useState<'client' | 'prospect' | 'mixte'>('client')
   const [heureDepart, setHeureDepart] = useState('09:00')
   const [heureRetour, setHeureRetour] = useState('18:00')
@@ -46,19 +52,19 @@ export default function TourneesPage() {
   } | null>(null)
 
   const departements = Array.from(new Set(
-    clients
+    allClientsAndProspects
       .filter(c => c.departement)
       .map(c => c.departement)
   )).sort()
 
   const villes = Array.from(new Set(
-    clients
+    allClientsAndProspects
       .filter(c => c.ville && (departement === 'tous' || c.departement === departement))
       .map(c => c.ville)
   )).sort()
 
   // Filtrer les clients disponibles pour la sélection prioritaire
-  const clientsDisponibles = clients.filter(c => {
+  const clientsDisponibles = allClientsAndProspects.filter(c => {
     if (typeTournee === 'client' && c.statut !== 'client') return false
     if (typeTournee === 'prospect' && c.statut !== 'prospect') return false
     if (departement !== 'tous' && c.departement !== departement) return false
