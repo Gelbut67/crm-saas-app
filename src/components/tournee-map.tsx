@@ -7,15 +7,17 @@ import { MapPin } from 'lucide-react'
 import 'leaflet/dist/leaflet.css'
 
 // Fix pour les icônes Leaflet avec Next.js
-delete (L.Icon.Default.prototype as any)._getIconUrl
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-})
+if (typeof window !== 'undefined') {
+  delete (L.Icon.Default.prototype as any)._getIconUrl
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  })
+}
 
-// Icône personnalisée pour le domicile
-const homeIcon = new L.Icon({
+// Fonction pour créer les icônes (appelée dans le composant)
+const createHomeIcon = () => new L.Icon({
   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
   iconSize: [25, 41],
@@ -24,8 +26,7 @@ const homeIcon = new L.Icon({
   shadowSize: [41, 41]
 })
 
-// Icône pour les RDV fixes
-const fixedIcon = new L.Icon({
+const createFixedIcon = () => new L.Icon({
   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
   iconSize: [25, 41],
@@ -93,6 +94,10 @@ export function TourneeMap({ visites, pointDepart }: TourneeMapProps) {
       </div>
     )
   }
+  
+  // Créer les icônes
+  const homeIcon = createHomeIcon()
+  const fixedIcon = createFixedIcon()
   
   // Centre par défaut (Paris)
   const defaultCenter: [number, number] = [48.8566, 2.3522]
