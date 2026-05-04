@@ -63,8 +63,13 @@ export default function TourneesPage() {
     if (typeTournee === 'prospect' && c.statut !== 'prospect') return false
     if (departement !== 'tous' && c.departement !== departement) return false
     if (ville !== 'toutes' && c.ville !== ville) return false
-    return c.adresse && c.ville && c.codePostal
+    return true // Afficher tous les clients correspondants
   })
+  
+  // Clients avec adresse complète pour l'optimisation
+  const clientsAvecAdresse = clientsDisponibles.filter(c => 
+    c.adresse && c.ville && c.codePostal
+  )
 
   const optimiserTournee = async () => {
     setOptimizing(true)

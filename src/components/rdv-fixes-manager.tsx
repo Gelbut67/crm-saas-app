@@ -108,13 +108,24 @@ export function RdvFixesManager({ clients, rdvFixes, onChange }: RdvFixesManager
                 <SelectValue placeholder="Sélectionner un client" />
               </SelectTrigger>
               <SelectContent>
-                {clientsDisponibles.map(client => (
-                  <SelectItem key={client.id} value={client.id}>
-                    {client.nom} - {client.ville}
-                  </SelectItem>
-                ))}
+                {clientsDisponibles.map(client => {
+                  const hasCompleteAddress = client.adresse && client.ville && client.codePostal
+                  return (
+                    <SelectItem 
+                      key={client.id} 
+                      value={client.id}
+                      disabled={!hasCompleteAddress}
+                    >
+                      {client.nom} - {client.ville || 'Ville non renseignée'}
+                      {!hasCompleteAddress && ' ⚠️ (Adresse incomplète)'}
+                    </SelectItem>
+                  )
+                })}
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              ⚠️ Les clients sans adresse complète (adresse, ville, code postal) ne peuvent pas être ajoutés
+            </p>
           </div>
 
           <div>
