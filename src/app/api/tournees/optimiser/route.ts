@@ -391,16 +391,37 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
 
     for (let i = 0; i < itineraireOptimise.length; i++) {
       const client = itineraireOptimise[i]
-      console.log(`Client ${i + 1}:`, client.nom, 'Distance:', client.distance, 'Durée:', client.duree)
+      
+      // Pour le premier client, calculer la distance depuis le domicile si défini
+      let distanceDepuisDomicile = client.distance || 0
+      let dureeDepuisDomicile = client.duree || 0
+      let geometryDepuisDomicile = client.routeGeometry
+      
+      if (i === 0 && coordonneesDomicile && client.coordonnees) {
+        const routeDepuisDomicile = await calculerDistanceVoiture(
+          coordonneesDomicile.lat,
+          coordonneesDomicile.lon,
+          client.coordonnees.lat,
+          client.coordonnees.lon
+        )
+        distanceDepuisDomicile = Math.round(routeDepuisDomicile.distance * 10) / 10
+        dureeDepuisDomicile = routeDepuisDomicile.duration
+        geometryDepuisDomicile = routeDepuisDomicile.geometry
+      }
+      
+      console.log(`Client ${i + 1}:`, client.nom, 'Distance:', distanceDepuisDomicile, 'Durée:', dureeDepuisDomicile)
       
       // Vérifier si on a encore le temps
-      const tempsNecessaire = (i > 0 ? client.duree : 0) + dureeRdv
+      const tempsNecessaire = (i === 0 && coordonneesDomicile ? dureeDepuisDomicile : (i > 0 ? client.duree : 0)) + dureeRdv
       if (minutesActuelles + tempsNecessaire > heureR * 60 + minuteR) {
         break // Plus de temps disponible
       }
 
       // Ajouter le temps de trajet
-      if (i > 0) {
+      if (i === 0 && coordonneesDomicile) {
+        minutesActuelles += dureeDepuisDomicile
+        dureeTrajetTotale += dureeDepuisDomicile
+      } else if (i > 0) {
         minutesActuelles += client.duree
         dureeTrajetTotale += client.duree
       }
@@ -422,13 +443,14 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
         ordre: i + 1,
         heureArrivee,
         heureDepart,
-        distance: client.distance || 0,
-        duree: client.duree || 0,
+        distance: i === 0 && coordonneesDomicile ? distanceDepuisDomicile : (client.distance || 0),
+        duree: i === 0 && coordonneesDomicile ? dureeDepuisDomicile : (client.duree || 0),
         coordonnees: client.coordonnees,
-        heureRdv: client.heureRdv
+        heureRdv: client.heureRdv,
+        routeGeometry: i === 0 && coordonneesDomicile ? geometryDepuisDomicile : client.routeGeometry
       })
 
-      distanceTotale += client.distance || 0
+      distanceTotale += (i === 0 && coordonneesDomicile ? distanceDepuisDomicile : (client.distance || 0))
     }
 
     return NextResponse.json({
