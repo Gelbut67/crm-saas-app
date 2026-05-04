@@ -7,9 +7,16 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { MapPin, Clock, Users, Navigation, FileText, Loader2, Download, Calendar } from "lucide-react"
+import { MapPin, Clock, Users, Navigation, FileText, Loader2, Download, Calendar, Home } from "lucide-react"
 import { useClients, useProspects } from "@/hooks/useDatabase"
 import { RdvFixesManager } from "@/components/rdv-fixes-manager"
+import dynamic from 'next/dynamic'
+
+// Charger la carte côté client uniquement
+const TourneeMap = dynamic(
+  () => import('@/components/tournee-map').then(mod => ({ default: mod.TourneeMap })),
+  { ssr: false, loading: () => <div className="w-full h-[500px] bg-muted animate-pulse rounded-lg" /> }
+)
 
 interface VisiteOptimisee {
   client: {
@@ -42,9 +49,13 @@ export default function TourneesPage() {
   const [dureeRdv, setDureeRdv] = useState('60')
   const [departement, setDepartement] = useState('tous')
   const [ville, setVille] = useState('toutes')
+  const [adresseDomicile, setAdresseDomicile] = useState('')
+  const [villeDomicile, setVilleDomicile] = useState('')
+  const [codePostalDomicile, setCodePostalDomicile] = useState('')
   const [rdvFixes, setRdvFixes] = useState<any[]>([])
   const [optimizing, setOptimizing] = useState(false)
   const [tourneeOptimisee, setTourneeOptimisee] = useState<VisiteOptimisee[]>([])
+  const [pointDepartOptimise, setPointDepartOptimise] = useState<{ lat: number; lon: number; adresse: string } | null>(null)
   const [stats, setStats] = useState<{
     distanceTotale: number
     dureeTrajet: number
@@ -92,17 +103,23 @@ export default function TourneesPage() {
           dureeRdv: parseInt(dureeRdv),
           departement,
           ville,
+          pointDepart: adresseDomicile && villeDomicile && codePostalDomicile ? {
+            adresse: adresseDomicile,
+            ville: villeDomicile,
+            codePostal: codePostalDomicile
+          } : null,
           rdvFixes: rdvFixes.map(rdv => ({
             clientId: rdv.clientId,
             heureRdv: rdv.heureRdv
           }))
-        })
+        }),
       })
 
       if (response.ok) {
         const data = await response.json()
         setTourneeOptimisee(data.visites)
         setStats(data.stats)
+        setPointDepartOptimise(data.pointDepart)
       } else {
         alert('Erreur lors de l\'optimisation de la tournée')
       }
@@ -132,13 +149,23 @@ export default function TourneesPage() {
       if (response.ok) {
         const blob = await response.blob()
         const url = window.URL.createObjectURL(blob)
+        
+        // Ouvrir dans un nouvel onglet pour impression
+        window.open(url, '_blank')
+        
+        // Télécharger aussi le fichier
         const a = document.createElement('a')
         a.href = url
-        a.download = `feuille-route-${new Date().toISOString().split('T')[0]}.pdf`
+        a.download = `feuille-route-${new Date().toISOString().split('T')[0]}.html`
         document.body.appendChild(a)
         a.click()
-        window.URL.revokeObjectURL(url)
-        document.body.removeChild(a)
+        
+        setTimeout(() => {
+          window.URL.revokeObjectURL(url)
+          document.body.removeChild(a)
+        }, 100)
+        
+        alert('✅ Feuille de route générée ! Utilisez Ctrl+P pour imprimer en PDF depuis le nouvel onglet.')
       }
     } catch (error) {
       console.error('Erreur:', error)
@@ -238,6 +265,41 @@ export default function TourneesPage() {
               </Select>
             </div>
 
+            <div className="pt-4 border-t space-y-3">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Home className="w-4 h-4" />
+                Point de départ (optionnel)
+              </div>
+              <div>
+                <Label className="text-xs">Adresse</Label>
+                <Input
+                  placeholder="Ex: 123 rue de la Paix"
+                  value={adresseDomicile}
+                  onChange={(e) => setAdresseDomicile(e.target.value)}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">Ville</Label>
+                  <Input
+                    placeholder="Paris"
+                    value={villeDomicile}
+                    onChange={(e) => setVilleDomicile(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Code postal</Label>
+                  <Input
+                    placeholder="75001"
+                    value={codePostalDomicile}
+                    onChange={(e) => setCodePostalDomicile(e.target.value)}
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                🏠 Si renseigné, la tournée commencera et finira à cette adresse
+              </p>
+            </div>
 
             <Button 
               onClick={optimiserTournee} 
@@ -301,6 +363,27 @@ export default function TourneesPage() {
             </div>
           )}
 
+          {/* Carte interactive */}
+          {tourneeOptimisee.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="w-5 h-5" />
+                  Visualisation du trajet
+                </CardTitle>
+                <CardDescription>
+                  Carte interactive avec votre itinéraire optimisé
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <TourneeMap 
+                  visites={tourneeOptimisee}
+                  pointDepart={pointDepartOptimise || undefined}
+                />
+              </CardContent>
+            </Card>
+          )}
+
           {/* Feuille de route */}
           {tourneeOptimisee.length > 0 && (
             <Card>
@@ -313,8 +396,8 @@ export default function TourneesPage() {
                     </CardDescription>
                   </div>
                   <Button onClick={genererFeuilleRoute} variant="outline">
-                    <Download className="w-4 h-4 mr-2" />
-                    Télécharger PDF
+                    <FileText className="w-4 h-4 mr-2" />
+                    Générer & Imprimer
                   </Button>
                 </div>
               </CardHeader>

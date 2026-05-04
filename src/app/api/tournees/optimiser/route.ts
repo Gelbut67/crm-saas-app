@@ -130,7 +130,7 @@ function optimiserItineraire(
 
 export async function POST(request: Request) {
   try {
-    const { typeTournee, heureDepart, heureRetour, dureeRdv, departement, ville, rdvFixes } = await request.json()
+    const { typeTournee, heureDepart, heureRetour, dureeRdv, departement, ville, pointDepart, rdvFixes } = await request.json()
 
     // Construire les filtres
     const where: any = {}
@@ -181,6 +181,13 @@ export async function POST(request: Request) {
           dureeTrajet: 0
         }
       })
+    }
+
+    // Obtenir les coordonnées du point de départ si fourni
+    let coordonneesDomicile = null
+    if (pointDepart && pointDepart.codePostal && pointDepart.ville) {
+      coordonneesDomicile = await obtenirCoordonnees(pointDepart.codePostal, pointDepart.ville)
+      console.log('Point de départ:', pointDepart, 'Coordonnées:', coordonneesDomicile)
     }
 
     // Obtenir les coordonnées pour chaque client
@@ -262,14 +269,14 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
         console.error('Erreur Gemini:', error)
         // Fallback sur l'algorithme classique
         const clientPrioritaire = clientsRdvFixes.length > 0 ? clientsRdvFixes[0] : null
-        const pointDepart = clientPrioritaire ? clientPrioritaire.coordonnees : clientsAvecCoordonnees[0].coordonnees
-        itineraireOptimise = optimiserItineraire(clientsAvecCoordonnees, pointDepart, clientPrioritaire)
+        const pointDepartCoord = coordonneesDomicile || (clientPrioritaire ? clientPrioritaire.coordonnees : clientsAvecCoordonnees[0].coordonnees)
+        itineraireOptimise = optimiserItineraire(clientsAvecCoordonnees, pointDepartCoord, clientPrioritaire)
       }
     } else {
       // Pas d'API Gemini, utiliser l'algorithme classique
       const clientPrioritaire = clientsRdvFixes.length > 0 ? clientsRdvFixes[0] : null
-      const pointDepart = clientPrioritaire ? clientPrioritaire.coordonnees : clientsAvecCoordonnees[0].coordonnees
-      itineraireOptimise = optimiserItineraire(clientsAvecCoordonnees, pointDepart, clientPrioritaire)
+      const pointDepartCoord = coordonneesDomicile || (clientPrioritaire ? clientPrioritaire.coordonnees : clientsAvecCoordonnees[0].coordonnees)
+      itineraireOptimise = optimiserItineraire(clientsAvecCoordonnees, pointDepartCoord, clientPrioritaire)
     }
 
     console.log('Itinéraire optimisé:', itineraireOptimise?.length || 0, 'clients')
@@ -321,7 +328,9 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
         heureArrivee,
         heureDepart,
         distance: client.distance || 0,
-        duree: client.duree || 0
+        duree: client.duree || 0,
+        coordonnees: client.coordonnees,
+        heureRdv: client.heureRdv
       })
 
       distanceTotale += client.distance || 0
@@ -333,7 +342,12 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
         nombreVisites: visites.length,
         distanceTotale: Math.round(distanceTotale),
         dureeTrajet: dureeTrajetTotale
-      }
+      },
+      pointDepart: coordonneesDomicile ? {
+        lat: coordonneesDomicile.lat,
+        lon: coordonneesDomicile.lon,
+        adresse: `${pointDepart.adresse}, ${pointDepart.codePostal} ${pointDepart.ville}`
+      } : null
     })
   } catch (error) {
     console.error('Erreur:', error)
