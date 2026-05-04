@@ -4,8 +4,8 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 
 const genAI = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null
 
-// Fonction pour calculer la distance entre deux points (formule de Haversine simplifiée)
-function calculerDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+// Fonction pour calculer la distance entre deux points (formule de Haversine - à vol d'oiseau)
+function calculerDistanceVolOiseau(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371 // Rayon de la Terre en km
   const dLat = (lat2 - lat1) * Math.PI / 180
   const dLon = (lon2 - lon1) * Math.PI / 180
@@ -17,9 +17,94 @@ function calculerDistance(lat1: number, lon1: number, lat2: number, lon2: number
   return R * c
 }
 
-// Fonction pour obtenir les coordonnées approximatives basées sur le code postal français
+// Cache pour les calculs de distance en voiture
+const routeCache = new Map<string, { distance: number, duration: number }>()
+
+// Fonction pour calculer la distance et durée réelles en voiture avec OSRM (gratuite)
+async function calculerDistanceVoiture(
+  lat1: number, lon1: number, 
+  lat2: number, lon2: number
+): Promise<{ distance: number, duration: number }> {
+  const cacheKey = `${lat1.toFixed(4)},${lon1.toFixed(4)}-${lat2.toFixed(4)},${lon2.toFixed(4)}`
+  
+  // Vérifier le cache
+  if (routeCache.has(cacheKey)) {
+    return routeCache.get(cacheKey)!
+  }
+  
+  try {
+    // Utiliser l'API OSRM (Open Source Routing Machine) - gratuite
+    const url = `https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=false`
+    const response = await fetch(url)
+    
+    if (response.ok) {
+      const data = await response.json()
+      if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+        const route = data.routes[0]
+        const result = {
+          distance: route.distance / 1000, // Convertir mètres en km
+          duration: Math.round(route.duration / 60) // Convertir secondes en minutes
+        }
+        routeCache.set(cacheKey, result)
+        return result
+      }
+    }
+  } catch (error) {
+    console.error('Erreur calcul distance OSRM:', error)
+  }
+  
+  // Fallback : estimation basée sur la distance à vol d'oiseau
+  const distanceVolOiseau = calculerDistanceVolOiseau(lat1, lon1, lat2, lon2)
+  return {
+    distance: distanceVolOiseau * 1.3, // Facteur de correction pour routes
+    duration: Math.round(distanceVolOiseau * 1.5) // ~50 km/h en moyenne
+  }
+}
+
+// Cache pour éviter de refaire les mêmes requêtes de géocodage
+const geocodeCache = new Map<string, { lat: number, lon: number }>()
+
+// Fonction pour obtenir les coordonnées exactes via l'API Nominatim (OpenStreetMap)
 async function obtenirCoordonnees(codePostal: string, ville: string): Promise<{ lat: number, lon: number }> {
-  // Coordonnées approximatives des départements français (centres)
+  const cacheKey = `${codePostal}-${ville}`
+  
+  // Vérifier le cache
+  if (geocodeCache.has(cacheKey)) {
+    return geocodeCache.get(cacheKey)!
+  }
+  
+  try {
+    // Utiliser l'API Nominatim d'OpenStreetMap (gratuite)
+    // Ajouter un délai pour respecter la limite de 1 req/sec de Nominatim
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    const query = encodeURIComponent(`${ville}, ${codePostal}, France`)
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`,
+      {
+        headers: {
+          'User-Agent': 'CRM-SaaS-App/1.0' // Requis par Nominatim
+        }
+      }
+    )
+    
+    if (response.ok) {
+      const data = await response.json()
+      if (data && data.length > 0) {
+        const coords = {
+          lat: parseFloat(data[0].lat),
+          lon: parseFloat(data[0].lon)
+        }
+        geocodeCache.set(cacheKey, coords)
+        console.log(`Géocodage réussi pour ${ville} (${codePostal}):`, coords)
+        return coords
+      }
+    }
+  } catch (error) {
+    console.error(`Erreur géocodage pour ${ville}:`, error)
+  }
+  
+  // Fallback : Coordonnées approximatives des départements français (centres)
   const coordonneesDepartements: { [key: string]: { lat: number, lon: number } } = {
     '01': { lat: 46.2, lon: 5.2 }, '02': { lat: 49.5, lon: 3.4 }, '03': { lat: 46.3, lon: 3.3 },
     '04': { lat: 44.1, lon: 6.2 }, '05': { lat: 44.7, lon: 6.2 }, '06': { lat: 43.7, lon: 7.2 },
@@ -67,18 +152,18 @@ async function obtenirCoordonnees(codePostal: string, ville: string): Promise<{ 
 }
 
 // Algorithme du plus proche voisin pour optimiser la tournée
-function optimiserItineraire(
+async function optimiserItineraire(
   clients: any[],
   pointDepart: { lat: number, lon: number },
   clientPrioritaire?: any
-): any[] {
+): Promise<any[]> {
   const visites: any[] = []
   let clientsRestants = [...clients]
   let positionActuelle = pointDepart
 
   // Si un client prioritaire est défini, commencer par lui
   if (clientPrioritaire) {
-    const distance = calculerDistance(
+    const route = await calculerDistanceVoiture(
       positionActuelle.lat,
       positionActuelle.lon,
       clientPrioritaire.coordonnees.lat,
@@ -87,8 +172,8 @@ function optimiserItineraire(
     
     visites.push({
       ...clientPrioritaire,
-      distance: Math.round(distance * 10) / 10,
-      duree: Math.round(distance * 1.2) // 1.2 min par km (vitesse moyenne 50 km/h)
+      distance: Math.round(route.distance * 10) / 10,
+      duree: route.duration
     })
     
     positionActuelle = clientPrioritaire.coordonnees
@@ -102,23 +187,29 @@ function optimiserItineraire(
 
     // Trouver le client le plus proche
     for (let i = 0; i < clientsRestants.length; i++) {
-      const distance = calculerDistance(
+      const route = await calculerDistanceVoiture(
         positionActuelle.lat,
         positionActuelle.lon,
         clientsRestants[i].coordonnees.lat,
         clientsRestants[i].coordonnees.lon
       )
-      if (distance < distanceMin) {
-        distanceMin = distance
+      if (route.distance < distanceMin) {
+        distanceMin = route.distance
         plusProche = i
       }
     }
 
     const clientChoisi = clientsRestants[plusProche]
+    const route = await calculerDistanceVoiture(
+      positionActuelle.lat,
+      positionActuelle.lon,
+      clientChoisi.coordonnees.lat,
+      clientChoisi.coordonnees.lon
+    )
     visites.push({
       ...clientChoisi,
-      distance: Math.round(distanceMin * 10) / 10,
-      duree: Math.round(distanceMin * 1.2) // 1.2 min par km
+      distance: Math.round(route.distance * 10) / 10,
+      duree: route.duration
     })
 
     positionActuelle = clientChoisi.coordonnees
@@ -248,7 +339,7 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
         for (const clientId of resultat.itineraire) {
           const client = clientsAvecCoordonnees.find(c => c.id === clientId)
           if (client) {
-            const distance = calculerDistance(
+            const route = await calculerDistanceVoiture(
               positionActuelle.lat,
               positionActuelle.lon,
               client.coordonnees.lat,
@@ -257,8 +348,8 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
             
             itineraireOptimise.push({
               ...client,
-              distance: Math.round(distance * 10) / 10,
-              duree: Math.round(distance * 1.2),
+              distance: Math.round(route.distance * 10) / 10,
+              duree: route.duration,
               heureRdv: clientsRdvFixes.find((c: any) => c.id === clientId)?.heureRdv
             })
             
@@ -270,13 +361,13 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
         // Fallback sur l'algorithme classique
         const clientPrioritaire = clientsRdvFixes.length > 0 ? clientsRdvFixes[0] : null
         const pointDepartCoord = coordonneesDomicile || (clientPrioritaire ? clientPrioritaire.coordonnees : clientsAvecCoordonnees[0].coordonnees)
-        itineraireOptimise = optimiserItineraire(clientsAvecCoordonnees, pointDepartCoord, clientPrioritaire)
+        itineraireOptimise = await optimiserItineraire(clientsAvecCoordonnees, pointDepartCoord, clientPrioritaire)
       }
     } else {
       // Pas d'API Gemini, utiliser l'algorithme classique
       const clientPrioritaire = clientsRdvFixes.length > 0 ? clientsRdvFixes[0] : null
       const pointDepartCoord = coordonneesDomicile || (clientPrioritaire ? clientPrioritaire.coordonnees : clientsAvecCoordonnees[0].coordonnees)
-      itineraireOptimise = optimiserItineraire(clientsAvecCoordonnees, pointDepartCoord, clientPrioritaire)
+      itineraireOptimise = await optimiserItineraire(clientsAvecCoordonnees, pointDepartCoord, clientPrioritaire)
     }
 
     console.log('Itinéraire optimisé:', itineraireOptimise?.length || 0, 'clients')
