@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet'
 import L from 'leaflet'
+import { MapPin } from 'lucide-react'
 import 'leaflet/dist/leaflet.css'
 
 // Fix pour les icônes Leaflet avec Next.js
@@ -59,12 +60,12 @@ function MapBounds({ visites, pointDepart }: TourneeMapProps) {
     
     const bounds = L.latLngBounds([])
     
-    if (pointDepart) {
+    if (pointDepart && pointDepart.lat && pointDepart.lon) {
       bounds.extend([pointDepart.lat, pointDepart.lon])
     }
     
     visites.forEach(visite => {
-      if (visite.coordonnees) {
+      if (visite.coordonnees && visite.coordonnees.lat && visite.coordonnees.lon) {
         bounds.extend([visite.coordonnees.lat, visite.coordonnees.lon])
       }
     })
@@ -78,31 +79,46 @@ function MapBounds({ visites, pointDepart }: TourneeMapProps) {
 }
 
 export function TourneeMap({ visites, pointDepart }: TourneeMapProps) {
+  // Vérifier qu'il y a au moins une visite avec des coordonnées
+  const hasValidCoordinates = visites.some(v => v.coordonnees && v.coordonnees.lat && v.coordonnees.lon)
+  
+  if (!hasValidCoordinates && !pointDepart) {
+    return (
+      <div className="w-full h-[500px] rounded-lg overflow-hidden border flex items-center justify-center bg-muted">
+        <div className="text-center text-muted-foreground">
+          <MapPin className="w-12 h-12 mx-auto mb-2 opacity-50" />
+          <p>Aucune coordonnée disponible pour afficher la carte</p>
+          <p className="text-sm mt-1">Vérifiez que vos clients ont des adresses complètes</p>
+        </div>
+      </div>
+    )
+  }
+  
   // Centre par défaut (Paris)
   const defaultCenter: [number, number] = [48.8566, 2.3522]
   
   // Calculer le centre de la carte
-  const center: [number, number] = pointDepart 
+  const center: [number, number] = pointDepart && pointDepart.lat && pointDepart.lon
     ? [pointDepart.lat, pointDepart.lon]
-    : visites.length > 0 && visites[0].coordonnees
+    : visites.length > 0 && visites[0].coordonnees && visites[0].coordonnees.lat && visites[0].coordonnees.lon
     ? [visites[0].coordonnees.lat, visites[0].coordonnees.lon]
     : defaultCenter
 
   // Créer le trajet (polyline)
   const routeCoordinates: [number, number][] = []
   
-  if (pointDepart) {
+  if (pointDepart && pointDepart.lat && pointDepart.lon) {
     routeCoordinates.push([pointDepart.lat, pointDepart.lon])
   }
   
   visites.forEach(visite => {
-    if (visite.coordonnees) {
+    if (visite.coordonnees && visite.coordonnees.lat && visite.coordonnees.lon) {
       routeCoordinates.push([visite.coordonnees.lat, visite.coordonnees.lon])
     }
   })
   
   // Retour au domicile
-  if (pointDepart && routeCoordinates.length > 1) {
+  if (pointDepart && pointDepart.lat && pointDepart.lon && routeCoordinates.length > 1) {
     routeCoordinates.push([pointDepart.lat, pointDepart.lon])
   }
 
@@ -122,7 +138,7 @@ export function TourneeMap({ visites, pointDepart }: TourneeMapProps) {
         <MapBounds visites={visites} pointDepart={pointDepart} />
         
         {/* Marqueur du domicile */}
-        {pointDepart && (
+        {pointDepart && pointDepart.lat && pointDepart.lon && (
           <Marker position={[pointDepart.lat, pointDepart.lon]} icon={homeIcon}>
             <Popup>
               <div className="font-semibold">🏠 Point de départ</div>
@@ -133,7 +149,7 @@ export function TourneeMap({ visites, pointDepart }: TourneeMapProps) {
         
         {/* Marqueurs des visites */}
         {visites.map((visite, index) => {
-          if (!visite.coordonnees) return null
+          if (!visite.coordonnees || !visite.coordonnees.lat || !visite.coordonnees.lon) return null
           
           return (
             <Marker 
