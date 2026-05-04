@@ -16,7 +16,8 @@ import {
   DollarSign,
   X,
   Menu,
-  UserPlus
+  UserPlus,
+  Navigation
 } from "lucide-react"
 import {
   Sidebar,
@@ -53,6 +54,11 @@ export function AppSidebar() {
       name: "Devis",
       href: "/devis-db",
       icon: FileText,
+    },
+    {
+      name: "Tournées",
+      href: "/tournees",
+      icon: Navigation,
     },
     {
       name: "Pipeline",
