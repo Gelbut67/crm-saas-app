@@ -66,8 +66,8 @@ export function AppSidebar() {
       icon: BarChart3,
     },
     {
-      name: "Réglages",
-      href: "/settings",
+      name: "Paramètres",
+      href: "/parametres",
       icon: Settings,
     },
   ]

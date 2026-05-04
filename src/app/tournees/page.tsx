@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -87,6 +87,26 @@ export default function TourneesPage() {
   const clientsAvecAdresse = clientsDisponibles.filter(c => 
     c.adresse && c.ville && c.codePostal
   )
+
+  // Charger l'adresse du domicile depuis les paramètres
+  useEffect(() => {
+    const chargerAdresseDomicile = async () => {
+      try {
+        const response = await fetch('/api/settings?key=adresse_domicile')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.value) {
+            setAdresseDomicile(data.value.adresse || '')
+            setVilleDomicile(data.value.ville || '')
+            setCodePostalDomicile(data.value.codePostal || '')
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors du chargement de l\'adresse du domicile:', error)
+      }
+    }
+    chargerAdresseDomicile()
+  }, [])
 
   const optimiserTournee = async () => {
     setOptimizing(true)
