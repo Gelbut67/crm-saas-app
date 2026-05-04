@@ -202,7 +202,7 @@ export async function POST(request: Request) {
     // Utiliser Google Gemini pour optimiser la tournée
     let itineraireOptimise
     
-    if (genAI && clientsLibres.length > 0) {
+    if (genAI && clientsAvecCoordonnees.length > 0) {
       try {
         // Préparer les données pour l'IA
         const prompt = `Tu es un expert en optimisation de tournées commerciales. 
@@ -261,13 +261,20 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
       } catch (error) {
         console.error('Erreur Gemini:', error)
         // Fallback sur l'algorithme classique
-        const pointDepart = clientsAvecCoordonnees[0].coordonnees
-        itineraireOptimise = optimiserItineraire(clientsAvecCoordonnees, pointDepart)
+        const clientPrioritaire = clientsRdvFixes.length > 0 ? clientsRdvFixes[0] : null
+        const pointDepart = clientPrioritaire ? clientPrioritaire.coordonnees : clientsAvecCoordonnees[0].coordonnees
+        itineraireOptimise = optimiserItineraire(clientsAvecCoordonnees, pointDepart, clientPrioritaire)
       }
     } else {
-      // Pas d'API Gemini ou pas de clients libres, utiliser l'algorithme classique
-      const pointDepart = clientsAvecCoordonnees[0].coordonnees
-      itineraireOptimise = optimiserItineraire(clientsAvecCoordonnees, pointDepart)
+      // Pas d'API Gemini, utiliser l'algorithme classique
+      const clientPrioritaire = clientsRdvFixes.length > 0 ? clientsRdvFixes[0] : null
+      const pointDepart = clientPrioritaire ? clientPrioritaire.coordonnees : clientsAvecCoordonnees[0].coordonnees
+      itineraireOptimise = optimiserItineraire(clientsAvecCoordonnees, pointDepart, clientPrioritaire)
+    }
+
+    console.log('Itinéraire optimisé:', itineraireOptimise?.length || 0, 'clients')
+    if (itineraireOptimise && itineraireOptimise.length > 0) {
+      console.log('Premier client:', itineraireOptimise[0].nom, 'Distance:', itineraireOptimise[0].distance, 'Durée:', itineraireOptimise[0].duree)
     }
 
     // Calculer les horaires
@@ -282,6 +289,7 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
 
     for (let i = 0; i < itineraireOptimise.length; i++) {
       const client = itineraireOptimise[i]
+      console.log(`Client ${i + 1}:`, client.nom, 'Distance:', client.distance, 'Durée:', client.duree)
       
       // Vérifier si on a encore le temps
       const tempsNecessaire = (i > 0 ? client.duree : 0) + dureeRdv
