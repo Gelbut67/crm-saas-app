@@ -162,7 +162,8 @@ export default function TourneesPage() {
           visites: tourneeOptimisee,
           stats,
           typeTournee,
-          date: new Date().toISOString()
+          date: new Date().toISOString(),
+          pointDepart: pointDepartOptimise
         })
       })
 

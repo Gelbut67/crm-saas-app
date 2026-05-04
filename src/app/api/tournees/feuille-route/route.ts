@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
   try {
-    const { visites, stats, typeTournee, date } = await request.json()
+    const { visites, stats, typeTournee, date, pointDepart } = await request.json()
 
     // Générer le HTML pour la feuille de route
     const html = `
@@ -11,6 +11,8 @@ export async function POST(request: Request) {
 <head>
   <meta charset="UTF-8">
   <title>Feuille de Route</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -132,11 +134,32 @@ export async function POST(request: Request) {
       color: #94a3b8;
       font-size: 12px;
     }
+    #map {
+      width: 100%;
+      height: 500px;
+      margin: 30px 0;
+      border-radius: 8px;
+      border: 2px solid #e2e8f0;
+    }
+    .map-container {
+      page-break-before: always;
+      margin-top: 40px;
+    }
+    .map-title {
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+      color: #2563eb;
+      margin-bottom: 20px;
+    }
     @media print {
       body {
         margin: 20px;
       }
       .visite {
+        page-break-inside: avoid;
+      }
+      #map {
         page-break-inside: avoid;
       }
     }
@@ -194,10 +217,101 @@ export async function POST(request: Request) {
     </div>
   `).join('')}
 
+  <div class="map-container">
+    <div class="map-title">🗺️ Carte de la tournée</div>
+    <div id="map"></div>
+  </div>
+
   <div class="footer">
     <p>Feuille de route générée le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}</p>
     <p>CRM SaaS - Optimisation de tournées</p>
   </div>
+
+  <script>
+    // Initialiser la carte
+    const visites = ${JSON.stringify(visites)};
+    const pointDepart = ${JSON.stringify(pointDepart)};
+    
+    // Calculer le centre de la carte
+    let centerLat = 48.8566;
+    let centerLon = 2.3522;
+    
+    if (pointDepart && pointDepart.lat && pointDepart.lon) {
+      centerLat = pointDepart.lat;
+      centerLon = pointDepart.lon;
+    } else if (visites.length > 0 && visites[0].coordonnees) {
+      centerLat = visites[0].coordonnees.lat;
+      centerLon = visites[0].coordonnees.lon;
+    }
+    
+    const map = L.map('map').setView([centerLat, centerLon], 12);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+    
+    // Créer les icônes personnalisées
+    const homeIcon = L.divIcon({
+      className: 'custom-div-icon',
+      html: '<div style="background-color: #22c55e; width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 16px;">🏠</div>',
+      iconSize: [30, 30],
+      iconAnchor: [15, 15]
+    });
+    
+    const defaultIcon = L.divIcon({
+      className: 'custom-div-icon',
+      html: '<div style="background-color: #3b82f6; width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 16px; color: white; font-weight: bold;"></div>',
+      iconSize: [30, 30],
+      iconAnchor: [15, 15]
+    });
+    
+    // Ajouter le marqueur du domicile
+    if (pointDepart && pointDepart.lat && pointDepart.lon) {
+      L.marker([pointDepart.lat, pointDepart.lon], { icon: homeIcon })
+        .addTo(map)
+        .bindPopup('<b>🏠 Domicile</b><br>' + pointDepart.adresse);
+    }
+    
+    // Ajouter les marqueurs des visites
+    const bounds = [];
+    if (pointDepart && pointDepart.lat && pointDepart.lon) {
+      bounds.push([pointDepart.lat, pointDepart.lon]);
+    }
+    
+    visites.forEach((visite, index) => {
+      if (visite.coordonnees && visite.coordonnees.lat && visite.coordonnees.lon) {
+        const customIcon = L.divIcon({
+          className: 'custom-div-icon',
+          html: '<div style="background-color: #3b82f6; width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 14px; color: white; font-weight: bold;">' + visite.ordre + '</div>',
+          iconSize: [30, 30],
+          iconAnchor: [15, 15]
+        });
+        
+        L.marker([visite.coordonnees.lat, visite.coordonnees.lon], { icon: customIcon })
+          .addTo(map)
+          .bindPopup('<b>' + visite.ordre + '. ' + visite.client.nom + '</b><br>' + 
+                     visite.client.adresse + '<br>' +
+                     '🕐 ' + visite.heureArrivee + ' - ' + visite.heureDepart);
+        
+        bounds.push([visite.coordonnees.lat, visite.coordonnees.lon]);
+        
+        // Ajouter les routes si disponibles
+        if (visite.routeGeometry && visite.routeGeometry.coordinates) {
+          const routeCoords = visite.routeGeometry.coordinates.map(coord => [coord[1], coord[0]]);
+          L.polyline(routeCoords, {
+            color: '#3b82f6',
+            weight: 4,
+            opacity: 0.8
+          }).addTo(map);
+        }
+      }
+    });
+    
+    // Ajuster la vue pour montrer tous les points
+    if (bounds.length > 0) {
+      map.fitBounds(bounds, { padding: [50, 50] });
+    }
+  </script>
 </body>
 </html>
     `
