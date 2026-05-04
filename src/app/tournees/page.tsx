@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { MapPin, Clock, Users, Navigation, FileText, Loader2, Download, Calendar } from "lucide-react"
 import { useClients } from "@/hooks/useDatabase"
+import { RdvFixesManager } from "@/components/rdv-fixes-manager"
 
 interface VisiteOptimisee {
   client: {
@@ -35,7 +36,7 @@ export default function TourneesPage() {
   const [dureeRdv, setDureeRdv] = useState('60')
   const [departement, setDepartement] = useState('tous')
   const [ville, setVille] = useState('toutes')
-  const [clientPrioritaire, setClientPrioritaire] = useState('aucun')
+  const [rdvFixes, setRdvFixes] = useState<any[]>([])
   const [optimizing, setOptimizing] = useState(false)
   const [tourneeOptimisee, setTourneeOptimisee] = useState<VisiteOptimisee[]>([])
   const [stats, setStats] = useState<{
@@ -80,7 +81,10 @@ export default function TourneesPage() {
           dureeRdv: parseInt(dureeRdv),
           departement,
           ville,
-          clientPrioritaireId: clientPrioritaire !== 'aucun' ? clientPrioritaire : null
+          rdvFixes: rdvFixes.map(rdv => ({
+            clientId: rdv.clientId,
+            heureRdv: rdv.heureRdv
+          }))
         })
       })
 
@@ -141,7 +145,7 @@ export default function TourneesPage() {
         <Navigation className="w-8 h-8 text-primary" />
       </div>
 
-      <div className="grid md:grid-cols-3 gap-6">
+      <div className="grid md:grid-cols-4 gap-6">
         {/* Formulaire de configuration */}
         <Card className="md:col-span-1">
           <CardHeader>
@@ -223,25 +227,6 @@ export default function TourneesPage() {
               </Select>
             </div>
 
-            <div>
-              <Label>RDV prioritaire (optionnel)</Label>
-              <Select value={clientPrioritaire} onValueChange={setClientPrioritaire}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Aucun RDV prioritaire" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="aucun">Aucun RDV prioritaire</SelectItem>
-                  {clientsDisponibles.map(client => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.nom} - {client.ville}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                La tournée commencera par ce client
-              </p>
-            </div>
 
             <Button 
               onClick={optimiserTournee} 
@@ -262,6 +247,13 @@ export default function TourneesPage() {
             </Button>
           </CardContent>
         </Card>
+
+        {/* RDV Fixes */}
+        <RdvFixesManager
+          clients={clientsDisponibles}
+          rdvFixes={rdvFixes}
+          onChange={setRdvFixes}
+        />
 
         {/* Résultats */}
         <div className="md:col-span-2 space-y-6">

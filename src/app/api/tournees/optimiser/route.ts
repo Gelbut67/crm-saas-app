@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import OpenAI from 'openai'
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+})
 
 // Fonction pour calculer la distance entre deux points (formule de Haversine simplifiée)
 function calculerDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -127,7 +132,7 @@ function optimiserItineraire(
 
 export async function POST(request: Request) {
   try {
-    const { typeTournee, heureDepart, heureRetour, dureeRdv, departement, ville, clientPrioritaireId } = await request.json()
+    const { typeTournee, heureDepart, heureRetour, dureeRdv, departement, ville, rdvFixes } = await request.json()
 
     // Construire les filtres
     const where: any = {}
@@ -188,17 +193,90 @@ export async function POST(request: Request) {
       })
     )
 
-    // Trouver le client prioritaire si spécifié
-    let clientPrioritaire = null
-    if (clientPrioritaireId) {
-      clientPrioritaire = clientsAvecCoordonnees.find(c => c.id === clientPrioritaireId)
+    // Séparer les RDV fixes des clients disponibles
+    const rdvFixesIds = (rdvFixes || []).map((rdv: any) => rdv.clientId)
+    const clientsLibres = clientsAvecCoordonnees.filter(c => !rdvFixesIds.includes(c.id))
+    const clientsRdvFixes = rdvFixes ? rdvFixes.map((rdv: any) => {
+      const client = clientsAvecCoordonnees.find(c => c.id === rdv.clientId)
+      return { ...client, heureRdv: rdv.heureRdv }
+    }).filter(Boolean) : []
+
+    // Utiliser OpenAI pour optimiser la tournée
+    let itineraireOptimise
+    
+    if (process.env.OPENAI_API_KEY && clientsLibres.length > 0) {
+      try {
+        // Préparer les données pour l'IA
+        const prompt = `Tu es un expert en optimisation de tournées commerciales. 
+
+CONTRAINTES:
+- Heure de départ: ${heureDepart}
+- Heure de retour: ${heureRetour}
+- Durée moyenne d'un RDV: ${dureeRdv} minutes
+
+RDV FIXES (OBLIGATOIRES À CES HORAIRES):
+${clientsRdvFixes.map((c: any, i: number) => `${i + 1}. ${c.nom} (${c.ville}) - RDV FIXÉ À ${c.heureRdv}`).join('\n') || 'Aucun'}
+
+CLIENTS DISPONIBLES (à placer entre les RDV fixes):
+${clientsLibres.map((c: any, i: number) => `${i + 1}. ${c.nom} - ${c.ville} (${c.codePostal}) - Coordonnées: ${c.coordonnees.lat.toFixed(4)}, ${c.coordonnees.lon.toFixed(4)}`).join('\n')}
+
+OBJECTIF: Crée un itinéraire optimal qui:
+1. RESPECTE ABSOLUMENT les horaires des RDV fixes
+2. Insère les clients disponibles entre les RDV fixes pour minimiser les distances
+3. Optimise le temps de trajet total
+4. Respecte les contraintes horaires (départ/retour)
+
+RÉPONDS UNIQUEMENT avec un JSON contenant un tableau 'itineraire' avec les IDs des clients dans l'ordre optimal, sans explication.
+Format: {"itineraire": ["id1", "id2", "id3", ...]}`
+
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: "Tu es un expert en optimisation logistique. Tu réponds uniquement en JSON valide, sans markdown ni explication." },
+            { role: "user", content: prompt }
+          ],
+          temperature: 0.3,
+          max_tokens: 1000
+        })
+
+        const reponse = completion.choices[0].message.content
+        const resultat = JSON.parse(reponse!.replace(/```json\n?|```/g, '').trim())
+        
+        // Reconstruire l'itinéraire avec les distances
+        itineraireOptimise = []
+        let positionActuelle = clientsAvecCoordonnees[0].coordonnees
+        
+        for (const clientId of resultat.itineraire) {
+          const client = clientsAvecCoordonnees.find(c => c.id === clientId)
+          if (client) {
+            const distance = calculerDistance(
+              positionActuelle.lat,
+              positionActuelle.lon,
+              client.coordonnees.lat,
+              client.coordonnees.lon
+            )
+            
+            itineraireOptimise.push({
+              ...client,
+              distance: Math.round(distance * 10) / 10,
+              duree: Math.round(distance * 1.2),
+              heureRdv: clientsRdvFixes.find((c: any) => c.id === clientId)?.heureRdv
+            })
+            
+            positionActuelle = client.coordonnees
+          }
+        }
+      } catch (error) {
+        console.error('Erreur OpenAI:', error)
+        // Fallback sur l'algorithme classique
+        const pointDepart = clientsAvecCoordonnees[0].coordonnees
+        itineraireOptimise = optimiserItineraire(clientsAvecCoordonnees, pointDepart)
+      }
+    } else {
+      // Pas d'API OpenAI ou pas de clients libres, utiliser l'algorithme classique
+      const pointDepart = clientsAvecCoordonnees[0].coordonnees
+      itineraireOptimise = optimiserItineraire(clientsAvecCoordonnees, pointDepart)
     }
-
-    // Point de départ (client prioritaire ou première adresse)
-    const pointDepart = clientPrioritaire ? clientPrioritaire.coordonnees : clientsAvecCoordonnees[0].coordonnees
-
-    // Optimiser l'itinéraire
-    const itineraireOptimise = optimiserItineraire(clientsAvecCoordonnees, pointDepart, clientPrioritaire)
 
     // Calculer les horaires
     const [heureH, minuteH] = heureDepart.split(':').map(Number)

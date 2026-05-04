@@ -28,6 +28,7 @@
     "next": "^14.2.35",
     "next-pwa": "^2.0.2",
     "next-themes": "^0.2.1",
+    "openai": "^6.35.0",
     "prisma": "^5.10.0",
     "react": "^18",
     "react-dom": "^18",
