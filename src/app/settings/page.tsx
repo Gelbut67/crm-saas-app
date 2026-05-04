@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Settings, Save, Target, TrendingUp } from "lucide-react"
+import { Settings, Save, Target, TrendingUp, Home, Loader2 } from "lucide-react"
 
 interface ObjectifsCA {
   mensuel: number
@@ -18,6 +18,10 @@ export default function SettingsPage() {
     annuel: 600000
   })
   const [saved, setSaved] = useState(false)
+  const [adresseDomicile, setAdresseDomicile] = useState('')
+  const [villeDomicile, setVilleDomicile] = useState('')
+  const [codePostalDomicile, setCodePostalDomicile] = useState('')
+  const [savedAdresse, setSavedAdresse] = useState(false)
 
   useEffect(() => {
     // Charger les objectifs depuis l'API
@@ -36,7 +40,25 @@ export default function SettingsPage() {
       }
     }
     
+    // Charger l'adresse du domicile
+    const loadAdresse = async () => {
+      try {
+        const response = await fetch('/api/settings?key=adresse_domicile')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.value) {
+            setAdresseDomicile(data.value.adresse || '')
+            setVilleDomicile(data.value.ville || '')
+            setCodePostalDomicile(data.value.codePostal || '')
+          }
+        }
+      } catch (error) {
+        console.error("Erreur lors du chargement de l'adresse:", error)
+      }
+    }
+    
     loadObjectifs()
+    loadAdresse()
   }, [])
 
   const handleSave = async () => {
@@ -64,6 +86,34 @@ export default function SettingsPage() {
       }
     } catch (error) {
       console.error("Erreur lors de la sauvegarde:", error)
+    }
+  }
+
+  const handleSaveAdresse = async () => {
+    try {
+      const response = await fetch('/api/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          key: 'adresse_domicile',
+          value: {
+            adresse: adresseDomicile,
+            ville: villeDomicile,
+            codePostal: codePostalDomicile
+          }
+        })
+      })
+
+      if (response.ok) {
+        setSavedAdresse(true)
+        setTimeout(() => setSavedAdresse(false), 2000)
+      } else {
+        console.error("Erreur lors de la sauvegarde de l'adresse")
+      }
+    } catch (error) {
+      console.error("Erreur lors de la sauvegarde de l'adresse:", error)
     }
   }
 
@@ -149,6 +199,74 @@ export default function SettingsPage() {
               et atteignables pour motiver votre équipe.
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Home className="h-5 w-5" />
+            Adresse du domicile
+          </CardTitle>
+          <CardDescription>
+            Cette adresse sera utilisée comme point de départ pour vos tournées
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="adresse">Adresse</Label>
+            <Input
+              id="adresse"
+              placeholder="Ex: 123 rue de la Paix"
+              value={adresseDomicile}
+              onChange={(e) => setAdresseDomicile(e.target.value)}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="ville">Ville</Label>
+              <Input
+                id="ville"
+                placeholder="Paris"
+                value={villeDomicile}
+                onChange={(e) => setVilleDomicile(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="codePostal">Code postal</Label>
+              <Input
+                id="codePostal"
+                placeholder="75001"
+                value={codePostalDomicile}
+                onChange={(e) => setCodePostalDomicile(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="border-t pt-4">
+            <Button 
+              onClick={handleSaveAdresse} 
+              className="w-full relative"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {savedAdresse ? "Sauvegardé !" : "Sauvegarder l'adresse"}
+              {savedAdresse && (
+                <div className="absolute inset-0 flex items-center justify-center bg-green-500 text-white rounded-md">
+                  <Home className="h-4 w-4" />
+                </div>
+              )}
+            </Button>
+          </div>
+
+          {adresseDomicile && villeDomicile && codePostalDomicile && (
+            <div className="bg-muted/50 p-4 rounded-lg">
+              <p className="text-sm font-medium mb-1">Adresse enregistrée :</p>
+              <p className="text-sm text-muted-foreground">
+                {adresseDomicile}, {codePostalDomicile} {villeDomicile}
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
