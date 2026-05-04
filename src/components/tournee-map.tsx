@@ -55,6 +55,10 @@ interface TourneeMapProps {
     distance: number
     coordonnees?: { lat: number; lon: number }
     heureRdv?: string
+    routeGeometry?: {
+      type: string
+      coordinates: [number, number][]
+    }
   }>
   pointDepart?: { lat: number; lon: number; adresse: string }
 }
@@ -116,23 +120,18 @@ export function TourneeMap({ visites, pointDepart }: TourneeMapProps) {
     ? [visites[0].coordonnees.lat, visites[0].coordonnees.lon]
     : defaultCenter
 
-  // Créer le trajet (polyline)
-  const routeCoordinates: [number, number][] = []
+  // Créer les segments de route réels à partir des géométries OSRM
+  const routeSegments: [number, number][][] = []
   
-  if (pointDepart && pointDepart.lat && pointDepart.lon) {
-    routeCoordinates.push([pointDepart.lat, pointDepart.lon])
-  }
-  
-  visites.forEach(visite => {
-    if (visite.coordonnees && visite.coordonnees.lat && visite.coordonnees.lon) {
-      routeCoordinates.push([visite.coordonnees.lat, visite.coordonnees.lon])
+  visites.forEach((visite, index) => {
+    if (visite.routeGeometry && visite.routeGeometry.coordinates) {
+      // Convertir GeoJSON (lon, lat) en Leaflet (lat, lon)
+      const segment = visite.routeGeometry.coordinates.map((coord: [number, number]) => 
+        [coord[1], coord[0]] as [number, number]
+      )
+      routeSegments.push(segment)
     }
   })
-  
-  // Retour au domicile
-  if (pointDepart && pointDepart.lat && pointDepart.lon && routeCoordinates.length > 1) {
-    routeCoordinates.push([pointDepart.lat, pointDepart.lon])
-  }
 
   return (
     <div className="w-full h-[500px] rounded-lg overflow-hidden border">
@@ -199,16 +198,16 @@ export function TourneeMap({ visites, pointDepart }: TourneeMapProps) {
           )
         })}
         
-        {/* Trajet */}
-        {routeCoordinates.length > 1 && (
+        {/* Trajets réels (routes OSRM) */}
+        {routeSegments.map((segment, index) => (
           <Polyline
-            positions={routeCoordinates}
+            key={`route-${index}`}
+            positions={segment}
             color="#3b82f6"
-            weight={3}
-            opacity={0.7}
-            dashArray="10, 10"
+            weight={4}
+            opacity={0.8}
           />
-        )}
+        ))}
       </MapContainer>
     </div>
   )

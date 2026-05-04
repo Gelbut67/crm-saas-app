@@ -18,13 +18,13 @@ function calculerDistanceVolOiseau(lat1: number, lon1: number, lat2: number, lon
 }
 
 // Cache pour les calculs de distance en voiture
-const routeCache = new Map<string, { distance: number, duration: number }>()
+const routeCache = new Map<string, { distance: number, duration: number, geometry?: any }>()
 
 // Fonction pour calculer la distance et durée réelles en voiture avec OSRM (gratuite)
 async function calculerDistanceVoiture(
   lat1: number, lon1: number, 
   lat2: number, lon2: number
-): Promise<{ distance: number, duration: number }> {
+): Promise<{ distance: number, duration: number, geometry?: any }> {
   const cacheKey = `${lat1.toFixed(4)},${lon1.toFixed(4)}-${lat2.toFixed(4)},${lon2.toFixed(4)}`
   
   // Vérifier le cache
@@ -33,8 +33,8 @@ async function calculerDistanceVoiture(
   }
   
   try {
-    // Utiliser l'API OSRM (Open Source Routing Machine) - gratuite
-    const url = `https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=false`
+    // Utiliser l'API OSRM avec géométrie complète
+    const url = `https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=full&geometries=geojson`
     const response = await fetch(url)
     
     if (response.ok) {
@@ -43,7 +43,8 @@ async function calculerDistanceVoiture(
         const route = data.routes[0]
         const result = {
           distance: route.distance / 1000, // Convertir mètres en km
-          duration: Math.round(route.duration / 60) // Convertir secondes en minutes
+          duration: Math.round(route.duration / 60), // Convertir secondes en minutes
+          geometry: route.geometry // GeoJSON de la route
         }
         routeCache.set(cacheKey, result)
         return result
@@ -173,7 +174,8 @@ async function optimiserItineraire(
     visites.push({
       ...clientPrioritaire,
       distance: Math.round(route.distance * 10) / 10,
-      duree: route.duration
+      duree: route.duration,
+      routeGeometry: route.geometry
     })
     
     positionActuelle = clientPrioritaire.coordonnees
@@ -209,7 +211,8 @@ async function optimiserItineraire(
     visites.push({
       ...clientChoisi,
       distance: Math.round(route.distance * 10) / 10,
-      duree: route.duration
+      duree: route.duration,
+      routeGeometry: route.geometry // Géométrie de la route
     })
 
     positionActuelle = clientChoisi.coordonnees
@@ -350,6 +353,7 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
               ...client,
               distance: Math.round(route.distance * 10) / 10,
               duree: route.duration,
+              routeGeometry: route.geometry,
               heureRdv: clientsRdvFixes.find((c: any) => c.id === clientId)?.heureRdv
             })
             
