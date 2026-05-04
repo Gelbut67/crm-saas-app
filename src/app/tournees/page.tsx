@@ -35,6 +35,7 @@ export default function TourneesPage() {
   const [dureeRdv, setDureeRdv] = useState('60')
   const [departement, setDepartement] = useState('tous')
   const [ville, setVille] = useState('toutes')
+  const [clientPrioritaire, setClientPrioritaire] = useState('aucun')
   const [optimizing, setOptimizing] = useState(false)
   const [tourneeOptimisee, setTourneeOptimisee] = useState<VisiteOptimisee[]>([])
   const [stats, setStats] = useState<{
@@ -55,6 +56,15 @@ export default function TourneesPage() {
       .map(c => c.ville)
   )).sort()
 
+  // Filtrer les clients disponibles pour la sélection prioritaire
+  const clientsDisponibles = clients.filter(c => {
+    if (typeTournee === 'client' && c.statut !== 'client') return false
+    if (typeTournee === 'prospect' && c.statut !== 'prospect') return false
+    if (departement !== 'tous' && c.departement !== departement) return false
+    if (ville !== 'toutes' && c.ville !== ville) return false
+    return c.adresse && c.ville && c.codePostal
+  })
+
   const optimiserTournee = async () => {
     setOptimizing(true)
     try {
@@ -69,7 +79,8 @@ export default function TourneesPage() {
           heureRetour,
           dureeRdv: parseInt(dureeRdv),
           departement,
-          ville
+          ville,
+          clientPrioritaireId: clientPrioritaire !== 'aucun' ? clientPrioritaire : null
         })
       })
 
@@ -210,6 +221,26 @@ export default function TourneesPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div>
+              <Label>RDV prioritaire (optionnel)</Label>
+              <Select value={clientPrioritaire} onValueChange={setClientPrioritaire}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Aucun RDV prioritaire" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="aucun">Aucun RDV prioritaire</SelectItem>
+                  {clientsDisponibles.map(client => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.nom} - {client.ville}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                La tournée commencera par ce client
+              </p>
             </div>
 
             <Button 
