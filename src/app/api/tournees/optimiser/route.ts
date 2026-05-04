@@ -83,11 +83,11 @@ export async function POST(request: Request) {
     }
     // Pour 'mixte', pas de filtre sur le statut
 
-    if (departement) {
+    if (departement && departement !== 'tous') {
       where.departement = departement
     }
 
-    if (ville) {
+    if (ville && ville !== 'toutes') {
       where.ville = ville
     }
 

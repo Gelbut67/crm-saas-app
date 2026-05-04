@@ -33,8 +33,8 @@ export default function TourneesPage() {
   const [heureDepart, setHeureDepart] = useState('09:00')
   const [heureRetour, setHeureRetour] = useState('18:00')
   const [dureeRdv, setDureeRdv] = useState('60')
-  const [departement, setDepartement] = useState('')
-  const [ville, setVille] = useState('')
+  const [departement, setDepartement] = useState('tous')
+  const [ville, setVille] = useState('toutes')
   const [optimizing, setOptimizing] = useState(false)
   const [tourneeOptimisee, setTourneeOptimisee] = useState<VisiteOptimisee[]>([])
   const [stats, setStats] = useState<{
@@ -51,7 +51,7 @@ export default function TourneesPage() {
 
   const villes = Array.from(new Set(
     clients
-      .filter(c => c.ville && (!departement || c.departement === departement))
+      .filter(c => c.ville && (departement === 'tous' || c.departement === departement))
       .map(c => c.ville)
   )).sort()
 
@@ -189,7 +189,7 @@ export default function TourneesPage() {
                   <SelectValue placeholder="Tous les départements" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Tous les départements</SelectItem>
+                  <SelectItem value="tous">Tous les départements</SelectItem>
                   {departements.map(dept => (
                     <SelectItem key={dept} value={dept}>{dept}</SelectItem>
                   ))}
@@ -204,7 +204,7 @@ export default function TourneesPage() {
                   <SelectValue placeholder="Toutes les villes" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Toutes les villes</SelectItem>
+                  <SelectItem value="toutes">Toutes les villes</SelectItem>
                   {villes.map(v => (
                     <SelectItem key={v} value={v}>{v}</SelectItem>
                   ))}
