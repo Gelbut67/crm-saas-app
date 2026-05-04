@@ -455,11 +455,12 @@ export default function TourneesPage() {
                               <Clock className="w-4 h-4 text-blue-600" />
                               <span className="font-medium">{visite.heureArrivee} - {visite.heureDepart}</span>
                             </div>
-                            {index > 0 && (
+                            {visite.distance > 0 && (
                               <>
                                 <span className="text-muted-foreground">•</span>
                                 <span className="text-muted-foreground">
                                   {visite.distance} km • {visite.duree} min de trajet
+                                  {index === 0 && pointDepartOptimise && ' (depuis domicile)'}
                                 </span>
                               </>
                             )}
