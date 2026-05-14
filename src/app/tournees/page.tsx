@@ -65,6 +65,7 @@ export default function TourneesPage() {
     distanceTotale: number
     dureeTrajet: number
     nombreVisites: number
+    heureRetourEstimee?: string | null
   } | null>(null)
 
   const departements = Array.from(new Set(
@@ -418,7 +419,7 @@ export default function TourneesPage() {
         <div className="md:col-span-2 space-y-6">
           {/* Statistiques */}
           {stats && (
-            <div className="grid grid-cols-3 gap-4">
+            <div className={`grid gap-4 ${stats.heureRetourEstimee ? 'grid-cols-4' : 'grid-cols-3'}`}>
               <Card>
                 <CardContent className="pt-6">
                   <div className="text-center">
@@ -446,6 +447,17 @@ export default function TourneesPage() {
                   </div>
                 </CardContent>
               </Card>
+              {stats.heureRetourEstimee && (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center">
+                      <Home className="w-8 h-8 mx-auto mb-2 text-green-600" />
+                      <div className="text-2xl font-bold text-green-700">{stats.heureRetourEstimee}</div>
+                      <div className="text-sm text-muted-foreground">Retour domicile</div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )}
 

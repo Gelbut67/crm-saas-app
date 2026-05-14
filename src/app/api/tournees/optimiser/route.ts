@@ -450,6 +450,18 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
       }
       
       console.log(`Client ${i + 1}:`, client.nom, 'Distance:', distanceDepuisDomicile, 'Durée:', dureeDepuisDomicile)
+
+      // Calculer le temps de retour au domicile depuis ce client
+      let dureeRetourDomicile = 0
+      if (coordonneesDomicile && client.coordonnees) {
+        const routeRetour = await calculerDistanceVoiture(
+          client.coordonnees.lat,
+          client.coordonnees.lon,
+          coordonneesDomicile.lat,
+          coordonneesDomicile.lon
+        )
+        dureeRetourDomicile = routeRetour.duration
+      }
       
       // Insérer la pause si on atteint l'heure de pause
       if (!pausePrise && minutesActuelles >= heurePauseMinutes) {
@@ -457,10 +469,11 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
         pausePrise = true
       }
 
-      // Vérifier si on a encore le temps
-      const tempsNecessaire = (i === 0 && coordonneesDomicile ? dureeDepuisDomicile : (i > 0 ? client.duree : 0)) + dureeRdv
+      // Vérifier si on a encore le temps (trajet + RDV + retour domicile)
+      const trajetsVersClient = (i === 0 && coordonneesDomicile ? dureeDepuisDomicile : (i > 0 ? client.duree : 0))
+      const tempsNecessaire = trajetsVersClient + dureeRdv + dureeRetourDomicile
       if (minutesActuelles + tempsNecessaire > heureR * 60 + minuteR) {
-        break // Plus de temps disponible
+        break // Plus de temps disponible (retour domicile inclus)
       }
 
       // Ajouter le temps de trajet
@@ -500,12 +513,33 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
       distanceTotale += (i === 0 && coordonneesDomicile ? distanceDepuisDomicile : (client.distance || 0))
     }
 
+    // Calculer l'heure de retour réelle depuis le dernier client
+    let heureRetourEstimee: string | null = null
+    if (coordonneesDomicile && visites.length > 0) {
+      const dernierClient = itineraireOptimise[visites.length - 1]
+      if (dernierClient?.coordonnees) {
+        const retour = await calculerDistanceVoiture(
+          dernierClient.coordonnees.lat,
+          dernierClient.coordonnees.lon,
+          coordonneesDomicile.lat,
+          coordonneesDomicile.lon
+        )
+        const dernierVisiteFin = visites[visites.length - 1]
+        const [hFin, mFin] = dernierVisiteFin.heureDepart.split(':').map(Number)
+        const minutesRetour = hFin * 60 + mFin + retour.duration
+        heureRetourEstimee = `${String(Math.floor(minutesRetour / 60)).padStart(2, '0')}:${String(minutesRetour % 60).padStart(2, '0')}`
+        distanceTotale += Math.round(retour.distance * 10) / 10
+        dureeTrajetTotale += retour.duration
+      }
+    }
+
     return NextResponse.json({
       visites,
       stats: {
         nombreVisites: visites.length,
         distanceTotale: Math.round(distanceTotale),
-        dureeTrajet: dureeTrajetTotale
+        dureeTrajet: dureeTrajetTotale,
+        heureRetourEstimee
       },
       pointDepart: coordonneesDomicile ? {
         lat: coordonneesDomicile.lat,
