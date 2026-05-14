@@ -157,21 +157,21 @@ export async function POST(request: Request) {
     }
     #map {
       width: 100%;
-      height: 500px;
-      margin: 30px 0;
-      border-radius: 8px;
-      border: 2px solid #e2e8f0;
+      height: 420px;
+      margin: 10px 0;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
     }
     .map-container {
       page-break-before: always;
-      margin-top: 40px;
+      margin-top: 10px;
     }
     .map-title {
       text-align: center;
-      font-size: 24px;
+      font-size: 16px;
       font-weight: bold;
       color: #2563eb;
-      margin-bottom: 20px;
+      margin-bottom: 8px;
     }
     @media print {
       body {
@@ -182,8 +182,8 @@ export async function POST(request: Request) {
         page-break-inside: avoid;
         margin: 3px 0;
       }
-      .map-container {
-        display: none;
+      #map {
+        height: 260px !important;
       }
     }
   </style>
@@ -338,8 +338,18 @@ export async function POST(request: Request) {
     
     // Ajuster la vue pour montrer tous les points
     if (bounds.length > 0) {
-      map.fitBounds(bounds, { padding: [50, 50] });
+      map.fitBounds(bounds, { padding: [30, 30] });
     }
+
+    // Forcer Leaflet à recalculer la taille avant impression
+    window.addEventListener('beforeprint', function() {
+      setTimeout(function() {
+        map.invalidateSize();
+        if (bounds.length > 0) {
+          map.fitBounds(bounds, { padding: [10, 10] });
+        }
+      }, 200);
+    });
   </script>
 </body>
 </html>
