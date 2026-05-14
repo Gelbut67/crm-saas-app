@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { MessageSquare, Phone, Mail, Calendar, Trash2, Loader2, Plus, X } from "lucide-react"
+import { MessageSquare, Phone, Mail, Calendar, Trash2, Loader2, Plus, X, MapPin } from "lucide-react"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 
@@ -116,6 +116,8 @@ export function Interactions({ clientId }: InteractionsProps) {
         return <Mail className="w-4 h-4" />
       case 'rdv':
         return <Calendar className="w-4 h-4" />
+      case 'visite':
+        return <MapPin className="w-4 h-4" />
       default:
         return <MessageSquare className="w-4 h-4" />
     }
@@ -129,6 +131,8 @@ export function Interactions({ clientId }: InteractionsProps) {
         return <Badge variant="outline" className="bg-purple-50">Email</Badge>
       case 'rdv':
         return <Badge variant="outline" className="bg-green-50">RDV</Badge>
+      case 'visite':
+        return <Badge variant="outline" className="bg-orange-50 text-orange-700">Visite</Badge>
       default:
         return <Badge variant="outline">Note</Badge>
     }
@@ -202,6 +206,7 @@ export function Interactions({ clientId }: InteractionsProps) {
                       <SelectItem value="appel">Appel</SelectItem>
                       <SelectItem value="email">Email</SelectItem>
                       <SelectItem value="rdv">Rendez-vous</SelectItem>
+                      <SelectItem value="visite">Visite</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

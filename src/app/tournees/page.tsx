@@ -49,6 +49,8 @@ export default function TourneesPage() {
   const [dureeRdv, setDureeRdv] = useState('60')
   const [tempsPause, setTempsPause] = useState('0')
   const [heurePause, setHeurePause] = useState('12:00')
+  const [filtrerVisites, setFiltrerVisites] = useState(false)
+  const [joursDepuisVisite, setJoursDepuisVisite] = useState('30')
   const [departement, setDepartement] = useState('tous')
   const [ville, setVille] = useState('toutes')
   const [adresseDomicile, setAdresseDomicile] = useState('')
@@ -132,6 +134,8 @@ export default function TourneesPage() {
             ville: villeDomicile,
             codePostal: codePostalDomicile
           } : null,
+          filtrerVisites,
+          joursDepuisVisite: parseInt(joursDepuisVisite) || 30,
           rdvFixes: rdvFixes.map(rdv => ({
             clientId: rdv.clientId,
             heureRdv: rdv.heureRdv
@@ -349,6 +353,37 @@ export default function TourneesPage() {
               <p className="text-xs text-muted-foreground">
                 🏠 Si renseigné, la tournée commencera et finira à cette adresse
               </p>
+            </div>
+
+            <div className="pt-4 border-t space-y-3">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="filtrerVisites"
+                  checked={filtrerVisites}
+                  onChange={e => setFiltrerVisites(e.target.checked)}
+                  className="w-4 h-4 accent-primary"
+                />
+                <label htmlFor="filtrerVisites" className="text-sm font-medium cursor-pointer">
+                  Filtrer par dernière visite
+                </label>
+              </div>
+              {filtrerVisites && (
+                <div>
+                  <Label className="text-xs">Exclure les visités depuis moins de (jours)</Label>
+                  <Input
+                    type="number"
+                    value={joursDepuisVisite}
+                    onChange={e => setJoursDepuisVisite(e.target.value)}
+                    min="1"
+                    step="1"
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    🎯 Les non-visités seront placés en priorité
+                  </p>
+                </div>
+              )}
             </div>
 
             <Button 

@@ -228,7 +228,7 @@ export async function POST(request: Request) {
     const session = await getAuthSession()
     if (!session) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
-    const { typeTournee, heureDepart, heureRetour, dureeRdv, tempsPause, heurePause, departement, ville, pointDepart, rdvFixes } = await request.json()
+    const { typeTournee, heureDepart, heureRetour, dureeRdv, tempsPause, heurePause, departement, ville, pointDepart, rdvFixes, filtrerVisites, joursDepuisVisite } = await request.json()
 
     // Construire les filtres
     const where: any = {}
@@ -248,8 +248,8 @@ export async function POST(request: Request) {
       where.ville = ville
     }
 
-    // Récupérer les clients/prospects avec adresse complète
-    const clients = await prisma.client.findMany({
+    // Récupérer les clients/prospects avec adresse complète + dernière visite
+    const clientsRaw = await prisma.client.findMany({
       where: {
         ...where,
         userId: session.user.id,
@@ -267,9 +267,38 @@ export async function POST(request: Request) {
         ville: true,
         codePostal: true,
         departement: true,
-        statut: true
+        statut: true,
+        interactions: {
+          where: { type: 'visite' },
+          orderBy: { date: 'desc' },
+          take: 1,
+          select: { date: true }
+        }
       }
     })
+
+    // Filtrer et trier selon les visites
+    const maintenant = new Date()
+    const seuilVisite = new Date(maintenant.getTime() - (joursDepuisVisite || 30) * 24 * 60 * 60 * 1000)
+
+    const clientsFiltres = filtrerVisites
+      ? clientsRaw.filter(c => {
+          if (c.interactions.length === 0) return true // jamais visité → garder
+          return c.interactions[0].date < seuilVisite // visité il y a plus de X jours → garder
+        })
+      : clientsRaw
+
+    // Prioriser : jamais visités d'abord, puis par date de visite la plus ancienne
+    clientsFiltres.sort((a, b) => {
+      const aVisited = a.interactions.length > 0
+      const bVisited = b.interactions.length > 0
+      if (!aVisited && bVisited) return -1
+      if (aVisited && !bVisited) return 1
+      if (!aVisited && !bVisited) return 0
+      return a.interactions[0].date < b.interactions[0].date ? -1 : 1
+    })
+
+    const clients = clientsFiltres.map(({ interactions: _i, ...rest }) => rest)
 
     if (clients.length === 0) {
       return NextResponse.json({
