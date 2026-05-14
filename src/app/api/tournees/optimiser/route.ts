@@ -67,14 +67,45 @@ async function calculerDistanceVoiture(
 const geocodeCache = new Map<string, { lat: number, lon: number }>()
 
 // Fonction pour obtenir les coordonnées exactes via l'API Nominatim (OpenStreetMap)
-async function obtenirCoordonnees(codePostal: string, ville: string): Promise<{ lat: number, lon: number }> {
-  const cacheKey = `${codePostal}-${ville}`
+async function obtenirCoordonnees(codePostal: string, ville: string, adresse?: string): Promise<{ lat: number, lon: number }> {
+  const cacheKey = `${adresse || ''}-${codePostal}-${ville}`
   
   // Vérifier le cache
   if (geocodeCache.has(cacheKey)) {
     return geocodeCache.get(cacheKey)!
   }
-  
+
+  const headers = { 'User-Agent': 'CRM-SaaS-App/1.0' }
+
+  // 1ère tentative : adresse complète (rue + code postal + ville)
+  if (adresse) {
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      const query = encodeURIComponent(`${adresse}, ${codePostal} ${ville}, France`)
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1&countrycodes=fr`,
+        { headers }
+      )
+      if (response.ok) {
+        const data = await response.json()
+        if (data && data.length > 0) {
+          const coords = { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) }
+          geocodeCache.set(cacheKey, coords)
+          console.log(`Géocodage adresse complète : ${adresse}, ${codePostal} ${ville}:`, coords)
+          return coords
+        }
+      }
+    } catch (error) {
+      console.error(`Erreur géocodage adresse complète pour ${adresse}:`, error)
+    }
+  }
+
+  // 2ème tentative fallback : ville + code postal uniquement
+  const cacheKeyVille = `${codePostal}-${ville}`
+  if (geocodeCache.has(cacheKeyVille)) {
+    return geocodeCache.get(cacheKeyVille)!
+  }
+
   try {
     // Utiliser l'API Nominatim d'OpenStreetMap (gratuite)
     // Ajouter un délai pour respecter la limite de 1 req/sec de Nominatim
@@ -82,12 +113,8 @@ async function obtenirCoordonnees(codePostal: string, ville: string): Promise<{ 
     
     const query = encodeURIComponent(`${ville}, ${codePostal}, France`)
     const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`,
-      {
-        headers: {
-          'User-Agent': 'CRM-SaaS-App/1.0' // Requis par Nominatim
-        }
-      }
+      `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1&countrycodes=fr`,
+      { headers }
     )
     
     if (response.ok) {
@@ -97,8 +124,9 @@ async function obtenirCoordonnees(codePostal: string, ville: string): Promise<{ 
           lat: parseFloat(data[0].lat),
           lon: parseFloat(data[0].lon)
         }
+        geocodeCache.set(cacheKeyVille, coords)
         geocodeCache.set(cacheKey, coords)
-        console.log(`Géocodage réussi pour ${ville} (${codePostal}):`, coords)
+        console.log(`Géocodage ville pour ${ville} (${codePostal}):`, coords)
         return coords
       }
     }
@@ -317,14 +345,14 @@ export async function POST(request: Request) {
     // Obtenir les coordonnées du point de départ si fourni
     let coordonneesDomicile = null
     if (pointDepart && pointDepart.codePostal && pointDepart.ville) {
-      coordonneesDomicile = await obtenirCoordonnees(pointDepart.codePostal, pointDepart.ville)
+      coordonneesDomicile = await obtenirCoordonnees(pointDepart.codePostal, pointDepart.ville, pointDepart.adresse)
       console.log('Point de départ:', pointDepart, 'Coordonnées:', coordonneesDomicile)
     }
 
     // Obtenir les coordonnées pour chaque client
     const clientsAvecCoordonnees = await Promise.all(
       clients.map(async (client) => {
-        const coordonnees = await obtenirCoordonnees(client.codePostal!, client.ville!)
+        const coordonnees = await obtenirCoordonnees(client.codePostal!, client.ville!, client.adresse ?? undefined)
         return { ...client, coordonnees }
       })
     )
