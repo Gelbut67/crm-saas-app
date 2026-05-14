@@ -171,19 +171,39 @@ export async function POST(request: Request) {
       font-size: 16px;
       font-weight: bold;
       color: #2563eb;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
     @media print {
+      @page { margin: 8mm; }
+      @page :first { margin: 8mm; }
       body {
-        margin: 8px 12px;
+        margin: 0;
         font-size: 11px;
       }
       .visite {
         page-break-inside: avoid;
         margin: 3px 0;
       }
+      .map-container {
+        page-break-before: always;
+        margin: 0;
+        padding: 0;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      .map-title {
+        flex-shrink: 0;
+        margin: 4mm 0 2mm 0;
+      }
       #map {
-        height: 260px !important;
+        flex: 1;
+        height: auto !important;
+        min-height: 0;
+        border-radius: 0;
+        border: none;
+        margin: 0;
       }
     }
   </style>
