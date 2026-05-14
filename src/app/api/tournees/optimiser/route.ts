@@ -298,7 +298,10 @@ export async function POST(request: Request) {
       return a.interactions[0].date < b.interactions[0].date ? -1 : 1
     })
 
-    const clients = clientsFiltres.map(({ interactions: _i, ...rest }) => rest)
+    const clients = clientsFiltres.map(({ interactions, ...rest }) => ({
+      ...rest,
+      derniereVisite: interactions.length > 0 ? interactions[0].date.toISOString() : null
+    }))
 
     if (clients.length === 0) {
       return NextResponse.json({
@@ -490,7 +493,8 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
         duree: i === 0 && coordonneesDomicile ? dureeDepuisDomicile : (client.duree || 0),
         coordonnees: client.coordonnees,
         heureRdv: client.heureRdv,
-        routeGeometry: i === 0 && coordonneesDomicile ? geometryDepuisDomicile : client.routeGeometry
+        routeGeometry: i === 0 && coordonneesDomicile ? geometryDepuisDomicile : client.routeGeometry,
+        derniereVisite: client.derniereVisite || null
       })
 
       distanceTotale += (i === 0 && coordonneesDomicile ? distanceDepuisDomicile : (client.distance || 0))

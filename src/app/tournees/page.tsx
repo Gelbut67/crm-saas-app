@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { MapPin, Clock, Users, Navigation, FileText, Loader2, Download, Calendar, Home } from "lucide-react"
+import { MapPin, Clock, Users, Navigation, FileText, Loader2, Calendar, Home, HistoryIcon } from "lucide-react"
 import { useClients, useProspects } from "@/hooks/useDatabase"
 import { RdvFixesManager } from "@/components/rdv-fixes-manager"
 import dynamic from 'next/dynamic'
@@ -33,6 +33,7 @@ interface VisiteOptimisee {
   heureDepart: string
   distance: number
   duree: number
+  derniereVisite?: string | null
 }
 
 export default function TourneesPage() {
@@ -491,7 +492,7 @@ export default function TourneesPage() {
                   {tourneeOptimisee.map((visite, index) => (
                     <div
                       key={visite.client.id}
-                      className="p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                      className={`p-4 border rounded-lg hover:bg-muted/50 transition-colors ${!visite.derniereVisite ? 'border-l-4 border-l-amber-400' : ''}`}
                     >
                       <div className="flex items-start gap-4">
                         <div className="flex-shrink-0">
@@ -514,6 +515,13 @@ export default function TourneesPage() {
                               <MapPin className="w-4 h-4" />
                               {visite.client.adresse}, {visite.client.codePostal} {visite.client.ville}
                             </div>
+                          </div>
+                          <div className="flex items-center gap-1 text-xs mt-1">
+                            <HistoryIcon className="w-3 h-3 text-muted-foreground" />
+                            {visite.derniereVisite
+                              ? <span className="text-muted-foreground">Dernière visite : {new Date(visite.derniereVisite).toLocaleDateString('fr-FR')}</span>
+                              : <span className="text-amber-600 font-medium">Jamais visité</span>
+                            }
                           </div>
                           <div className="flex items-center gap-4 text-sm mt-2">
                             <div className="flex items-center gap-1">

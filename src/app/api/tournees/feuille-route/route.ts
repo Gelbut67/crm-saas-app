@@ -126,6 +126,20 @@ export async function POST(request: Request) {
       color: #64748b;
       font-size: 14px;
     }
+    .visite-derniere-visite {
+      font-size: 12px;
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .jamais-visite {
+      color: #d97706;
+      font-weight: 600;
+    }
+    .date-visite {
+      color: #64748b;
+    }
     .footer {
       margin-top: 40px;
       padding-top: 20px;
@@ -202,6 +216,12 @@ export async function POST(request: Request) {
         ${visite.client.entreprise ? `<div class="visite-entreprise">${visite.client.entreprise}</div>` : ''}
         <div class="visite-adresse">
           📍 ${visite.client.adresse}, ${visite.client.codePostal} ${visite.client.ville}
+        </div>
+        <div class="visite-derniere-visite">
+          🕓 ${visite.derniereVisite
+            ? `<span class="date-visite">Dernière visite : ${new Date(visite.derniereVisite).toLocaleDateString('fr-FR')}</span>`
+            : `<span class="jamais-visite">⚠️ Jamais visité</span>`
+          }
         </div>
         <div class="visite-horaire">
           <div class="horaire-item">
