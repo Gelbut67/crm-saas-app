@@ -37,6 +37,7 @@ export async function POST(request: Request) {
         email,
         password: hashedPassword,
         role: role || 'commercial',
+        mustChangePassword: true,
       },
       select: { id: true, nom: true, email: true, role: true, dateCreation: true },
     })

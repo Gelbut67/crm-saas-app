@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { Plus, Trash2, Users, ShieldCheck, User } from 'lucide-react'
+import { Plus, Trash2, Users, ShieldCheck, User, KeyRound, X } from 'lucide-react'
 
 interface UserRow {
   id: string
@@ -25,6 +25,9 @@ export default function AdminUsersPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [resetTarget, setResetTarget] = useState<{ id: string; nom: string } | null>(null)
+  const [resetPassword, setResetPassword] = useState('')
+  const [resetting, setResetting] = useState(false)
 
   useEffect(() => {
     if (status === 'authenticated') fetchUsers()
@@ -62,6 +65,30 @@ export default function AdminUsersPage() {
       }
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  async function handleResetPassword() {
+    if (!resetTarget) return
+    if (resetPassword.length < 6) { setError('Mot de passe trop court (6 caractères min)'); return }
+    setResetting(true)
+    setError('')
+    try {
+      const res = await fetch(`/api/admin/users/${resetTarget.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: resetPassword }),
+      })
+      if (res.ok) {
+        setSuccess(`Mot de passe de "${resetTarget.nom}" réinitialisé — il devra le changer à la prochaine connexion`)
+        setResetTarget(null)
+        setResetPassword('')
+      } else {
+        const d = await res.json()
+        setError(d.error || 'Erreur')
+      }
+    } finally {
+      setResetting(false)
     }
   }
 
@@ -228,15 +255,24 @@ export default function AdminUsersPage() {
                     {new Date(u.dateCreation).toLocaleDateString('fr-FR')}
                   </td>
                   <td className="px-5 py-4">
-                    {u.id !== session?.user?.id && (
+                    <div className="flex items-center gap-1">
                       <button
-                        onClick={() => handleDelete(u.id, u.nom)}
-                        className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
-                        title="Supprimer"
+                        onClick={() => { setResetTarget({ id: u.id, nom: u.nom }); setResetPassword(''); setError('') }}
+                        className="p-2 text-amber-500 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition"
+                        title="Réinitialiser le mot de passe"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <KeyRound className="w-4 h-4" />
                       </button>
-                    )}
+                      {u.id !== session?.user?.id && (
+                        <button
+                          onClick={() => handleDelete(u.id, u.nom)}
+                          className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
+                          title="Supprimer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -244,6 +280,31 @@ export default function AdminUsersPage() {
           </table>
         )}
       </div>
+      {resetTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Réinitialiser le mot de passe</h3>
+              <button onClick={() => setResetTarget(null)} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition"><X className="w-5 h-5" /></button>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">Définir un nouveau mot de passe temporaire pour <strong>{resetTarget.nom}</strong>. L'utilisateur sera invité à le changer à sa prochaine connexion.</p>
+            <input
+              type="password"
+              value={resetPassword}
+              onChange={e => setResetPassword(e.target.value)}
+              placeholder="Nouveau mot de passe temporaire (min. 6 car.)"
+              className="w-full px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-500 mb-4"
+            />
+            {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setResetTarget(null)} className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition">Annuler</button>
+              <button onClick={handleResetPassword} disabled={resetting} className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm disabled:opacity-60 transition">
+                {resetting ? 'Enregistrement...' : 'Réinitialiser'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

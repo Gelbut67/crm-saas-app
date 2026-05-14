@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Settings, Save, Target, TrendingUp, Home, Loader2 } from "lucide-react"
+import { Settings, Save, Target, TrendingUp, Home, KeyRound, Eye, EyeOff } from "lucide-react"
 
 interface ObjectifsCA {
   mensuel: number
@@ -22,6 +22,35 @@ export default function SettingsPage() {
   const [villeDomicile, setVilleDomicile] = useState('')
   const [codePostalDomicile, setCodePostalDomicile] = useState('')
   const [savedAdresse, setSavedAdresse] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showCurrent, setShowCurrent] = useState(false)
+  const [showNew, setShowNew] = useState(false)
+  const [passwordError, setPasswordError] = useState('')
+  const [passwordSuccess, setPasswordSuccess] = useState(false)
+  const [savingPassword, setSavingPassword] = useState(false)
+
+  const handleChangePassword = async () => {
+    setPasswordError('')
+    if (newPassword !== confirmPassword) { setPasswordError('Les mots de passe ne correspondent pas'); return }
+    if (newPassword.length < 6) { setPasswordError('Minimum 6 caractères'); return }
+    setSavingPassword(true)
+    try {
+      const res = await fetch('/api/user/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setPasswordError(data.error || 'Erreur'); return }
+      setPasswordSuccess(true)
+      setCurrentPassword(''); setNewPassword(''); setConfirmPassword('')
+      setTimeout(() => setPasswordSuccess(false), 3000)
+    } finally {
+      setSavingPassword(false)
+    }
+  }
 
   useEffect(() => {
     // Charger les objectifs depuis l'API
@@ -267,6 +296,82 @@ export default function SettingsPage() {
               </p>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <KeyRound className="h-5 w-5" />
+            Changer mon mot de passe
+          </CardTitle>
+          <CardDescription>
+            Modifiez votre mot de passe de connexion
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="currentPassword">Mot de passe actuel</Label>
+            <div className="relative mt-1">
+              <Input
+                id="currentPassword"
+                type={showCurrent ? 'text' : 'password'}
+                value={currentPassword}
+                onChange={e => setCurrentPassword(e.target.value)}
+                placeholder="••••••••"
+                className="pr-10"
+              />
+              <button type="button" onClick={() => setShowCurrent(!showCurrent)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition">
+                {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="newPassword">Nouveau mot de passe</Label>
+              <div className="relative mt-1">
+                <Input
+                  id="newPassword"
+                  type={showNew ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  placeholder="Min. 6 caractères"
+                  className="pr-10"
+                />
+                <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition">
+                  {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="confirmPassword">Confirmer</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                placeholder="Répéter"
+                className="mt-1"
+              />
+            </div>
+          </div>
+
+          {passwordError && (
+            <p className="text-sm text-red-600 dark:text-red-400">{passwordError}</p>
+          )}
+
+          <div className="border-t pt-4">
+            <Button onClick={handleChangePassword} disabled={savingPassword} className="relative">
+              <KeyRound className="mr-2 h-4 w-4" />
+              {passwordSuccess ? 'Mot de passe modifié !' : savingPassword ? 'Enregistrement...' : 'Changer le mot de passe'}
+              {passwordSuccess && (
+                <div className="absolute inset-0 flex items-center justify-center bg-green-500 text-white rounded-md text-sm font-medium">
+                  ✓ Modifié avec succès
+                </div>
+              )}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

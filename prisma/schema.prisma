@@ -15,8 +15,9 @@ model User {
   nom          String
   email        String   @unique
   password     String
-  role         String   @default("commercial") // commercial, admin
-  dateCreation DateTime @default(now())
+  role               String   @default("commercial") // commercial, admin
+  mustChangePassword Boolean  @default(false)
+  dateCreation       DateTime @default(now())
 
   clients      Client[]
   settings      Settings[]
