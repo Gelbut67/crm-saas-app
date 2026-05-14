@@ -19,6 +19,7 @@ model User {
   dateCreation DateTime @default(now())
 
   clients      Client[]
+  settings      Settings[]
 
   @@map("users")
 }
@@ -110,9 +111,13 @@ model PieceJointe {
 
 model Settings {
   id              String   @id @default(cuid())
-  key             String   @unique
+  key             String
   value           String
+  userId          String
   dateModification DateTime @default(now()) @updatedAt
   
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([key, userId])
   @@map("settings")
 }

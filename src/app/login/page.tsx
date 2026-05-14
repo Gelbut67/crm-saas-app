@@ -2,11 +2,9 @@
 
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
 import { BarChart3, Eye, EyeOff, LogIn } from 'lucide-react'
 
 export default function LoginPage() {
-  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -29,8 +27,7 @@ export default function LoginPage() {
     if (result?.error) {
       setError('Email ou mot de passe incorrect')
     } else {
-      router.push('/')
-      router.refresh()
+      window.location.href = '/'
     }
   }
 

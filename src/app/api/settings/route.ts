@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     }
 
     const setting = await prisma.settings.findUnique({
-      where: { key }
+      where: { key_userId: { key, userId: session.user.id } }
     })
 
     if (!setting) {
@@ -58,13 +58,14 @@ export async function POST(request: Request) {
     }
 
     const setting = await prisma.settings.upsert({
-      where: { key: data.key },
+      where: { key_userId: { key: data.key, userId: session.user.id } },
       update: {
         value: JSON.stringify(data.value)
       },
       create: {
         key: data.key,
-        value: JSON.stringify(data.value)
+        value: JSON.stringify(data.value),
+        userId: session.user.id,
       }
     })
 
