@@ -228,7 +228,7 @@ export async function POST(request: Request) {
     const session = await getAuthSession()
     if (!session) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
-    const { typeTournee, heureDepart, heureRetour, dureeRdv, departement, ville, pointDepart, rdvFixes } = await request.json()
+    const { typeTournee, heureDepart, heureRetour, dureeRdv, tempsPause, heurePause, departement, ville, pointDepart, rdvFixes } = await request.json()
 
     // Construire les filtres
     const where: any = {}
@@ -393,6 +393,9 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
     const visites: any[] = []
     let distanceTotale = 0
     let dureeTrajetTotale = 0
+    const pauseMinutes = tempsPause || 0
+    const heurePauseMinutes = heurePause ? parseInt(heurePause.split(':')[0]) * 60 + parseInt(heurePause.split(':')[1]) : 12 * 60
+    let pausePrise = pauseMinutes === 0
 
     for (let i = 0; i < itineraireOptimise.length; i++) {
       const client = itineraireOptimise[i]
@@ -416,6 +419,12 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
       
       console.log(`Client ${i + 1}:`, client.nom, 'Distance:', distanceDepuisDomicile, 'Durée:', dureeDepuisDomicile)
       
+      // Insérer la pause si on atteint l'heure de pause
+      if (!pausePrise && minutesActuelles >= heurePauseMinutes) {
+        minutesActuelles += pauseMinutes
+        pausePrise = true
+      }
+
       // Vérifier si on a encore le temps
       const tempsNecessaire = (i === 0 && coordonneesDomicile ? dureeDepuisDomicile : (i > 0 ? client.duree : 0)) + dureeRdv
       if (minutesActuelles + tempsNecessaire > heureR * 60 + minuteR) {

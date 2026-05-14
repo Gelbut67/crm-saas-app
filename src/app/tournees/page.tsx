@@ -47,6 +47,8 @@ export default function TourneesPage() {
   const [heureDepart, setHeureDepart] = useState('09:00')
   const [heureRetour, setHeureRetour] = useState('18:00')
   const [dureeRdv, setDureeRdv] = useState('60')
+  const [tempsPause, setTempsPause] = useState('0')
+  const [heurePause, setHeurePause] = useState('12:00')
   const [departement, setDepartement] = useState('tous')
   const [ville, setVille] = useState('toutes')
   const [adresseDomicile, setAdresseDomicile] = useState('')
@@ -121,6 +123,8 @@ export default function TourneesPage() {
           heureDepart,
           heureRetour,
           dureeRdv: parseInt(dureeRdv),
+          tempsPause: parseInt(tempsPause) || 0,
+          heurePause,
           departement,
           ville,
           pointDepart: adresseDomicile && villeDomicile && codePostalDomicile ? {
@@ -254,6 +258,31 @@ export default function TourneesPage() {
                 min="15"
                 step="15"
               />
+            </div>
+
+            <div className="pt-2 border-t space-y-3">
+              <div>
+                <Label>Temps de pause (minutes)</Label>
+                <Input
+                  type="number"
+                  value={tempsPause}
+                  onChange={(e) => setTempsPause(e.target.value)}
+                  min="0"
+                  step="15"
+                  placeholder="0 = pas de pause"
+                />
+              </div>
+              {parseInt(tempsPause) > 0 && (
+                <div>
+                  <Label>Heure de la pause</Label>
+                  <Input
+                    type="time"
+                    value={heurePause}
+                    onChange={(e) => setHeurePause(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">La pause sera insérée dès cette heure atteinte</p>
+                </div>
+              )}
             </div>
 
             <div>
