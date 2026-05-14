@@ -16,59 +16,62 @@ export async function POST(request: Request) {
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 40px;
+      margin: 15px 20px;
       color: #333;
+      font-size: 12px;
     }
     .header {
       text-align: center;
-      margin-bottom: 30px;
-      border-bottom: 3px solid #2563eb;
-      padding-bottom: 20px;
+      margin-bottom: 10px;
+      border-bottom: 2px solid #2563eb;
+      padding-bottom: 8px;
     }
     .header h1 {
       color: #2563eb;
       margin: 0;
+      font-size: 18px;
     }
     .header p {
       color: #666;
-      margin: 5px 0;
+      margin: 2px 0;
+      font-size: 11px;
     }
     .stats {
       display: flex;
       justify-content: space-around;
-      margin: 30px 0;
-      padding: 20px;
+      margin: 8px 0;
+      padding: 8px;
       background: #f8fafc;
-      border-radius: 8px;
+      border-radius: 6px;
     }
     .stat {
       text-align: center;
     }
     .stat-value {
-      font-size: 24px;
+      font-size: 16px;
       font-weight: bold;
       color: #2563eb;
     }
     .stat-label {
       color: #666;
-      font-size: 14px;
-      margin-top: 5px;
+      font-size: 10px;
+      margin-top: 2px;
     }
     .visite {
-      margin: 20px 0;
-      padding: 20px;
+      margin: 5px 0;
+      padding: 7px 10px;
       border: 1px solid #e2e8f0;
-      border-radius: 8px;
+      border-radius: 5px;
       page-break-inside: avoid;
     }
     .visite-header {
       display: flex;
       align-items: center;
-      margin-bottom: 15px;
+      margin-bottom: 4px;
     }
     .visite-numero {
-      width: 40px;
-      height: 40px;
+      width: 24px;
+      height: 24px;
       background: #2563eb;
       color: white;
       border-radius: 50%;
@@ -76,20 +79,21 @@ export async function POST(request: Request) {
       align-items: center;
       justify-content: center;
       font-weight: bold;
-      font-size: 18px;
-      margin-right: 15px;
+      font-size: 12px;
+      margin-right: 8px;
+      flex-shrink: 0;
     }
     .visite-nom {
-      font-size: 18px;
+      font-size: 13px;
       font-weight: bold;
       color: #1e293b;
     }
     .visite-badge {
       display: inline-block;
-      padding: 4px 12px;
-      border-radius: 12px;
-      font-size: 12px;
-      margin-left: 10px;
+      padding: 1px 7px;
+      border-radius: 10px;
+      font-size: 10px;
+      margin-left: 6px;
       background: #e0e7ff;
       color: #3730a3;
     }
@@ -98,40 +102,43 @@ export async function POST(request: Request) {
       color: #374151;
     }
     .visite-info {
-      margin-left: 55px;
+      margin-left: 32px;
     }
     .visite-entreprise {
       color: #64748b;
-      margin-bottom: 10px;
+      margin-bottom: 2px;
+      font-size: 11px;
     }
     .visite-adresse {
       color: #475569;
-      margin-bottom: 10px;
+      margin-bottom: 2px;
+      font-size: 11px;
     }
     .visite-horaire {
       display: flex;
-      gap: 20px;
-      margin-top: 10px;
-      padding-top: 10px;
+      gap: 12px;
+      margin-top: 4px;
+      padding-top: 4px;
       border-top: 1px solid #e2e8f0;
     }
     .horaire-item {
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 4px;
       color: #2563eb;
-      font-weight: 500;
+      font-weight: 600;
+      font-size: 11px;
     }
     .visite-trajet {
       color: #64748b;
-      font-size: 14px;
+      font-size: 11px;
     }
     .visite-derniere-visite {
-      font-size: 12px;
-      margin-top: 6px;
+      font-size: 10px;
+      margin-top: 2px;
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 4px;
     }
     .jamais-visite {
       color: #d97706;
@@ -141,12 +148,12 @@ export async function POST(request: Request) {
       color: #64748b;
     }
     .footer {
-      margin-top: 40px;
-      padding-top: 20px;
-      border-top: 2px solid #e2e8f0;
+      margin-top: 15px;
+      padding-top: 8px;
+      border-top: 1px solid #e2e8f0;
       text-align: center;
       color: #94a3b8;
-      font-size: 12px;
+      font-size: 10px;
     }
     #map {
       width: 100%;
@@ -168,13 +175,15 @@ export async function POST(request: Request) {
     }
     @media print {
       body {
-        margin: 20px;
+        margin: 8px 12px;
+        font-size: 11px;
       }
       .visite {
         page-break-inside: avoid;
+        margin: 3px 0;
       }
-      #map {
-        page-break-inside: avoid;
+      .map-container {
+        display: none;
       }
     }
   </style>
