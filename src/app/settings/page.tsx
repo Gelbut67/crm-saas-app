@@ -319,6 +319,7 @@ export default function SettingsPage() {
                 value={currentPassword}
                 onChange={e => setCurrentPassword(e.target.value)}
                 placeholder="••••••••"
+                autoComplete="new-password"
                 className="pr-10"
               />
               <button type="button" onClick={() => setShowCurrent(!showCurrent)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition">
@@ -337,6 +338,7 @@ export default function SettingsPage() {
                   value={newPassword}
                   onChange={e => setNewPassword(e.target.value)}
                   placeholder="Min. 6 caractères"
+                  autoComplete="new-password"
                   className="pr-10"
                 />
                 <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition">
@@ -352,6 +354,7 @@ export default function SettingsPage() {
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
                 placeholder="Répéter"
+                autoComplete="new-password"
                 className="mt-1"
               />
             </div>
