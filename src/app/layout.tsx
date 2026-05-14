@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google'
 import { ThemeProvider } from "@/components/theme-provider"
 import { AppSidebar } from "@/components/app-sidebar"
 import { DataMigration } from "@/components/data-migration"
+import { SessionProvider } from "@/components/session-provider"
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -41,22 +42,24 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <div className="min-h-screen gradient-soft">
-            <div className="flex h-screen overflow-hidden">
-              <AppSidebar />
-              <main className="flex-1 overflow-auto lg:pl-64">
-                <DataMigration />
-                {children}
-              </main>
+        <SessionProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <div className="min-h-screen gradient-soft">
+              <div className="flex h-screen overflow-hidden">
+                <AppSidebar />
+                <main className="flex-1 overflow-auto lg:pl-64">
+                  <DataMigration />
+                  {children}
+                </main>
+              </div>
             </div>
-          </div>
-        </ThemeProvider>
+          </ThemeProvider>
+        </SessionProvider>
       </body>
     </html>
   )

@@ -1,13 +1,18 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getAuthSession } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export async function GET() {
   try {
+    const session = await getAuthSession()
+    if (!session) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+
     // Récupérer tous les clients
     const clients = await prisma.client.findMany({
+      where: { userId: session.user.id },
       include: {
         interactions: true,
         devis: true,
@@ -19,6 +24,7 @@ export async function GET() {
 
     // Récupérer tous les devis
     const devis = await prisma.devis.findMany({
+      where: { client: { userId: session.user.id } },
       include: {
         client: {
           select: {

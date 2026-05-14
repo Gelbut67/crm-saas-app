@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getAuthSession } from '@/lib/auth'
 
 // POST - Créer un nouveau contact
 export async function POST(request: Request) {
   try {
+    const session = await getAuthSession()
+    if (!session) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+
     const data = await request.json()
     
     if (!data.nom || !data.clientId) {

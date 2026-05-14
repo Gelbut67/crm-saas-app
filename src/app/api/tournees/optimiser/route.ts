@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { getAuthSession } from '@/lib/auth'
 
 const genAI = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null
 
@@ -224,6 +225,9 @@ async function optimiserItineraire(
 
 export async function POST(request: Request) {
   try {
+    const session = await getAuthSession()
+    if (!session) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+
     const { typeTournee, heureDepart, heureRetour, dureeRdv, departement, ville, pointDepart, rdvFixes } = await request.json()
 
     // Construire les filtres
@@ -248,6 +252,7 @@ export async function POST(request: Request) {
     const clients = await prisma.client.findMany({
       where: {
         ...where,
+        userId: session.user.id,
         AND: [
           { adresse: { not: null } },
           { ville: { not: null } },

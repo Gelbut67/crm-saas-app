@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getAuthSession } from '@/lib/auth'
 
 // GET - Récupérer un prospect spécifique
 export async function GET(
@@ -7,6 +8,9 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getAuthSession()
+    if (!session) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+
     const prospect = await prisma.client.findUnique({
       where: {
         id: params.id,
@@ -73,6 +77,9 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getAuthSession()
+    if (!session) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+
     const data = await request.json()
     
     const prospect = await prisma.client.update({
@@ -103,6 +110,9 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getAuthSession()
+    if (!session) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+
     // Supprimer d'abord les interactions liées
     await prisma.interaction.deleteMany({
       where: {

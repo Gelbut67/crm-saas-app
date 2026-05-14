@@ -1,12 +1,17 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import * as XLSX from 'xlsx'
+import { getAuthSession } from '@/lib/auth'
 
 export async function GET() {
   try {
+    const session = await getAuthSession()
+    if (!session) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+
     const clients = await prisma.client.findMany({
       where: {
-        statut: 'client'
+        statut: 'client',
+        userId: session.user.id,
       },
       include: {
         contacts: true

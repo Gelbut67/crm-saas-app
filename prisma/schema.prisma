@@ -10,6 +10,19 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id           String   @id @default(cuid())
+  nom          String
+  email        String   @unique
+  password     String
+  role         String   @default("commercial") // commercial, admin
+  dateCreation DateTime @default(now())
+
+  clients      Client[]
+
+  @@map("users")
+}
+
 model Client {
   id               String    @id @default(cuid())
   nom              String
@@ -26,6 +39,8 @@ model Client {
   statut           String    @default("prospect") // prospect, client
   dateCreation     DateTime  @default(now())
   caTotal          Float     @default(0)
+  userId           String?
+  user             User?     @relation(fields: [userId], references: [id])
   
   contacts      Contact[]
   interactions  Interaction[]

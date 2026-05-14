@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getAuthSession } from '@/lib/auth'
 
 // Désactiver le cache pour cette route
 export const dynamic = 'force-dynamic'
@@ -10,13 +11,17 @@ export async function GET() {
   try {
     console.log('API Prospects GET - Début de la requête')
     
+    const session = await getAuthSession()
+    if (!session) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+
     // Test de connexion à la DB
     await prisma.$connect()
     console.log('API Prospects GET - Connecté à la DB')
     
     const prospects = await prisma.client.findMany({
       where: {
-        statut: 'prospect'
+        statut: 'prospect',
+        userId: session.user.id,
       },
       orderBy: {
         dateCreation: 'desc'
@@ -91,9 +96,13 @@ export async function POST(request: Request) {
       )
     }
     
+    const session = await getAuthSession()
+    if (!session) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+
     const prospect = await prisma.client.create({
       data: {
         nom: data.entreprise.trim(),
+        userId: session.user.id,
         email: data.email?.trim() || null,
         telephone: data.telephone?.trim() || null,
         entreprise: data.entreprise?.trim() || null,

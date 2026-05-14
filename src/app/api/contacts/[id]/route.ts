@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getAuthSession } from '@/lib/auth'
 
 // PUT - Mettre à jour un contact
 export async function PUT(
@@ -7,6 +8,9 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getAuthSession()
+    if (!session) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+
     const data = await request.json()
     
     // Si c'est le contact principal, retirer le flag des autres contacts du même client
@@ -53,6 +57,9 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getAuthSession()
+    if (!session) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+
     await prisma.contact.delete({
       where: { id: params.id }
     })

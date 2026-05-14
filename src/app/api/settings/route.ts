@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
+import { getAuthSession } from '@/lib/auth'
 
 // GET - Récupérer un paramètre
 export async function GET(request: Request) {
   try {
+    const session = await getAuthSession()
+    if (!session) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+
     const { searchParams } = new URL(request.url)
     const key = searchParams.get('key')
 
@@ -43,6 +45,9 @@ export async function GET(request: Request) {
 // POST - Créer ou mettre à jour un paramètre
 export async function POST(request: Request) {
   try {
+    const session = await getAuthSession()
+    if (!session) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+
     const data = await request.json()
     
     if (!data.key || !data.value) {

@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
+import { useSession, signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/theme-toggle"
 import {
@@ -11,13 +12,12 @@ import {
   FileText,
   Settings,
   Home,
-  Phone,
-  Calendar,
-  DollarSign,
   X,
   Menu,
   UserPlus,
-  Navigation
+  Navigation,
+  LogOut,
+  ShieldCheck,
 } from "lucide-react"
 import {
   Sidebar,
@@ -33,6 +33,7 @@ import { Button } from "@/components/ui/button"
 export function AppSidebar() {
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { data: session } = useSession()
 
   const navigation = [
     {
@@ -70,6 +71,11 @@ export function AppSidebar() {
       href: "/settings",
       icon: Settings,
     },
+    ...(session?.user?.role === 'admin' ? [{
+      name: "Utilisateurs",
+      href: "/admin/users",
+      icon: ShieldCheck,
+    }] : []),
   ]
 
   return (
@@ -145,19 +151,28 @@ export function AppSidebar() {
           </nav>
 
           {/* Footer */}
-          <div className="p-4 border-t border-gray-200/50">
+          <div className="p-4 border-t border-gray-200/50 space-y-2">
             <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-bold">GY</span>
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-8 h-8 flex-shrink-0 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm font-bold">
+                    {session?.user?.name ? session.user.name.slice(0, 2).toUpperCase() : '?'}
+                  </span>
                 </div>
-                <div>
-                  <p className="text-sm font-medium">Garip YASAR</p>
-                  <p className="text-xs text-muted-foreground">Administrateur</p>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{session?.user?.name ?? 'Utilisateur'}</p>
+                  <p className="text-xs text-muted-foreground capitalize">{session?.user?.role ?? ''}</p>
                 </div>
               </div>
               <ThemeToggle />
             </div>
+            <button
+              onClick={() => signOut({ callbackUrl: '/login' })}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              Se déconnecter
+            </button>
           </div>
         </div>
       </div>
