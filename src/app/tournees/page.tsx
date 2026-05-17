@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { MapPin, Clock, Users, Navigation, FileText, Loader2, Calendar, Home, HistoryIcon } from "lucide-react"
+import { MapPin, Clock, Users, Navigation, FileText, Loader2, Calendar, Home, HistoryIcon, Search, ListChecks, Sliders } from "lucide-react"
 import { useClients, useProspects } from "@/hooks/useDatabase"
 import { RdvFixesManager } from "@/components/rdv-fixes-manager"
 import dynamic from 'next/dynamic'
@@ -58,6 +58,9 @@ export default function TourneesPage() {
   const [villeDomicile, setVilleDomicile] = useState('')
   const [codePostalDomicile, setCodePostalDomicile] = useState('')
   const [rdvFixes, setRdvFixes] = useState<any[]>([])
+  const [modeSelection, setModeSelection] = useState<'auto' | 'manuel'>('auto')
+  const [clientsSelectionnes, setClientsSelectionnes] = useState<Set<string>>(new Set())
+  const [rechercheSelection, setRechercheSelection] = useState('')
   const [optimizing, setOptimizing] = useState(false)
   const [tourneeOptimisee, setTourneeOptimisee] = useState<VisiteOptimisee[]>([])
   const [pointDepartOptimise, setPointDepartOptimise] = useState<{ lat: number; lon: number; adresse: string } | null>(null)
@@ -114,7 +117,38 @@ export default function TourneesPage() {
     chargerAdresseDomicile()
   }, [])
 
+  const clientsFiltresPourSelection = allClientsAndProspects.filter(c => {
+    if (typeTournee === 'client' && c.statut !== 'client') return false
+    if (typeTournee === 'prospect' && c.statut !== 'prospect') return false
+    const search = rechercheSelection.toLowerCase()
+    if (search && !c.nom.toLowerCase().includes(search) &&
+        !(c.entreprise || '').toLowerCase().includes(search) &&
+        !(c.ville || '').toLowerCase().includes(search)) return false
+    return true
+  })
+
+  const toggleClientSelection = (id: string) => {
+    setClientsSelectionnes(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const selectionnerTous = () => {
+    setClientsSelectionnes(new Set(clientsFiltresPourSelection.map(c => c.id)))
+  }
+
+  const deselectionnerTous = () => {
+    setClientsSelectionnes(new Set())
+  }
+
   const optimiserTournee = async () => {
+    if (modeSelection === 'manuel' && clientsSelectionnes.size === 0) {
+      alert('Veuillez sélectionner au moins un client ou prospect.')
+      return
+    }
     setOptimizing(true)
     try {
       const response = await fetch('/api/tournees/optimiser', {
@@ -131,6 +165,7 @@ export default function TourneesPage() {
           heurePause,
           departement,
           ville,
+          clientIds: modeSelection === 'manuel' ? Array.from(clientsSelectionnes) : undefined,
           pointDepart: adresseDomicile && villeDomicile && codePostalDomicile ? {
             adresse: adresseDomicile,
             ville: villeDomicile,
@@ -222,6 +257,32 @@ export default function TourneesPage() {
             <CardDescription>Paramétrez votre tournée</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+
+            {/* Toggle mode */}
+            <div className="flex rounded-lg border overflow-hidden">
+              <button
+                onClick={() => setModeSelection('auto')}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium transition-colors ${
+                  modeSelection === 'auto' ? 'bg-primary text-primary-foreground' : 'bg-background text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                <Sliders className="w-3.5 h-3.5" />
+                Automatique
+              </button>
+              <button
+                onClick={() => setModeSelection('manuel')}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium transition-colors ${
+                  modeSelection === 'manuel' ? 'bg-primary text-primary-foreground' : 'bg-background text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                <ListChecks className="w-3.5 h-3.5" />
+                Manuel
+                {modeSelection === 'manuel' && clientsSelectionnes.size > 0 && (
+                  <span className="ml-1 bg-primary-foreground text-primary text-xs rounded-full px-1.5 py-0.5 font-bold">{clientsSelectionnes.size}</span>
+                )}
+              </button>
+            </div>
+
             <div>
               <Label>Type de tournée</Label>
               <Select value={typeTournee} onValueChange={(v: any) => setTypeTournee(v)}>
@@ -291,6 +352,58 @@ export default function TourneesPage() {
               )}
             </div>
 
+            {/* Sélection manuelle */}
+            {modeSelection === 'manuel' && (
+              <div className="pt-2 border-t space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Sélectionner les visites</Label>
+                  <div className="flex gap-1">
+                    <button onClick={selectionnerTous} className="text-xs text-primary underline">Tout</button>
+                    <span className="text-xs text-muted-foreground">·</span>
+                    <button onClick={deselectionnerTous} className="text-xs text-muted-foreground underline">Aucun</button>
+                  </div>
+                </div>
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder="Nom, entreprise, ville..."
+                    value={rechercheSelection}
+                    onChange={e => setRechercheSelection(e.target.value)}
+                    className="pl-7 h-8 text-sm"
+                  />
+                </div>
+                <div className="border rounded-md overflow-y-auto max-h-56 divide-y">
+                  {clientsFiltresPourSelection.length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center py-4">Aucun résultat</p>
+                  )}
+                  {clientsFiltresPourSelection.map(c => (
+                    <label key={c.id} className="flex items-start gap-2 px-3 py-2 hover:bg-muted cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={clientsSelectionnes.has(c.id)}
+                        onChange={() => toggleClientSelection(c.id)}
+                        className="mt-0.5 accent-primary"
+                      />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-medium truncate">{c.nom}</span>
+                          <span className={`text-xs px-1 rounded ${
+                            c.statut === 'client' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
+                          }`}>{c.statut === 'client' ? 'C' : 'P'}</span>
+                        </div>
+                        {c.entreprise && <p className="text-xs text-muted-foreground truncate">{c.entreprise}</p>}
+                        {c.ville && <p className="text-xs text-muted-foreground">{c.ville}{c.codePostal ? ` (${c.codePostal})` : ''}</p>}
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                {clientsSelectionnes.size > 0 && (
+                  <p className="text-xs text-primary font-medium">{clientsSelectionnes.size} sélectionné{clientsSelectionnes.size > 1 ? 's' : ''}</p>
+                )}
+              </div>
+            )}
+
+            {modeSelection === 'auto' && (
             <div>
               <Label>Département</Label>
               <Select value={departement} onValueChange={setDepartement}>
@@ -304,8 +417,9 @@ export default function TourneesPage() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </div>)}
 
+            {modeSelection === 'auto' && (
             <div>
               <Label>Ville</Label>
               <Select value={ville} onValueChange={setVille}>
@@ -320,6 +434,7 @@ export default function TourneesPage() {
                 </SelectContent>
               </Select>
             </div>
+            )}
 
             <div className="pt-4 border-t space-y-3">
               <div className="flex items-center gap-2 text-sm font-medium">

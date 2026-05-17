@@ -256,24 +256,29 @@ export async function POST(request: Request) {
     const session = await getAuthSession()
     if (!session) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
-    const { typeTournee, heureDepart, heureRetour, dureeRdv, tempsPause, heurePause, departement, ville, pointDepart, rdvFixes, filtrerVisites, joursDepuisVisite } = await request.json()
+    const { typeTournee, heureDepart, heureRetour, dureeRdv, tempsPause, heurePause, departement, ville, pointDepart, rdvFixes, filtrerVisites, joursDepuisVisite, clientIds } = await request.json()
 
     // Construire les filtres
     const where: any = {}
-    
-    if (typeTournee === 'client') {
-      where.statut = 'client'
-    } else if (typeTournee === 'prospect') {
-      where.statut = 'prospect'
-    }
-    // Pour 'mixte', pas de filtre sur le statut
 
-    if (departement && departement !== 'tous') {
-      where.departement = departement
-    }
+    if (clientIds && Array.isArray(clientIds) && clientIds.length > 0) {
+      // Mode sélection manuelle : on prend exactement ces clients
+      where.id = { in: clientIds }
+    } else {
+      // Mode automatique : filtres type/dépt/ville
+      if (typeTournee === 'client') {
+        where.statut = 'client'
+      } else if (typeTournee === 'prospect') {
+        where.statut = 'prospect'
+      }
 
-    if (ville && ville !== 'toutes') {
-      where.ville = ville
+      if (departement && departement !== 'tous') {
+        where.departement = departement
+      }
+
+      if (ville && ville !== 'toutes') {
+        where.ville = ville
+      }
     }
 
     // Récupérer les clients/prospects avec adresse complète + dernière visite
