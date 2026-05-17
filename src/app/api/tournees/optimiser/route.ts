@@ -496,17 +496,17 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
         dureeRetourDomicile = routeRetour.duration
       }
       
-      // Insérer la pause si on atteint l'heure de pause
-      if (!pausePrise && minutesActuelles >= heurePauseMinutes) {
-        minutesActuelles += pauseMinutes
-        pausePrise = true
-      }
+      // Calculer le temps de trajet vers ce client
+      const travelDuration = (i === 0 && coordonneesDomicile ? dureeDepuisDomicile : (i > 0 ? client.duree : 0))
 
-      // Vérifier si on a encore le temps (trajet + RDV + retour domicile)
-      const trajetsVersClient = (i === 0 && coordonneesDomicile ? dureeDepuisDomicile : (i > 0 ? client.duree : 0))
-      const tempsNecessaire = trajetsVersClient + dureeRdv + dureeRetourDomicile
+      // La pause sera-t-elle insérée PENDANT ce trajet ? (on franchit heurePauseMinutes après le trajet)
+      const minutesApresTrajet = minutesActuelles + travelDuration
+      const pauseAInserer = (!pausePrise && minutesApresTrajet >= heurePauseMinutes) ? pauseMinutes : 0
+
+      // Vérifier si on a encore le temps (trajet + pause éventuelle + RDV + retour domicile)
+      const tempsNecessaire = travelDuration + pauseAInserer + dureeRdv + dureeRetourDomicile
       if (minutesActuelles + tempsNecessaire > heureR * 60 + minuteR) {
-        break // Plus de temps disponible (retour domicile inclus)
+        break // Plus de temps disponible (pause + retour domicile inclus)
       }
 
       // Ajouter le temps de trajet
@@ -516,6 +516,12 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
       } else if (i > 0) {
         minutesActuelles += client.duree
         dureeTrajetTotale += client.duree
+      }
+
+      // Insérer la pause si l'heure de pause est atteinte après le trajet (avant l'arrivée chez le client)
+      if (!pausePrise && minutesActuelles >= heurePauseMinutes) {
+        minutesActuelles += pauseMinutes
+        pausePrise = true
       }
 
       const heureArrivee = `${String(Math.floor(minutesActuelles / 60)).padStart(2, '0')}:${String(minutesActuelles % 60).padStart(2, '0')}`
