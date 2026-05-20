@@ -40,6 +40,8 @@ model Client {
   departement      String?
   statut           String    @default("prospect") // prospect, client
   dateCreation     DateTime  @default(now())
+  lat              Float?
+  lon              Float?
   caTotal          Float     @default(0)
   userId           String?
   user             User?     @relation(fields: [userId], references: [id])

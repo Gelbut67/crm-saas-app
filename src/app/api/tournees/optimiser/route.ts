@@ -302,6 +302,8 @@ export async function POST(request: Request) {
         codePostal: true,
         departement: true,
         statut: true,
+        lat: true,
+        lon: true,
         interactions: {
           where: { type: 'visite' },
           orderBy: { date: 'desc' },
@@ -352,13 +354,21 @@ export async function POST(request: Request) {
     let coordonneesDomicile = null
     if (pointDepart && pointDepart.codePostal && pointDepart.ville) {
       coordonneesDomicile = await obtenirCoordonnees(pointDepart.codePostal, pointDepart.ville, pointDepart.adresse)
-      console.log('Point de départ:', pointDepart, 'Coordonnées:', coordonneesDomicile)
     }
 
-    // Obtenir les coordonnées pour chaque client - SEQUENTIAL pour respecter Nominatim 1 req/sec
+    // Utiliser les coordonnées stockées en DB, ne géocoder QUE les clients sans coordonnées
     const clientsAvecCoordonnees: any[] = []
     for (const client of clients) {
-      const coordonnees = await obtenirCoordonnees(client.codePostal!, client.ville!, client.adresse ?? undefined)
+      let coordonnees: { lat: number, lon: number }
+      if (client.lat != null && client.lon != null) {
+        // Coordonnées déjà connues → instantané
+        coordonnees = { lat: client.lat, lon: client.lon }
+      } else {
+        // Pas encore géocodé → appel Nominatim puis stockage en DB
+        coordonnees = await obtenirCoordonnees(client.codePostal!, client.ville!, client.adresse ?? undefined)
+        // Sauvegarder pour les prochaines fois (fire-and-forget)
+        prisma.client.update({ where: { id: client.id }, data: { lat: coordonnees.lat, lon: coordonnees.lon } }).catch(() => {})
+      }
       clientsAvecCoordonnees.push({ ...client, coordonnees })
     }
 
