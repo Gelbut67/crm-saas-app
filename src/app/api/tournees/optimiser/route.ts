@@ -181,71 +181,72 @@ async function obtenirCoordonnees(codePostal: string, ville: string, adresse?: s
   }
 }
 
-// Algorithme du plus proche voisin pour optimiser la tournée
+// Récupère la matrice de durées via l'API OSRM Table (1 seul appel réseau)
+async function obtenirMatriceDistances(points: { lat: number, lon: number }[]): Promise<number[][]> {
+  try {
+    const coords = points.map(p => `${p.lon},${p.lat}`).join(';')
+    const url = `https://router.project-osrm.org/table/v1/driving/${coords}?annotations=duration`
+    const response = await fetch(url)
+    if (response.ok) {
+      const data = await response.json()
+      if (data.code === 'Ok' && data.durations) {
+        // Convertir secondes → minutes
+        return data.durations.map((row: number[]) => row.map((v: number) => Math.round(v / 60)))
+      }
+    }
+  } catch (error) {
+    console.error('Erreur OSRM Table:', error)
+  }
+  // Fallback : matrice via Haversine
+  return points.map((a, i) => points.map((b, j) => {
+    if (i === j) return 0
+    const d = calculerDistanceVolOiseau(a.lat, a.lon, b.lat, b.lon)
+    return Math.round(d * 1.5) // ~50 km/h
+  }))
+}
+
+// Algorithme du plus proche voisin avec matrice pré-calculée
 async function optimiserItineraire(
   clients: any[],
   pointDepart: { lat: number, lon: number },
   clientPrioritaire?: any
 ): Promise<any[]> {
-  const visites: any[] = []
-  let clientsRestants = [...clients]
-  let positionActuelle = pointDepart
+  // Construire la liste de points : [domicile, ...clients]
+  const points = [pointDepart, ...clients.map(c => c.coordonnees)]
+  const matrice = await obtenirMatriceDistances(points)
+  // matrice[0] = durées depuis le point de départ, matrice[i+1] = depuis le client i
 
-  // Si un client prioritaire est défini, commencer par lui
+  const visites: any[] = []
+  const utilises = new Set<number>()
+  let posIdx = 0 // index dans `points` (0 = domicile)
+
+  // Si client prioritaire, le placer en premier
   if (clientPrioritaire) {
-    const route = await calculerDistanceVoiture(
-      positionActuelle.lat,
-      positionActuelle.lon,
-      clientPrioritaire.coordonnees.lat,
-      clientPrioritaire.coordonnees.lon
-    )
-    
-    visites.push({
-      ...clientPrioritaire,
-      distance: Math.round(route.distance * 10) / 10,
-      duree: route.duration,
-      routeGeometry: route.geometry
-    })
-    
-    positionActuelle = clientPrioritaire.coordonnees
-    clientsRestants = clientsRestants.filter(c => c.id !== clientPrioritaire.id)
+    const idx = clients.findIndex(c => c.id === clientPrioritaire.id)
+    if (idx >= 0) {
+      const ptIdx = idx + 1
+      const route = await calculerDistanceVoiture(points[posIdx].lat, points[posIdx].lon, points[ptIdx].lat, points[ptIdx].lon)
+      visites.push({ ...clients[idx], distance: Math.round(route.distance * 10) / 10, duree: matrice[posIdx][ptIdx], routeGeometry: route.geometry })
+      utilises.add(idx)
+      posIdx = ptIdx
+    }
   }
 
-  // Optimiser le reste de la tournée
-  while (clientsRestants.length > 0) {
-    let plusProche = 0
-    let distanceMin = Infinity
-
-    // Trouver le client le plus proche
-    for (let i = 0; i < clientsRestants.length; i++) {
-      const route = await calculerDistanceVoiture(
-        positionActuelle.lat,
-        positionActuelle.lon,
-        clientsRestants[i].coordonnees.lat,
-        clientsRestants[i].coordonnees.lon
-      )
-      if (route.distance < distanceMin) {
-        distanceMin = route.distance
-        plusProche = i
-      }
+  // Greedy nearest-neighbor sur la matrice
+  while (utilises.size < clients.length) {
+    let plusProche = -1
+    let dureeMin = Infinity
+    for (let i = 0; i < clients.length; i++) {
+      if (utilises.has(i)) continue
+      const duree = matrice[posIdx][i + 1]
+      if (duree < dureeMin) { dureeMin = duree; plusProche = i }
     }
-
-    const clientChoisi = clientsRestants[plusProche]
-    const route = await calculerDistanceVoiture(
-      positionActuelle.lat,
-      positionActuelle.lon,
-      clientChoisi.coordonnees.lat,
-      clientChoisi.coordonnees.lon
-    )
-    visites.push({
-      ...clientChoisi,
-      distance: Math.round(route.distance * 10) / 10,
-      duree: route.duration,
-      routeGeometry: route.geometry // Géométrie de la route
-    })
-
-    positionActuelle = clientChoisi.coordonnees
-    clientsRestants.splice(plusProche, 1)
+    if (plusProche === -1) break
+    const ptIdx = plusProche + 1
+    const route = await calculerDistanceVoiture(points[posIdx].lat, points[posIdx].lon, points[ptIdx].lat, points[ptIdx].lon)
+    visites.push({ ...clients[plusProche], distance: Math.round(route.distance * 10) / 10, duree: matrice[posIdx][ptIdx], routeGeometry: route.geometry })
+    utilises.add(plusProche)
+    posIdx = ptIdx
   }
 
   return visites
@@ -444,8 +445,15 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
     }
 
     console.log('Itinéraire optimisé:', itineraireOptimise?.length || 0, 'clients')
-    if (itineraireOptimise && itineraireOptimise.length > 0) {
-      console.log('Premier client:', itineraireOptimise[0].nom, 'Distance:', itineraireOptimise[0].distance, 'Durée:', itineraireOptimise[0].duree)
+
+    // Pré-calculer les durées de retour domicile en 1 seul appel OSRM Table
+    const retourDomicileDurees = new Map<string, number>()
+    if (coordonneesDomicile && itineraireOptimise && itineraireOptimise.length > 0) {
+      const pointsRetour = [coordonneesDomicile, ...itineraireOptimise.map((c: any) => c.coordonnees)]
+      const matriceRetour = await obtenirMatriceDistances(pointsRetour)
+      itineraireOptimise.forEach((c: any, i: number) => {
+        retourDomicileDurees.set(c.id, matriceRetour[i + 1]?.[0] ?? 0)
+      })
     }
 
     // Calculer les horaires
@@ -483,17 +491,8 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
       
       console.log(`Client ${i + 1}:`, client.nom, 'Distance:', distanceDepuisDomicile, 'Durée:', dureeDepuisDomicile)
 
-      // Calculer le temps de retour au domicile depuis ce client
-      let dureeRetourDomicile = 0
-      if (coordonneesDomicile && client.coordonnees) {
-        const routeRetour = await calculerDistanceVoiture(
-          client.coordonnees.lat,
-          client.coordonnees.lon,
-          coordonneesDomicile.lat,
-          coordonneesDomicile.lon
-        )
-        dureeRetourDomicile = routeRetour.duration
-      }
+      // Durée de retour au domicile (pré-calculée)
+      const dureeRetourDomicile = retourDomicileDurees.get(client.id) ?? 0
       
       // Calculer le temps de trajet vers ce client
       const travelDuration = (i === 0 && coordonneesDomicile ? dureeDepuisDomicile : (i > 0 ? client.duree : 0))
@@ -585,10 +584,10 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
         adresse: `${pointDepart.adresse}, ${pointDepart.codePostal} ${pointDepart.ville}`
       } : null
     })
-  } catch (error) {
-    console.error('Erreur:', error)
+  } catch (error: any) {
+    console.error('Erreur optimisation tournée:', error?.message || error)
     return NextResponse.json(
-      { error: 'Erreur lors de l\'optimisation de la tournée' },
+      { error: `Erreur lors de l'optimisation : ${error?.message || 'erreur inconnue'}` },
       { status: 500 }
     )
   }

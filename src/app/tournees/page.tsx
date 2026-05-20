@@ -186,7 +186,8 @@ export default function TourneesPage() {
         setStats(data.stats)
         setPointDepartOptimise(data.pointDepart)
       } else {
-        alert('Erreur lors de l\'optimisation de la tournée')
+        const data = await response.json().catch(() => ({}))
+        alert(data.error || 'Erreur lors de l\'optimisation de la tournée')
       }
     } catch (error) {
       console.error('Erreur:', error)
