@@ -112,6 +112,8 @@ export default function InteractionsPage() {
   }
   const formatTime = (iso: string) => {
     const d = new Date(iso)
+    // Si l'heure UTC est minuit, aucune heure n'a été saisie → ne pas afficher
+    if (d.getUTCHours() === 0 && d.getUTCMinutes() === 0) return '—'
     return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
   }
 
