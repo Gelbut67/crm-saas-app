@@ -18,6 +18,7 @@ import {
   Navigation,
   LogOut,
   ShieldCheck,
+  Activity,
 } from "lucide-react"
 import {
   Sidebar,
@@ -60,6 +61,11 @@ export function AppSidebar() {
       name: "Tournées",
       href: "/tournees",
       icon: Navigation,
+    },
+    {
+      name: "Activités",
+      href: "/interactions",
+      icon: Activity,
     },
     {
       name: "Pipeline",
