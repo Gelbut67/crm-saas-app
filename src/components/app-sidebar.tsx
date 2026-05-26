@@ -6,6 +6,7 @@ import { useState } from "react"
 import { useSession, signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { NotificationCenter } from "@/components/ui/notifications"
 import {
   BarChart3,
   Users,
@@ -170,7 +171,10 @@ export function AppSidebar() {
                   <p className="text-xs text-muted-foreground capitalize">{session?.user?.role ?? ''}</p>
                 </div>
               </div>
-              <ThemeToggle />
+              <div className="flex items-center gap-1">
+                <NotificationCenter />
+                <ThemeToggle />
+              </div>
             </div>
             <button
               onClick={() => signOut({ callbackUrl: '/login' })}

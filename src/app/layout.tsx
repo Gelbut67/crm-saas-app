@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { AppSidebar } from "@/components/app-sidebar"
 import { DataMigration } from "@/components/data-migration"
 import { SessionProvider } from "@/components/session-provider"
+import { ReminderToasts } from "@/components/ui/notifications"
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -55,6 +56,7 @@ export default function RootLayout({
                 <main className="flex-1 overflow-auto lg:pl-64">
                   <DataMigration />
                   {children}
+                  <ReminderToasts />
                 </main>
               </div>
             </div>

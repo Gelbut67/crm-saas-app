@@ -21,6 +21,7 @@ model User {
 
   clients      Client[]
   settings      Settings[]
+  reminders    Reminder[]
 
   @@map("users")
 }
@@ -49,6 +50,7 @@ model Client {
   contacts      Contact[]
   interactions  Interaction[]
   devis         Devis[]
+  reminders     Reminder[]
   
   @@map("clients")
 }
@@ -110,6 +112,22 @@ model PieceJointe {
   devis        Devis    @relation(fields: [devisId], references: [id], onDelete: Cascade)
   
   @@map("pieces_jointes")
+}
+
+model Reminder {
+  id           String   @id @default(cuid())
+  titre        String
+  contenu      String?
+  echeance     DateTime
+  fait         Boolean  @default(false)
+  clientId     String?
+  userId       String
+  dateCreation DateTime @default(now())
+
+  client       Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("reminders")
 }
 
 model Settings {

@@ -1,363 +1,265 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { 
-  Bell, 
-  X, 
-  Clock,
-  AlertTriangle,
-  CheckCircle,
-  Calendar,
-  FileText
-} from "lucide-react"
+import { Bell, X, Clock, Check, Trash2, AlertTriangle, ChevronRight, Plus } from "lucide-react"
+import { format, isPast, isToday, isTomorrow } from "date-fns"
+import { fr } from "date-fns/locale"
 
-export interface Notification {
+interface Reminder {
   id: string
-  type: "reminder" | "alert" | "success"
-  title: string
-  message: string
-  timestamp: Date
-  read: boolean
-  actionUrl?: string
-  actionLabel?: string
+  titre: string
+  contenu: string | null
+  echeance: string
+  fait: boolean
+  client: { id: string; nom: string; entreprise: string | null; statut: string } | null
 }
 
-export function NotificationCenter() {
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [isOpen, setIsOpen] = useState(false)
+interface Toast {
+  id: string
+  titre: string
+  contenu: string | null
+  clientNom: string | null
+  clientId: string | null
+  clientStatut: string | null
+}
 
-  useEffect(() => {
-    // Charger les notifications depuis localStorage
-    loadNotifications()
-    
-    // Écouter les mises à jour de notifications
-    const handleNotificationsUpdated = (event: CustomEvent) => {
-      setNotifications(event.detail)
-    }
-    
-    window.addEventListener('notificationsUpdated', handleNotificationsUpdated as EventListener)
-    
-    return () => {
-      window.removeEventListener('notificationsUpdated', handleNotificationsUpdated as EventListener)
-    }
+function echeanceUrgency(iso: string): 'overdue' | 'today' | 'soon' | 'future' {
+  const d = new Date(iso)
+  if (isPast(d) && !isToday(d)) return 'overdue'
+  if (isToday(d)) return 'today'
+  if (isTomorrow(d)) return 'soon'
+  return 'future'
+}
+
+function echeanceText(iso: string): string {
+  const d = new Date(iso)
+  if (isPast(d) && !isToday(d)) return `En retard · ${format(d, 'dd MMM', { locale: fr })}`
+  if (isToday(d)) return `Aujourd'hui · ${format(d, 'HH:mm')}`
+  if (isTomorrow(d)) return 'Demain'
+  return format(d, 'dd MMM yyyy', { locale: fr })
+}
+
+const URGENCY_STYLE: Record<string, string> = {
+  overdue: 'border-red-300 bg-red-50 dark:bg-red-900/20',
+  today:   'border-orange-300 bg-orange-50 dark:bg-orange-900/20',
+  soon:    'border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20',
+  future:  'border-border bg-card',
+}
+
+// ── Toast Bubbles ────────────────────────────────────────────────────────────
+
+export function ReminderToasts() {
+  const [toasts, setToasts] = useState<Toast[]>([])
+  const shownRef = useRef<Set<string>>(new Set())
+
+  const check = useCallback(async () => {
+    try {
+      const res = await fetch('/api/reminders?dueOnly=true')
+      if (!res.ok) return
+      const reminders: Reminder[] = await res.json()
+      const newToasts: Toast[] = []
+      for (const r of reminders) {
+        if (!shownRef.current.has(r.id)) {
+          shownRef.current.add(r.id)
+          newToasts.push({
+            id: r.id,
+            titre: r.titre,
+            contenu: r.contenu,
+            clientNom: r.client ? (r.client.entreprise || r.client.nom) : null,
+            clientId: r.client?.id ?? null,
+            clientStatut: r.client?.statut ?? null,
+          })
+        }
+      }
+      if (newToasts.length > 0) setToasts(prev => [...prev, ...newToasts])
+    } catch {}
   }, [])
 
-  const loadNotifications = () => {
-    try {
-      const savedNotifications = localStorage.getItem('notifications')
-      if (savedNotifications) {
-        const parsedNotifications = JSON.parse(savedNotifications).map((n: any) => ({
-          ...n,
-          timestamp: new Date(n.timestamp)
-        }))
-        setNotifications(parsedNotifications)
-      } else {
-        // Utiliser les notifications par défaut seulement si rien n'est sauvegardé
-        const initialNotifications: Notification[] = [
-          {
-            id: "1",
-            type: "reminder",
-            title: "Rappel : Devis à relancer",
-            message: "Le devis 'Application Mobile iOS' pour Marie Martin n'a pas eu de réponse depuis 7 jours",
-            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 heures ago
-            read: false,
-            actionUrl: "/devis-db/2",
-            actionLabel: "Voir le devis"
-          },
-          {
-            id: "2",
-            type: "alert",
-            title: "Échéance imminente",
-            message: "Le devis 'Maintenance Annuelle' expire dans 3 jours",
-            timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 heures ago
-            read: false,
-            actionUrl: "/devis-db/3",
-            actionLabel: "Voir le devis"
-          },
-          {
-            id: "3",
-            type: "success",
-            title: "Nouveau client ajouté",
-            message: "Sophie Petit a été ajoutée à votre base de clients",
-            timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 jour ago
-            read: true,
-            actionUrl: "/clients-db/4",
-            actionLabel: "Voir le client"
-          }
-        ]
-        setNotifications(initialNotifications)
-      }
-    } catch (error) {
-      console.error("Erreur lors du chargement des notifications:", error)
-      // En cas d'erreur, utiliser les notifications par défaut
-      setNotifications([])
-    }
-  }
+  useEffect(() => {
+    check()
+    const iv = setInterval(check, 60_000)
+    const handler = () => check()
+    window.addEventListener('reminders-updated', handler)
+    return () => { clearInterval(iv); window.removeEventListener('reminders-updated', handler) }
+  }, [check])
 
-  const saveNotifications = (updatedNotifications: Notification[]) => {
-    try {
-      localStorage.setItem('notifications', JSON.stringify(updatedNotifications))
-    } catch (error) {
-      console.error("Erreur lors de la sauvegarde des notifications:", error)
-    }
-  }
+  const dismiss = (id: string) => setToasts(prev => prev.filter(t => t.id !== id))
 
-  const unreadCount = notifications.filter(n => !n.read).length
-
-  const markAsRead = (id: string) => {
-    const updatedNotifications = notifications.map(n => n.id === id ? { ...n, read: true } : n)
-    setNotifications(updatedNotifications)
-    saveNotifications(updatedNotifications)
-  }
-
-  const markAllAsRead = () => {
-    const updatedNotifications = notifications.map(n => ({ ...n, read: true }))
-    setNotifications(updatedNotifications)
-    saveNotifications(updatedNotifications)
-  }
-
-  const removeNotification = (id: string) => {
-    const updatedNotifications = notifications.filter(n => n.id !== id)
-    setNotifications(updatedNotifications)
-    saveNotifications(updatedNotifications)
-  }
-
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case "reminder":
-        return <Clock className="h-4 w-4 text-blue-600" />
-      case "alert":
-        return <AlertTriangle className="h-4 w-4 text-orange-600" />
-      case "success":
-        return <CheckCircle className="h-4 w-4 text-green-600" />
-      default:
-        return <Bell className="h-4 w-4" />
-    }
-  }
-
-  const getNotificationColor = (type: string) => {
-    switch (type) {
-      case "reminder":
-        return "border-blue-200 bg-blue-50"
-      case "alert":
-        return "border-orange-200 bg-orange-50"
-      case "success":
-        return "border-green-200 bg-green-50"
-      default:
-        return "border-gray-200 bg-gray-50"
-    }
-  }
-
-  const formatTimestamp = (date: Date) => {
-    const now = new Date()
-    const diff = now.getTime() - date.getTime()
-    const hours = Math.floor(diff / (1000 * 60 * 60))
-    const days = Math.floor(hours / 24)
-
-    if (days > 0) return `Il y a ${days} jour${days > 1 ? 's' : ''}`
-    if (hours > 0) return `Il y a ${hours} heure${hours > 1 ? 's' : ''}`
-    return "Il y a quelques minutes"
-  }
+  if (toasts.length === 0) return null
 
   return (
-    <div className="relative">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => setIsOpen(!isOpen)}
-        className="relative"
-      >
-        <Bell className="h-4 w-4" />
-        {unreadCount > 0 && (
-          <Badge 
-            className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
-            variant="destructive"
-          >
-            {unreadCount}
-          </Badge>
-        )}
-        <span className="sr-only">Notifications</span>
-      </Button>
-
-      {isOpen && (
-        <Card className="absolute right-0 top-12 w-80 max-h-96 overflow-hidden shadow-lg z-50">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm">Notifications</CardTitle>
-              <div className="flex items-center gap-2">
-                {unreadCount > 0 && (
-                  <Button variant="ghost" size="sm" onClick={markAllAsRead}>
-                    Tout marquer comme lu
-                  </Button>
-                )}
-                <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)}>
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="max-h-80 overflow-y-auto">
-              {notifications.length === 0 ? (
-                <div className="p-4 text-center text-sm text-muted-foreground">
-                  Aucune notification
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {notifications.map((notification) => (
-                    <div
-                      key={notification.id}
-                      className={`p-3 border-b last:border-b-0 cursor-pointer transition-colors ${
-                        !notification.read ? "bg-muted/50" : ""
-                      } ${getNotificationColor(notification.type)}`}
-                      onClick={() => {
-                        markAsRead(notification.id)
-                        if (notification.actionUrl) {
-                          window.location.href = notification.actionUrl
-                        }
-                      }}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="mt-0.5">
-                          {getNotificationIcon(notification.type)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-1">
-                            <h4 className="text-sm font-medium truncate">
-                              {notification.title}
-                            </h4>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                removeNotification(notification.id)
-                              }}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
-                          <p className="text-xs text-muted-foreground mb-2">
-                            {notification.message}
-                          </p>
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">
-                              {formatTimestamp(notification.timestamp)}
-                            </span>
-                            {notification.actionLabel && (
-                              <Badge variant="outline" className="text-xs">
-                                {notification.actionLabel}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+    <div className="fixed bottom-4 right-4 z-[100] space-y-2 max-w-sm">
+      {toasts.map(t => (
+        <div key={t.id} className="flex items-start gap-3 p-3 rounded-xl border border-orange-300 bg-white dark:bg-gray-900 shadow-lg animate-in slide-in-from-right-4">
+          <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center flex-shrink-0">
+            <Bell className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold">🔔 Rappel échu</p>
+            <p className="text-sm font-medium truncate">{t.titre}</p>
+            {t.clientNom && <p className="text-xs text-muted-foreground">{t.clientNom}</p>}
+            {t.contenu && <p className="text-xs text-muted-foreground line-clamp-1">{t.contenu}</p>}
+            {t.clientId && (
+              <Link
+                href={t.clientStatut === 'client' ? `/clients-db/${t.clientId}` : `/prospects-db/${t.clientId}`}
+                className="text-xs text-primary hover:underline"
+                onClick={() => dismiss(t.id)}
+              >
+                Voir la fiche →
+              </Link>
+            )}
+          </div>
+          <button onClick={() => dismiss(t.id)} className="text-muted-foreground hover:text-foreground">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      ))}
     </div>
   )
 }
 
-// Hook pour générer des rappels automatiques
-export function useDevisReminders() {
-  const [reminders, setReminders] = useState<Notification[]>([])
+// ── Notification Center (cloche + panneau) ───────────────────────────────────
 
-  const generateReminders = (devis: any[]) => {
-    const today = new Date()
-    const newReminders: Notification[] = []
+export function NotificationCenter() {
+  const [reminders, setReminders] = useState<Reminder[]>([])
+  const [isOpen, setIsOpen] = useState(false)
 
-    devis.forEach((devi) => {
-      const creationDate = new Date(devi.dateCreation)
-      const daysSinceCreation = Math.floor(
-        (today.getTime() - creationDate.getTime()) / (1000 * 60 * 60 * 24)
-      )
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch('/api/reminders?includeDone=false')
+      if (res.ok) setReminders(await res.json())
+    } catch {}
+  }, [])
 
-      // Rappel après 7 jours pour les devis en cours sans réponse
-      if (devi.statut === "en_cours" && daysSinceCreation === 7) {
-        newReminders.push({
-          id: `reminder-${devi.id}`,
-          type: "reminder",
-          title: "Rappel : Devis à relancer",
-          message: `Le devis "${devi.titre}" pour ${devi.client.nom} n'a pas eu de réponse depuis 7 jours`,
-          timestamp: new Date(),
-          read: false,
-          actionUrl: `/devis-db/${devi.id}`,
-          actionLabel: "Relancer"
-        })
-      }
+  useEffect(() => {
+    load()
+    const iv = setInterval(load, 60_000)
+    const handler = () => load()
+    window.addEventListener('reminders-updated', handler)
+    return () => { clearInterval(iv); window.removeEventListener('reminders-updated', handler) }
+  }, [load])
 
-      // Alert pour échéance imminente (3 jours avant)
-      if (devi.statut === "en_cours") {
-        const echeanceDate = new Date(devi.dateEcheance)
-        const daysUntilEcheance = Math.floor(
-          (echeanceDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-        )
+  const dueCount = reminders.filter(r => {
+    const d = new Date(r.echeance)
+    return isPast(d) || isToday(d)
+  }).length
 
-        if (daysUntilEcheance === 3) {
-          newReminders.push({
-            id: `echeance-${devi.id}`,
-            type: "alert",
-            title: "Échéance imminente",
-            message: `Le devis "${devi.titre}" expire dans 3 jours`,
-            timestamp: new Date(),
-            read: false,
-            actionUrl: `/devis-db/${devi.id}`,
-            actionLabel: "Voir le devis"
-          })
-        }
-      }
+  const handleDone = async (id: string) => {
+    await fetch(`/api/reminders/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fait: true }),
     })
-
-    setReminders(newReminders)
-    
-    // Ajouter les rappels aux notifications existantes
-    addNotifications(newReminders)
+    load()
+    window.dispatchEvent(new Event('reminders-updated'))
   }
 
-  return { reminders, generateReminders }
-}
-
-// Fonction globale pour ajouter des notifications
-export function addNotifications(newNotifications: Notification[]) {
-  try {
-    const savedNotifications = localStorage.getItem('notifications')
-    let existingNotifications: Notification[] = []
-    
-    if (savedNotifications) {
-      existingNotifications = JSON.parse(savedNotifications).map((n: any) => ({
-        ...n,
-        timestamp: new Date(n.timestamp)
-      }))
-    }
-    
-    // Éviter les doublons en vérifiant les IDs
-    const filteredNewNotifications = newNotifications.filter(
-      newNotif => !existingNotifications.some(existing => existing.id === newNotif.id)
-    )
-    
-    const updatedNotifications = [...filteredNewNotifications, ...existingNotifications]
-    localStorage.setItem('notifications', JSON.stringify(updatedNotifications))
-    
-    // Déclencher un événement pour notifier les composants
-    window.dispatchEvent(new CustomEvent('notificationsUpdated', { 
-      detail: updatedNotifications 
-    }))
-  } catch (error) {
-    console.error("Erreur lors de l'ajout des notifications:", error)
+  const handleDelete = async (id: string) => {
+    await fetch(`/api/reminders/${id}`, { method: 'DELETE' })
+    load()
+    window.dispatchEvent(new Event('reminders-updated'))
   }
-}
 
-// Fonction pour ajouter une seule notification
-export function addNotification(notification: Notification) {
-  addNotifications([notification])
+  const sections = [
+    { label: '🔴 En retard', items: reminders.filter(r => echeanceUrgency(r.echeance) === 'overdue') },
+    { label: '🟠 Aujourd\'hui', items: reminders.filter(r => echeanceUrgency(r.echeance) === 'today') },
+    { label: '🟡 Demain', items: reminders.filter(r => echeanceUrgency(r.echeance) === 'soon') },
+    { label: '🔵 À venir', items: reminders.filter(r => echeanceUrgency(r.echeance) === 'future') },
+  ].filter(s => s.items.length > 0)
+
+  return (
+    <>
+      {/* Cloche */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="relative p-2 rounded-lg hover:bg-muted transition-colors"
+        title="Rappels"
+      >
+        <Bell className="w-5 h-5 text-muted-foreground" />
+        {dueCount > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1">
+            {dueCount > 99 ? '99+' : dueCount}
+          </span>
+        )}
+      </button>
+
+      {/* Panneau latéral */}
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+          <div className="fixed top-0 right-0 z-50 h-full w-80 bg-background border-l shadow-xl flex flex-col animate-in slide-in-from-right-4">
+            {/* En-tête */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <div>
+                <h2 className="font-semibold">Rappels</h2>
+                <p className="text-xs text-muted-foreground">{reminders.length} en attente</p>
+              </div>
+              <button onClick={() => setIsOpen(false)} className="p-1 rounded-lg hover:bg-muted">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Liste */}
+            <div className="flex-1 overflow-y-auto p-3 space-y-4">
+              {sections.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2">
+                  <Bell className="w-10 h-10 opacity-20" />
+                  <p className="text-sm">Aucun rappel en attente</p>
+                </div>
+              ) : (
+                sections.map(section => (
+                  <div key={section.label}>
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">{section.label}</p>
+                    <div className="space-y-2">
+                      {section.items.map(r => (
+                        <div key={r.id} className={`rounded-xl border p-3 ${URGENCY_STYLE[echeanceUrgency(r.echeance)]}`}>
+                          <div className="flex items-start gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{r.titre}</p>
+                              {r.client && (
+                                <Link
+                                  href={r.client.statut === 'client' ? `/clients-db/${r.client.id}` : `/prospects-db/${r.client.id}`}
+                                  onClick={() => setIsOpen(false)}
+                                  className="text-xs text-primary hover:underline"
+                                >
+                                  {r.client.entreprise || r.client.nom}
+                                </Link>
+                              )}
+                              {r.contenu && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{r.contenu}</p>}
+                              <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                                <Clock className="w-3 h-3" />{echeanceText(r.echeance)}
+                              </p>
+                            </div>
+                            <div className="flex gap-1 flex-shrink-0">
+                              <button
+                                onClick={() => handleDone(r.id)}
+                                className="p-1 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 text-green-600"
+                                title="Marquer terminé"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(r.id)}
+                                className="p-1 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-red-500"
+                                title="Supprimer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </>
+  )
 }

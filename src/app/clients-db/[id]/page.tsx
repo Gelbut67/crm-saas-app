@@ -10,6 +10,7 @@ import Link from "next/link"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 import { Interactions } from "@/components/interactions"
+import { ClientReminders } from "@/components/client-reminders"
 
 export default function ClientDetailPage() {
   const params = useParams()
@@ -276,6 +277,11 @@ export default function ClientDetailPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Rappels */}
+        <div>
+          <ClientReminders clientId={client.id} />
+        </div>
 
         {/* Interactions */}
         <div className="md:col-span-2">

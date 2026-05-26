@@ -10,6 +10,7 @@ import Link from "next/link"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 import { Interactions } from "@/components/interactions"
+import { ClientReminders } from "@/components/client-reminders"
 
 export default function ProspectDetailPage() {
   const params = useParams()
@@ -267,6 +268,9 @@ export default function ProspectDetailPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Rappels */}
+        <ClientReminders clientId={prospect.id} />
 
         {/* Interactions */}
         <Interactions clientId={prospect.id} />
