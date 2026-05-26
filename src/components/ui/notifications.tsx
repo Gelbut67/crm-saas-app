@@ -49,37 +49,57 @@ const URGENCY_STYLE: Record<string, string> = {
 
 // ── Toast Bubbles ────────────────────────────────────────────────────────────
 
+interface ToastItem extends Toast {
+  urgency: 'overdue' | 'today'
+  dismissAt: number
+}
+
 export function ReminderToasts() {
-  const [toasts, setToasts] = useState<Toast[]>([])
+  const [toasts, setToasts] = useState<ToastItem[]>([])
   const shownRef = useRef<Set<string>>(new Set())
 
   const check = useCallback(async () => {
     try {
-      const res = await fetch('/api/reminders?dueOnly=true')
+      const res = await fetch('/api/reminders?includeDone=false')
       if (!res.ok) return
       const reminders: Reminder[] = await res.json()
-      const newToasts: Toast[] = []
+      const now = new Date()
+      const newToasts: ToastItem[] = []
       for (const r of reminders) {
-        if (!shownRef.current.has(r.id)) {
-          shownRef.current.add(r.id)
-          newToasts.push({
-            id: r.id,
-            titre: r.titre,
-            contenu: r.contenu,
-            clientNom: r.client ? (r.client.entreprise || r.client.nom) : null,
-            clientId: r.client?.id ?? null,
-            clientStatut: r.client?.statut ?? null,
-          })
-        }
+        const d = new Date(r.echeance)
+        const isOverdue = d < now && !isToday(d)
+        const isDueToday = isToday(d)
+        if (!isOverdue && !isDueToday) continue
+        if (shownRef.current.has(r.id)) continue
+        shownRef.current.add(r.id)
+        newToasts.push({
+          id: r.id,
+          titre: r.titre,
+          contenu: r.contenu,
+          clientNom: r.client ? (r.client.entreprise || r.client.nom) : null,
+          clientId: r.client?.id ?? null,
+          clientStatut: r.client?.statut ?? null,
+          urgency: isOverdue ? 'overdue' : 'today',
+          dismissAt: Date.now() + 12_000,
+        })
       }
       if (newToasts.length > 0) setToasts(prev => [...prev, ...newToasts])
     } catch {}
   }, [])
 
+  // Auto-dismiss after 12s
+  useEffect(() => {
+    const tick = setInterval(() => {
+      const now = Date.now()
+      setToasts(prev => prev.filter(t => t.dismissAt > now))
+    }, 1_000)
+    return () => clearInterval(tick)
+  }, [])
+
   useEffect(() => {
     check()
     const iv = setInterval(check, 60_000)
-    const handler = () => check()
+    const handler = () => { shownRef.current.clear(); check() }
     window.addEventListener('reminders-updated', handler)
     return () => { clearInterval(iv); window.removeEventListener('reminders-updated', handler) }
   }, [check])
@@ -89,32 +109,65 @@ export function ReminderToasts() {
   if (toasts.length === 0) return null
 
   return (
-    <div className="fixed bottom-4 right-4 z-[100] space-y-2 max-w-sm">
-      {toasts.map(t => (
-        <div key={t.id} className="flex items-start gap-3 p-3 rounded-xl border border-orange-300 bg-white dark:bg-gray-900 shadow-lg animate-in slide-in-from-right-4">
-          <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center flex-shrink-0">
-            <Bell className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+    <div className="fixed bottom-4 right-4 z-[200] space-y-2 w-80">
+      {toasts.map(t => {
+        const isOverdue = t.urgency === 'overdue'
+        const remaining = Math.max(0, Math.round((t.dismissAt - Date.now()) / 1000))
+        return (
+          <div
+            key={t.id}
+            className={`flex items-start gap-3 p-4 rounded-xl border-2 shadow-xl transition-all ${
+              isOverdue
+                ? 'border-red-400 bg-red-50 dark:bg-red-950'
+                : 'border-orange-400 bg-orange-50 dark:bg-orange-950'
+            }`}
+          >
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${
+              isOverdue ? 'bg-red-200 dark:bg-red-800' : 'bg-orange-200 dark:bg-orange-800'
+            }`}>
+              <Bell className={`w-5 h-5 ${isOverdue ? 'text-red-600 dark:text-red-300' : 'text-orange-600 dark:text-orange-300'}`} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className={`text-xs font-bold uppercase tracking-wide mb-0.5 ${
+                isOverdue ? 'text-red-600 dark:text-red-400' : 'text-orange-600 dark:text-orange-400'
+              }`}>
+                {isOverdue ? '⚠️ Rappel en retard' : '🔔 Rappel aujourd\'hui'}
+              </p>
+              <p className="text-sm font-semibold text-foreground">{t.titre}</p>
+              {t.clientNom && (
+                <p className="text-xs text-muted-foreground mt-0.5">{t.clientNom}</p>
+              )}
+              {t.contenu && (
+                <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{t.contenu}</p>
+              )}
+              <div className="flex items-center gap-3 mt-1.5">
+                {t.clientId && (
+                  <Link
+                    href={t.clientStatut === 'client' ? `/clients-db/${t.clientId}` : `/prospects-db/${t.clientId}`}
+                    className="text-xs font-medium text-primary hover:underline"
+                    onClick={() => dismiss(t.id)}
+                  >
+                    Voir la fiche →
+                  </Link>
+                )}
+                <Link
+                  href="/notifications"
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => dismiss(t.id)}
+                >
+                  Tous les rappels
+                </Link>
+              </div>
+            </div>
+            <div className="flex flex-col items-end gap-1 flex-shrink-0">
+              <button onClick={() => dismiss(t.id)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-4 h-4" />
+              </button>
+              <span className="text-[10px] text-muted-foreground">{remaining}s</span>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold">🔔 Rappel échu</p>
-            <p className="text-sm font-medium truncate">{t.titre}</p>
-            {t.clientNom && <p className="text-xs text-muted-foreground">{t.clientNom}</p>}
-            {t.contenu && <p className="text-xs text-muted-foreground line-clamp-1">{t.contenu}</p>}
-            {t.clientId && (
-              <Link
-                href={t.clientStatut === 'client' ? `/clients-db/${t.clientId}` : `/prospects-db/${t.clientId}`}
-                className="text-xs text-primary hover:underline"
-                onClick={() => dismiss(t.id)}
-              >
-                Voir la fiche →
-              </Link>
-            )}
-          </div>
-          <button onClick={() => dismiss(t.id)} className="text-muted-foreground hover:text-foreground">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
