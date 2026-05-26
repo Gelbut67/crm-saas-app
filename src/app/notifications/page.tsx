@@ -77,7 +77,14 @@ export default function NotificationsPage() {
   useEffect(() => {
     const handler = () => load()
     window.addEventListener('reminders-updated', handler)
-    return () => window.removeEventListener('reminders-updated', handler)
+    window.addEventListener('focus', handler)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') load()
+    })
+    return () => {
+      window.removeEventListener('reminders-updated', handler)
+      window.removeEventListener('focus', handler)
+    }
   }, [load])
 
   const handleCreate = async (e: React.FormEvent) => {
