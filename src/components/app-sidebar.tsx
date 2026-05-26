@@ -2,11 +2,10 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useSession, signOut } from "next-auth/react"
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { NotificationCenter } from "@/components/ui/notifications"
 import {
   BarChart3,
   Users,
@@ -20,6 +19,7 @@ import {
   LogOut,
   ShieldCheck,
   Activity,
+  Bell,
 } from "lucide-react"
 import {
   Sidebar,
@@ -35,7 +35,27 @@ import { Button } from "@/components/ui/button"
 export function AppSidebar() {
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [dueCount, setDueCount] = useState(0)
   const { data: session } = useSession()
+
+  useEffect(() => {
+    const fetchCount = async () => {
+      try {
+        const res = await fetch('/api/reminders?includeDone=false')
+        if (res.ok) {
+          const data = await res.json()
+          const now = new Date()
+          const due = data.filter((r: any) => new Date(r.echeance) <= now).length
+          setDueCount(due)
+        }
+      } catch {}
+    }
+    fetchCount()
+    const iv = setInterval(fetchCount, 60_000)
+    const handler = () => fetchCount()
+    window.addEventListener('reminders-updated', handler)
+    return () => { clearInterval(iv); window.removeEventListener('reminders-updated', handler) }
+  }, [])
 
   const navigation = [
     {
@@ -77,6 +97,12 @@ export function AppSidebar() {
       name: "Réglages",
       href: "/settings",
       icon: Settings,
+    },
+    {
+      name: "Notifications",
+      href: "/notifications",
+      icon: Bell,
+      badge: dueCount,
     },
     ...(session?.user?.role === 'admin' ? [{
       name: "Utilisateurs",
@@ -128,6 +154,7 @@ export function AppSidebar() {
           <nav className="flex-1 p-4 space-y-2">
             {navigation.map((item) => {
               const isActive = pathname === item.href
+              const badge = (item as any).badge
               return (
                 <Link
                   key={item.name}
@@ -149,6 +176,11 @@ export function AppSidebar() {
                   )}>
                     {item.name}
                   </span>
+                  {badge > 0 && !isActive && (
+                    <span className="ml-auto min-w-[20px] h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center px-1">
+                      {badge > 99 ? '99+' : badge}
+                    </span>
+                  )}
                   {isActive && (
                     <div className="ml-auto w-2 h-2 bg-white rounded-full animate-pulse" />
                   )}
@@ -171,10 +203,7 @@ export function AppSidebar() {
                   <p className="text-xs text-muted-foreground capitalize">{session?.user?.role ?? ''}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-1">
-                <NotificationCenter />
-                <ThemeToggle />
-              </div>
+              <ThemeToggle />
             </div>
             <button
               onClick={() => signOut({ callbackUrl: '/login' })}
