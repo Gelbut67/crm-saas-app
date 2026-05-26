@@ -36,6 +36,8 @@ export async function PUT(
         nom: data.nom?.trim(),
         email: data.email?.trim() || null,
         telephone: data.telephone?.trim() || null,
+        telephoneFixe: data.telephoneFixe?.trim() || null,
+        telephonePortable: data.telephonePortable?.trim() || null,
         poste: data.poste?.trim() || null,
         isPrincipal: data.isPrincipal || false,
       }
