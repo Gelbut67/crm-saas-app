@@ -19,6 +19,9 @@ export async function PUT(
         ...(data.contenu !== undefined && { contenu: data.contenu?.trim() || null }),
         ...(data.echeance !== undefined && { echeance: new Date(data.echeance) }),
         ...(data.fait !== undefined && { fait: data.fait }),
+        ...(data.notificationsAt !== undefined && {
+          notificationsAt: data.notificationsAt?.length ? JSON.stringify(data.notificationsAt) : null,
+        }),
       }
     })
 

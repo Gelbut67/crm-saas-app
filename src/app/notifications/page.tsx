@@ -9,8 +9,9 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import {
   Bell, Plus, Check, Trash2, Clock, X, RefreshCw,
-  AlertTriangle, Calendar, Users, Search, Filter
+  AlertTriangle, Calendar, Users, Search
 } from "lucide-react"
+import { NotificationTimesEditor } from "@/components/notification-times-editor"
 import { format, isPast, isToday, isTomorrow } from "date-fns"
 import { fr } from "date-fns/locale"
 
@@ -19,6 +20,7 @@ interface Reminder {
   titre: string
   contenu: string | null
   echeance: string
+  notificationsAt: string[]
   fait: boolean
   client: { id: string; nom: string; entreprise: string | null; statut: string } | null
 }
@@ -53,7 +55,7 @@ export default function NotificationsPage() {
   const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState('')
   const [filterTab, setFilterTab] = useState<'pending' | 'done'>('pending')
-  const [form, setForm] = useState({ titre: '', contenu: '', echeance: '' })
+  const [form, setForm] = useState({ titre: '', contenu: '', echeance: '', notificationsAt: [] as string[] })
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -97,7 +99,7 @@ export default function NotificationsPage() {
         body: JSON.stringify(form),
       })
       if (res.ok) {
-        setForm({ titre: '', contenu: '', echeance: '' })
+        setForm({ titre: '', contenu: '', echeance: '', notificationsAt: [] })
         setShowForm(false)
         load()
         window.dispatchEvent(new Event('reminders-updated'))
@@ -229,6 +231,13 @@ export default function NotificationsPage() {
                     placeholder="Détails..."
                   />
                 </div>
+              </div>
+              <div className="p-2 bg-muted/30 rounded-lg border">
+                <NotificationTimesEditor
+                  times={form.notificationsAt}
+                  onChange={v => setForm({ ...form, notificationsAt: v })}
+                  echeance={form.echeance}
+                />
               </div>
               <p className="text-xs text-muted-foreground">
                 Pour lier un rappel à un client, utilisez la section Rappels dans sa fiche.

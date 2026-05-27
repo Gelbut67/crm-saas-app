@@ -25,7 +25,12 @@ export async function GET(request: Request) {
       }
     })
 
-    return NextResponse.json(reminders.map((r: any) => ({ ...r, echeance: r.echeance.toISOString(), dateCreation: r.dateCreation.toISOString() })))
+    return NextResponse.json(reminders.map((r: any) => ({
+      ...r,
+      echeance: r.echeance.toISOString(),
+      dateCreation: r.dateCreation.toISOString(),
+      notificationsAt: r.notificationsAt ? JSON.parse(r.notificationsAt) : [],
+    })))
   } catch (error) {
     console.error('Erreur reminders GET:', error)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
@@ -47,6 +52,7 @@ export async function POST(request: Request) {
         titre: data.titre.trim(),
         contenu: data.contenu?.trim() || null,
         echeance: new Date(data.echeance),
+        notificationsAt: data.notificationsAt?.length ? JSON.stringify(data.notificationsAt) : null,
         clientId: data.clientId || null,
         userId: session.user.id,
       },

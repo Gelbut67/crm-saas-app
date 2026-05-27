@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Bell, Plus, Check, Trash2, Clock, X, RotateCcw, AlertCircle } from "lucide-react"
+import { NotificationTimesEditor } from "@/components/notification-times-editor"
 import { format, isPast, isToday, isTomorrow } from "date-fns"
 import { fr } from "date-fns/locale"
 
@@ -16,6 +17,7 @@ interface Reminder {
   contenu: string | null
   echeance: string
   dateCreation: string
+  notificationsAt: string[]
   fait: boolean
   clientId: string | null
 }
@@ -35,7 +37,7 @@ export function ClientReminders({ clientId }: { clientId: string }) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
-  const [form, setForm] = useState({ titre: '', contenu: '', echeance: '' })
+  const [form, setForm] = useState({ titre: '', contenu: '', echeance: '', notificationsAt: [] as string[] })
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -60,7 +62,7 @@ export function ClientReminders({ clientId }: { clientId: string }) {
         body: JSON.stringify({ ...form, clientId }),
       })
       if (res.ok) {
-        setForm({ titre: '', contenu: '', echeance: '' })
+        setForm({ titre: '', contenu: '', echeance: '', notificationsAt: [] })
         setShowForm(false)
         await load()
         window.dispatchEvent(new Event('reminders-updated'))
@@ -164,6 +166,13 @@ export function ClientReminders({ clientId }: { clientId: string }) {
                   placeholder="Détails..."
                 />
               </div>
+            </div>
+            <div className="p-2 bg-background rounded-lg border space-y-2">
+              <NotificationTimesEditor
+                times={form.notificationsAt}
+                onChange={v => setForm({ ...form, notificationsAt: v })}
+                echeance={form.echeance}
+              />
             </div>
             {saveError && (
               <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 dark:bg-red-900/20 p-2 rounded-lg">

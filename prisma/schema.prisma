@@ -115,14 +115,15 @@ model PieceJointe {
 }
 
 model Reminder {
-  id           String   @id @default(cuid())
-  titre        String
-  contenu      String?
-  echeance     DateTime
-  fait         Boolean  @default(false)
-  clientId     String?
-  userId       String
-  dateCreation DateTime @default(now())
+  id              String   @id @default(cuid())
+  titre           String
+  contenu         String?
+  echeance        DateTime
+  notificationsAt String?
+  fait            Boolean  @default(false)
+  clientId        String?
+  userId          String
+  dateCreation    DateTime @default(now())
 
   client       Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
