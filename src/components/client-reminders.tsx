@@ -59,7 +59,12 @@ export function ClientReminders({ clientId }: { clientId: string }) {
       const res = await fetch('/api/reminders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, clientId }),
+        body: JSON.stringify({
+          ...form,
+          echeance: new Date(form.echeance).toISOString(),
+          notificationsAt: form.notificationsAt.map(t => new Date(t).toISOString()),
+          clientId,
+        }),
       })
       if (res.ok) {
         setForm({ titre: '', contenu: '', echeance: '', notificationsAt: [] })

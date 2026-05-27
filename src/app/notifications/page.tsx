@@ -96,7 +96,11 @@ export default function NotificationsPage() {
       const res = await fetch('/api/reminders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          echeance: new Date(form.echeance).toISOString(),
+          notificationsAt: form.notificationsAt.map((t: string) => new Date(t).toISOString()),
+        }),
       })
       if (res.ok) {
         setForm({ titre: '', contenu: '', echeance: '', notificationsAt: [] })
