@@ -447,9 +447,10 @@ CONTRAINTES:
 - Heure de départ: ${heureDepart}
 - Heure de retour: ${heureRetour}
 - Durée moyenne d'un RDV: ${dureeRdv} minutes
+${pauseMinutes > 0 ? `- Pause obligatoire de ${pauseMinutes} minutes à partir de ${heurePause} (aucun RDV ne doit chevaucher cette plage)` : ''}
 
-RDV FIXES (OBLIGATOIRES À CES HORAIRES):
-${clientsRdvFixes.map((c: any, i: number) => `${i + 1}. ${c.nom} (${c.ville}) - RDV FIXÉ À ${c.heureRdv}`).join('\n') || 'Aucun'}
+RDV FIXES (OBLIGATOIRES À CES HORAIRES PRÉCIS):
+${clientsRdvFixes.map((c: any, i: number) => `${i + 1}. ${c.nom} (${c.ville}) - RDV FIXÉ À ${c.heureRdv} (NE PAS MODIFIER)`).join('\n') || 'Aucun'}
 
 CLIENTS DISPONIBLES (à placer entre les RDV fixes):
 ${clientsLibres.map((c: any, i: number) => `${i + 1}. ${c.nom} - ${c.ville} (${c.codePostal}) - Coordonnées: ${c.coordonnees.lat.toFixed(4)}, ${c.coordonnees.lon.toFixed(4)}`).join('\n')}
@@ -526,8 +527,11 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
     const [heureR, minuteR] = heureRetour.split(':').map(Number)
     const minutesDisponibles = (heureR * 60 + minuteR) - (heureH * 60 + minuteH)
 
+    const toHHMM = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
+
     let minutesActuelles = heureH * 60 + minuteH
     const visites: any[] = []
+    let ordreVisite = 1
     let distanceTotale = 0
     let dureeTrajetTotale = 0
     const pauseMinutes = tempsPause || 0
@@ -581,17 +585,41 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
         dureeTrajetTotale += client.duree
       }
 
-      // Insérer la pause si l'heure de pause est atteinte après le trajet (avant l'arrivée chez le client)
+      // Insérer la pause si l'heure de pause est atteinte après le trajet
       if (!pausePrise && minutesActuelles >= heurePauseMinutes) {
+        const heureDebutPause = toHHMM(minutesActuelles)
         minutesActuelles += pauseMinutes
+        const heureFinPause = toHHMM(minutesActuelles)
+        visites.push({
+          type: 'pause',
+          ordre: null,
+          heureArrivee: heureDebutPause,
+          heureDepart: heureFinPause,
+          duree: pauseMinutes,
+          client: null,
+          distance: 0,
+          coordonnees: null,
+          routeGeometry: null,
+          derniereVisite: null,
+        })
         pausePrise = true
       }
 
-      const heureArrivee = `${String(Math.floor(minutesActuelles / 60)).padStart(2, '0')}:${String(minutesActuelles % 60).padStart(2, '0')}`
+      // Pour les RDV fixes : attendre l'heure programmée si on arrive en avance
+      if (client.heureRdv) {
+        const [rdvH, rdvM] = client.heureRdv.split(':').map(Number)
+        const rdvMinutes = rdvH * 60 + rdvM
+        if (minutesActuelles < rdvMinutes) {
+          minutesActuelles = rdvMinutes
+        }
+      }
+
+      const heureArrivee = toHHMM(minutesActuelles)
       minutesActuelles += dureeRdv
-      const heureDepartVisite = `${String(Math.floor(minutesActuelles / 60)).padStart(2, '0')}:${String(minutesActuelles % 60).padStart(2, '0')}`
+      const heureDepartVisite = toHHMM(minutesActuelles)
 
       visites.push({
+        type: 'visite',
         client: {
           id: client.id,
           nom: client.nom,
@@ -601,7 +629,7 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
           codePostal: client.codePostal,
           statut: client.statut
         },
-        ordre: i + 1,
+        ordre: ordreVisite++,
         heureArrivee,
         heureDepart: heureDepartVisite,
         distance: i === 0 && coordonneesDomicile ? distanceDepuisDomicile : (client.distance || 0),
@@ -638,7 +666,7 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
     return NextResponse.json({
       visites,
       stats: {
-        nombreVisites: visites.length,
+        nombreVisites: visites.filter((v: any) => v.type === 'visite').length,
         distanceTotale: Math.round(distanceTotale),
         dureeTrajet: dureeTrajetTotale,
         heureRetourEstimee
