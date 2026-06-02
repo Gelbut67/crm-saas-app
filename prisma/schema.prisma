@@ -22,6 +22,7 @@ model User {
   clients      Client[]
   settings      Settings[]
   reminders    Reminder[]
+  tournees     Tournee[]
 
   @@map("users")
 }
@@ -47,10 +48,11 @@ model Client {
   userId           String?
   user             User?     @relation(fields: [userId], references: [id])
   
-  contacts      Contact[]
-  interactions  Interaction[]
-  devis         Devis[]
-  reminders     Reminder[]
+  contacts       Contact[]
+  interactions   Interaction[]
+  devis          Devis[]
+  reminders      Reminder[]
+  tourneeVisites TourneeVisite[]
   
   @@map("clients")
 }
@@ -142,4 +144,33 @@ model Settings {
 
   @@unique([key, userId])
   @@map("settings")
+}
+
+model Tournee {
+  id        String          @id @default(cuid())
+  date      DateTime        @default(now())
+  nom       String?
+  statut    String          @default("planifiee")
+  userId    String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  visites   TourneeVisite[]
+  createdAt DateTime        @default(now())
+
+  @@map("tournees")
+}
+
+model TourneeVisite {
+  id            String   @id @default(cuid())
+  tourneeId     String
+  tournee       Tournee  @relation(fields: [tourneeId], references: [id], onDelete: Cascade)
+  clientId      String
+  client        Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  heureArrivee  String?
+  heureDepart   String?
+  ordre         Int      @default(0)
+  visite        Boolean  @default(false)
+  interactionId String?
+  createdAt     DateTime @default(now())
+
+  @@map("tournee_visites")
 }

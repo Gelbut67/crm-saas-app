@@ -5,7 +5,7 @@ import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Search, Edit, Trash2, Eye, Phone, Mail, Building, Users, TrendingUp, UserPlus, User } from "lucide-react"
+import { Plus, Search, Edit, Trash2, Eye, Phone, Mail, Building, Users, TrendingUp, UserPlus, User, MapPin } from "lucide-react"
 import { useProspects, useClients } from "@/hooks/useDatabase"
 import { useProspectFilters } from "@/hooks/useProspectFilters"
 import { AdvancedFilters } from "@/components/advanced-filters"
@@ -228,6 +228,7 @@ export default function ProspectsDBPage() {
                     <th className="text-left p-3 font-medium text-sm">Secteur</th>
                     <th className="text-left p-3 font-medium text-sm">Localisation</th>
                     <th className="text-left p-3 font-medium text-sm">Contact principal</th>
+                    <th className="text-center p-3 font-medium text-sm">Visites</th>
                     <th className="text-center p-3 font-medium text-sm">Actions</th>
                   </tr>
                 </thead>
@@ -277,6 +278,18 @@ export default function ProspectsDBPage() {
                           ) : (
                             <span className="text-xs text-muted-foreground">Aucun contact</span>
                           )}
+                        </td>
+                        <td className="p-3 text-center">
+                          {(() => {
+                            const nb = prospect.interactions?.filter((i: any) => i.type === 'visite').length ?? 0
+                            return nb > 0 ? (
+                              <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 text-xs font-semibold rounded-full px-2.5 py-0.5">
+                                <MapPin className="w-3 h-3" />{nb}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )
+                          })()}
                         </td>
                         <td className="p-3">
                           <div className="flex items-center justify-center gap-1">

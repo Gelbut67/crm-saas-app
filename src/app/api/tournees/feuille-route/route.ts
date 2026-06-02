@@ -230,15 +230,27 @@ export async function POST(request: Request) {
     </div>
   </div>
 
-  ${visites.map((visite: any) => `
+  ${visites.map((visite: any) => {
+    if (visite.type === 'pause') {
+      return `
+    <div style="margin:5px 0;padding:7px 10px;border:1px dashed #f59e0b;border-radius:5px;background:#fffbeb;display:flex;align-items:center;gap:8px;">
+      <span style="font-size:18px">☕</span>
+      <div>
+        <span style="font-weight:bold;font-size:12px;color:#92400e;">Pause déjeuner</span>
+        <span style="margin-left:8px;font-size:11px;color:#b45309;">${visite.heureArrivee} – ${visite.heureDepart} (${visite.duree} min)</span>
+      </div>
+    </div>`
+    }
+    return `
     <div class="visite">
       <div class="visite-header">
         <div class="visite-numero">${visite.ordre}</div>
-        <div>
+        <div style="flex:1">
           <span class="visite-nom">${visite.client.nom}</span>
           <span class="visite-badge ${visite.client.statut === 'prospect' ? 'prospect' : ''}">
             ${visite.client.statut === 'client' ? 'Client' : 'Prospect'}
           </span>
+          ${visite.nombreVisites > 0 ? `<span style="display:inline-block;margin-left:6px;padding:1px 7px;border-radius:10px;font-size:10px;background:#dbeafe;color:#1d4ed8;font-weight:600;">📍 ${visite.nombreVisites} visite${visite.nombreVisites > 1 ? 's' : ''}</span>` : ''}
         </div>
       </div>
       <div class="visite-info">
@@ -263,8 +275,8 @@ export async function POST(request: Request) {
           ` : ''}
         </div>
       </div>
-    </div>
-  `).join('')}
+    </div>`
+  }).join('')}
 
   <div class="map-container">
     <div class="map-title">🗺️ Carte de la tournée</div>

@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { MapPin, Clock, Users, Navigation, FileText, Loader2, Calendar, Home, HistoryIcon, Search, ListChecks, Sliders, Coffee } from "lucide-react"
+import { MapPin, Clock, Users, Navigation, FileText, Loader2, Calendar, Home, HistoryIcon, Search, ListChecks, Sliders, Coffee, Save, History } from "lucide-react"
+import { TourneeHistory } from "@/components/tournee-history"
 import { useClients, useProspects } from "@/hooks/useDatabase"
 import { RdvFixesManager } from "@/components/rdv-fixes-manager"
 import dynamic from 'next/dynamic'
@@ -66,6 +67,9 @@ export default function TourneesPage() {
   const [optimizing, setOptimizing] = useState(false)
   const [tourneeOptimisee, setTourneeOptimisee] = useState<VisiteOptimisee[]>([])
   const [pointDepartOptimise, setPointDepartOptimise] = useState<{ lat: number; lon: number; adresse: string } | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [savedOk, setSavedOk] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
   const [stats, setStats] = useState<{
     distanceTotale: number
     dureeTrajet: number
@@ -184,9 +188,19 @@ export default function TourneesPage() {
 
       if (response.ok) {
         const data = await response.json()
-        setTourneeOptimisee(data.visites)
+        // Enrichir avec le nombre de visites effectuées (depuis les interactions locales)
+        const enriched = data.visites.map((v: any) => {
+          if (v.type === 'pause') return v
+          const local = allClientsAndProspects.find((c: any) => c.id === v.client?.id)
+          return {
+            ...v,
+            nombreVisites: local?.interactions?.filter((i: any) => i.type === 'visite').length ?? 0,
+          }
+        })
+        setTourneeOptimisee(enriched)
         setStats(data.stats)
         setPointDepartOptimise(data.pointDepart)
+        setSavedOk(false)
       } else {
         const data = await response.json().catch(() => ({}))
         alert(data.error || 'Erreur lors de l\'optimisation de la tournée')
@@ -196,6 +210,33 @@ export default function TourneesPage() {
       alert('Erreur lors de l\'optimisation de la tournée')
     } finally {
       setOptimizing(false)
+    }
+  }
+
+  const sauvegarderTournee = async () => {
+    setSaving(true)
+    try {
+      const nom = prompt('Nom de la tournée (optionnel) :', new Date().toLocaleDateString('fr-FR'))
+      if (nom === null) return // annulé
+      const visitesToSave = tourneeOptimisee
+        .filter(v => v.type === 'visite' && v.client)
+        .map((v, idx) => ({
+          clientId: v.client!.id,
+          ordre: v.ordre ?? idx + 1,
+          heureArrivee: v.heureArrivee,
+          heureDepart: v.heureDepart,
+        }))
+      const res = await fetch('/api/tournees/historique', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nom: nom || null, date: new Date().toISOString(), visites: visitesToSave }),
+      })
+      if (res.ok) {
+        setSavedOk(true)
+        setShowHistory(true)
+      }
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -608,13 +649,23 @@ export default function TourneesPage() {
                   <div>
                     <CardTitle>Feuille de route optimisée</CardTitle>
                     <CardDescription>
-                      {tourneeOptimisee.length} visite{tourneeOptimisee.length > 1 ? 's' : ''} planifiée{tourneeOptimisee.length > 1 ? 's' : ''}
+                      {tourneeOptimisee.filter(v => v.type === 'visite').length} visite{tourneeOptimisee.filter(v => v.type === 'visite').length > 1 ? 's' : ''} planifiée{tourneeOptimisee.filter(v => v.type === 'visite').length > 1 ? 's' : ''}
                     </CardDescription>
                   </div>
-                  <Button onClick={genererFeuilleRoute} variant="outline">
-                    <FileText className="w-4 h-4 mr-2" />
-                    Générer & Imprimer
-                  </Button>
+                  <div className="flex gap-2">
+                    {savedOk ? (
+                      <span className="text-sm text-green-600 font-medium flex items-center gap-1 mr-2">✓ Sauvegardée</span>
+                    ) : (
+                      <Button onClick={sauvegarderTournee} disabled={saving} variant="outline" size="sm">
+                        {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                        Sauvegarder
+                      </Button>
+                    )}
+                    <Button onClick={genererFeuilleRoute} variant="outline" size="sm">
+                      <FileText className="w-4 h-4 mr-2" />
+                      Imprimer
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -663,6 +714,11 @@ export default function TourneesPage() {
                                 <Badge variant="outline" className="text-blue-600 border-blue-400 text-xs">
                                   RDV fixé {visite.heureRdv}
                                 </Badge>
+                              )}
+                              {(visite as any).nombreVisites > 0 && (
+                                <span className="inline-flex items-center bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 text-xs rounded-full px-2 py-0.5 font-medium">
+                                  {(visite as any).nombreVisites} visite{(visite as any).nombreVisites > 1 ? 's' : ''}
+                                </span>
                               )}
                             </div>
                             {client.entreprise && (
@@ -720,6 +776,20 @@ export default function TourneesPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Historique des tournées */}
+          <div>
+            <button
+              onClick={() => setShowHistory(h => !h)}
+              className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mb-3"
+            >
+              <History className="w-4 h-4" />
+              {showHistory ? 'Masquer' : 'Afficher'} l'historique des tournées
+            </button>
+            {showHistory && (
+              <TourneeHistory onVisiteMarked={() => {}} />
+            )}
+          </div>
         </div>
       </div>
     </div>
