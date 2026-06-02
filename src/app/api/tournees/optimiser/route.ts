@@ -447,7 +447,7 @@ CONTRAINTES:
 - Heure de départ: ${heureDepart}
 - Heure de retour: ${heureRetour}
 - Durée moyenne d'un RDV: ${dureeRdv} minutes
-${pauseMinutes > 0 ? `- Pause obligatoire de ${pauseMinutes} minutes à partir de ${heurePause} (aucun RDV ne doit chevaucher cette plage)` : ''}
+${(tempsPause || 0) > 0 ? `- Pause obligatoire de ${tempsPause} minutes à partir de ${heurePause} (aucun RDV ne doit chevaucher cette plage)` : ''}
 
 RDV FIXES (OBLIGATOIRES À CES HORAIRES PRÉCIS):
 ${clientsRdvFixes.map((c: any, i: number) => `${i + 1}. ${c.nom} (${c.ville}) - RDV FIXÉ À ${c.heureRdv} (NE PAS MODIFIER)`).join('\n') || 'Aucun'}
