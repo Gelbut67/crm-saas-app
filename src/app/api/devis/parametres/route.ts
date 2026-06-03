@@ -6,11 +6,11 @@ export const dynamic = 'force-dynamic'
 
 const KEYS = [
   'devis_societe_nom', 'devis_societe_tagline', 'devis_societe_adresse',
-  'devis_societe_code_postal', 'devis_societe_ville', 'devis_societe_siret',
+  'devis_societe_bp', 'devis_societe_code_postal', 'devis_societe_ville', 'devis_societe_siret',
   'devis_societe_telephone', 'devis_societe_mobile', 'devis_societe_email',
   'devis_societe_nom_commercial', 'devis_societe_iban', 'devis_societe_logo_url',
   'devis_ville_emission', 'devis_texte_footer', 'devis_texte_introduction',
-  'devis_numero_suivant',
+  'devis_numero_suivant', 'devis_numero_prefixe',
 ]
 
 export async function GET() {

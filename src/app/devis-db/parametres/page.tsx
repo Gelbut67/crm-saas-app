@@ -12,8 +12,9 @@ import { ArrowLeft, Save, Loader2, CheckCircle2 } from "lucide-react"
 const FIELDS: { key: string; label: string; placeholder?: string; type?: string; multi?: boolean }[] = [
   { key: 'devis_societe_nom', label: 'Nom de la société', placeholder: 'Belle Etiquette s.a.' },
   { key: 'devis_societe_tagline', label: 'Slogan / Activité', placeholder: 'Fabrication et impression d\'étiquettes autocollantes' },
-  { key: 'devis_societe_adresse', label: 'Adresse', placeholder: '6 Rue des Artisans, ZI Sainte AGATHE' },
-  { key: 'devis_societe_code_postal', label: 'Code postal', placeholder: '57190' },
+  { key: 'devis_societe_adresse', label: 'Adresse', placeholder: '6, rue des Artisans – ZI Sainte-Agathe' },
+  { key: 'devis_societe_bp', label: 'BP (Boîte postale)', placeholder: 'BP 80056' },
+  { key: 'devis_societe_code_postal', label: 'Code postal', placeholder: '57192' },
   { key: 'devis_societe_ville', label: 'Ville', placeholder: 'FLORANGE' },
   { key: 'devis_societe_siret', label: 'SIRET', placeholder: '341 921 104 00012' },
   { key: 'devis_societe_telephone', label: 'Téléphone fixe', placeholder: '03 82 58 64 43' },
@@ -23,7 +24,8 @@ const FIELDS: { key: string; label: string; placeholder?: string; type?: string;
   { key: 'devis_societe_iban', label: 'Coordonnées bancaires (IBAN)', placeholder: 'BNP FR76 3000 4004 5700 0203 5383 872 BNPAFRPPXXX' },
   { key: 'devis_societe_logo_url', label: 'URL du logo (image web)', placeholder: 'https://…/logo.png' },
   { key: 'devis_ville_emission', label: 'Ville d\'émission (ex: Florange)', placeholder: 'Florange' },
-  { key: 'devis_numero_suivant', label: 'Prochain numéro de devis', placeholder: '100001', type: 'number' },
+  { key: 'devis_numero_prefixe', label: 'Préfixe du numéro (ex: AL)', placeholder: 'AL' },
+  { key: 'devis_numero_suivant', label: 'Prochain numéro (partie chiffrée)', placeholder: '1', type: 'number' },
   { key: 'devis_texte_introduction', label: 'Texte d\'introduction', multi: true, placeholder: 'Nous vous remercions de votre demande de prix…' },
   { key: 'devis_texte_footer', label: 'Texte de la zone commande (bas du devis)', multi: true, placeholder: 'Pour toute commande, merci de bien vouloir nous renvoyer votre devis signé…' },
 ]

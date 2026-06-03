@@ -67,8 +67,13 @@ export async function POST(request: Request) {
       const setting = session2 ? await prisma.settings.findFirst({
         where: { key: 'devis_numero_suivant', userId: session2.user.id }
       }) : null
-      const current = parseInt(setting?.value || '100001')
-      numero = String(current)
+      const prefixSetting = session2 ? await prisma.settings.findFirst({
+        where: { key: 'devis_numero_prefixe', userId: session2.user.id }
+      }) : null
+      const prefix = prefixSetting?.value ? prefixSetting.value + '-' : ''
+      const current = parseInt(setting?.value || '1')
+      const padded = String(current).padStart(3, '0')
+      numero = prefix + padded
       const nextVal = String(current + 1)
       if (session2) {
         await prisma.settings.upsert({
