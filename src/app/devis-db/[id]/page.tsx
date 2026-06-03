@@ -122,8 +122,10 @@ export default function DevisDetailPage() {
               const res = await fetch(`/api/devis/${devis.id}/imprimer`)
               if (res.ok) {
                 const html = await res.text()
-                const w = window.open('', '_blank')
-                if (w) { w.document.write(html); w.document.close(); w.print() }
+                const blob = new Blob([html], { type: 'text/html; charset=utf-8' })
+                const url = URL.createObjectURL(blob)
+                const w = window.open(url, '_blank')
+                if (w) w.addEventListener('load', () => { w.print(); URL.revokeObjectURL(url) })
               }
             }}>
               <Printer className="w-4 h-4 mr-2" />
