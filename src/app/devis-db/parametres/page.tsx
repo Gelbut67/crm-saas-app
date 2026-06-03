@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, Save, Loader2, CheckCircle2 } from "lucide-react"
+import { ArrowLeft, Save, Loader2, CheckCircle2, Upload, X } from "lucide-react"
 
 const FIELDS: { key: string; label: string; placeholder?: string; type?: string; multi?: boolean }[] = [
   { key: 'devis_societe_nom', label: 'Nom de la société', placeholder: 'Belle Etiquette s.a.' },
@@ -83,7 +83,70 @@ export default function DevisParametresPage() {
           {FIELDS.map(f => (
             <div key={f.key}>
               <Label className="text-sm font-medium">{f.label}</Label>
-              {f.multi ? (
+
+              {f.key === 'devis_societe_logo_url' ? (
+                <div className="mt-1 space-y-2">
+                  {/* Aperçu du logo actuel */}
+                  {values['devis_societe_logo_url'] && (
+                    <div className="flex items-center gap-3 p-2 border rounded-md bg-muted/30">
+                      <img
+                        src={values['devis_societe_logo_url']}
+                        alt="Logo"
+                        className="max-h-16 max-w-32 object-contain"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setValues(prev => ({ ...prev, devis_societe_logo_url: '' }))}
+                        className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1"
+                      >
+                        <X className="w-3 h-3" /> Supprimer
+                      </button>
+                    </div>
+                  )}
+                  {/* Upload fichier */}
+                  <label className="flex items-center gap-2 cursor-pointer border border-dashed rounded-md px-3 py-2 hover:bg-muted/40 transition-colors text-sm text-muted-foreground w-fit">
+                    <Upload className="w-4 h-4" />
+                    Choisir une image (PNG, JPG, SVG…)
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={e => {
+                        const file = e.target.files?.[0]
+                        if (!file) return
+                        const reader = new FileReader()
+                        reader.onload = (ev) => {
+                          const img = new window.Image()
+                          img.onload = () => {
+                            const MAX_W = 400, MAX_H = 200
+                            let w = img.width, h = img.height
+                            if (w > MAX_W || h > MAX_H) {
+                              const ratio = Math.min(MAX_W / w, MAX_H / h)
+                              w = Math.round(w * ratio)
+                              h = Math.round(h * ratio)
+                            }
+                            const canvas = document.createElement('canvas')
+                            canvas.width = w; canvas.height = h
+                            canvas.getContext('2d')!.drawImage(img, 0, 0, w, h)
+                            const base64 = canvas.toDataURL('image/png')
+                            setValues(prev => ({ ...prev, devis_societe_logo_url: base64 }))
+                          }
+                          img.src = ev.target?.result as string
+                        }
+                        reader.readAsDataURL(file)
+                      }}
+                    />
+                  </label>
+                  {/* Ou saisir une URL */}
+                  <Input
+                    type="text"
+                    value={values['devis_societe_logo_url']?.startsWith('data:') ? '' : values['devis_societe_logo_url'] || ''}
+                    onChange={e => setValues(prev => ({ ...prev, devis_societe_logo_url: e.target.value }))}
+                    placeholder="Ou coller une URL http://…"
+                    className="text-sm"
+                  />
+                </div>
+              ) : f.multi ? (
                 <Textarea
                   value={values[f.key] || ''}
                   onChange={e => setValues(prev => ({ ...prev, [f.key]: e.target.value }))}
