@@ -112,44 +112,50 @@ export async function GET(request: Request, { params }: { params: { id: string }
       margin: 0 auto;
     }
 
-    /* ── HEADER ── */
+    /* ── HEADER PRINCIPAL (2 colonnes) ── */
     .header-top {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
+      gap: 24px;
       margin-bottom: 24px;
     }
-    .logo-block img { max-height: 100px; max-width: 150px; object-fit: contain; display: block; }
-    .logo-text { font-size: 24px; font-weight: 900; color: #222; line-height: 1.15; }
-    .logo-sub { font-size: 10px; color: #888; font-style: italic; margin-top: 3px; }
-    .devis-title { font-size: 42px; font-weight: 900; color: #111; letter-spacing: 4px; }
 
-    /* ── INFO ROW ── */
-    .info-row {
-      display: flex;
-      justify-content: space-between;
-      gap: 20px;
-      margin-bottom: 24px;
-    }
-    .soc-box {
+    /* Colonne gauche : logo + infos société */
+    .soc-block {
       flex: 1;
       background: #f7f7f7;
       border: 1px solid #ddd;
-      padding: 13px 15px;
+      padding: 14px 16px;
       font-size: 11px;
-      line-height: 2;
+      line-height: 1.9;
     }
-    .soc-box strong { font-size: 12.5px; font-weight: 700; display: block; margin-bottom: 4px; }
-    .soc-box a { color: #1a56db; text-decoration: none; }
-    .meta-client { flex: 1; display: flex; flex-direction: column; gap: 12px; }
+    .soc-block img { max-height: 80px; max-width: 140px; object-fit: contain; display: block; margin-bottom: 8px; }
+    .soc-block .logo-text { font-size: 22px; font-weight: 900; color: #222; line-height: 1.15; margin-bottom: 6px; }
+    .soc-block .logo-sub { font-size: 10px; color: #888; font-style: italic; margin-bottom: 6px; }
+    .soc-block .soc-nom { font-size: 13px; font-weight: 700; display: block; margin-bottom: 2px; }
+    .soc-block .soc-contact { font-size: 11.5px; font-style: italic; margin-bottom: 6px; color: #333; }
+    .soc-block a { color: #1a56db; text-decoration: none; }
+
+    /* Colonne droite : titre DEVIS + numéro + date */
+    .devis-meta {
+      text-align: right;
+      min-width: 200px;
+    }
+    .devis-title { font-size: 42px; font-weight: 900; color: #111; letter-spacing: 4px; margin-bottom: 12px; }
     .meta-nums { font-size: 11.5px; line-height: 2; }
     .meta-nums .num-val { color: #E85A00; font-weight: 700; font-style: italic; }
+
+    /* ── BLOC CLIENT ── */
+    .client-row { margin-bottom: 20px; }
     .client-box {
       background: #f7f7f7;
       border: 1px solid #ddd;
       padding: 13px 15px;
       font-size: 11px;
       line-height: 2;
+      max-width: 50%;
+      margin-left: auto;
     }
     .client-box .lbl { font-size: 11px; color: #666; }
     .client-box .cnom { font-size: 13px; font-weight: 700; margin-top: 2px; }
@@ -259,42 +265,38 @@ export async function GET(request: Request, { params }: { params: { id: string }
 </head>
 <body>
 
-<!-- TOP HEADER -->
+<!-- HEADER : SOCIÉTÉ (gauche) | DEVIS + N° + DATE (droite) -->
 <div class="header-top">
-  <div class="logo-block">
-    ${soc.logoUrl ? `<img src="${soc.logoUrl}" alt="Logo" />` : soc.nom ? `<div class="logo-text">${soc.nom}</div>` : ""}
-    ${soc.tagline ? `<div class="logo-sub">${soc.tagline}</div>` : ""}
-  </div>
-  <div>
-    <div class="devis-title">DEVIS</div>
-  </div>
-</div>
-
-<!-- INFO ROW : SOCIÉTÉ  |  NUMÉRO + CLIENT -->
-<div class="info-row">
-  <div class="soc-box">
-    ${soc.nom ? `<strong>${soc.nom}</strong>` : ""}
-    ${soc.nomCommercial ? `${soc.nomCommercial}<br>` : ""}
+  <div class="soc-block">
+    ${soc.logoUrl ? `<img src="${soc.logoUrl}" alt="Logo" />` : ""}
+    ${soc.nom ? `<span class="soc-nom">${soc.nom}</span>` : ""}
+    ${!soc.logoUrl && soc.tagline ? `<div class="logo-sub">${soc.tagline}</div>` : ""}
+    ${soc.nomCommercial ? `<div class="soc-contact">${soc.nomCommercial}</div>` : ""}
     ${soc.adresse ? `${soc.adresse}<br>` : ""}
     ${soc.bp ? `${soc.bp}<br>` : ""}
     ${(soc.cp || soc.ville) ? `${soc.cp} ${soc.ville}<br>` : ""}
-    ${soc.tel ? `Téléphone : ${soc.tel}<br>` : ""}
+    ${soc.tel ? `Tél : ${soc.tel}<br>` : ""}
     ${soc.mobile ? `Mobile : ${soc.mobile}<br>` : ""}
     ${soc.email ? `Mail : <a href="mailto:${soc.email}">${soc.email}</a>` : ""}
   </div>
-  <div class="meta-client">
+  <div class="devis-meta">
+    <div class="devis-title">DEVIS</div>
     <div class="meta-nums">
-      Numéro : <span class="num-val">${numero}</span><br>
-      Date d'émission : ${dateFormatted}
+      N° <span class="num-val">${numero}</span><br>
+      Date : ${dateFormatted}
     </div>
-    <div class="client-box">
-      <div class="lbl">Client :</div>
-      <div class="cnom">${clientNom}</div>
-      <br>
-      ${client.adresse ? `${client.adresse}<br>` : ""}
-      ${(client.codePostal || client.ville) ? `${client.codePostal || ""} ${client.ville || ""}<br>` : ""}
-      France
-    </div>
+  </div>
+</div>
+
+<!-- BLOC CLIENT (aligné à droite) -->
+<div class="client-row">
+  <div class="client-box">
+    <div class="lbl">Client :</div>
+    <div class="cnom">${clientNom}</div>
+    <br>
+    ${client.adresse ? `${client.adresse}<br>` : ""}
+    ${(client.codePostal || client.ville) ? `${client.codePostal || ""} ${client.ville || ""}<br>` : ""}
+    France
   </div>
 </div>
 
