@@ -339,6 +339,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
   <div class="recipient-block">
     <div class="recipient-label">Destinataire</div>
     <div class="recipient-name">${clientNom}</div>
+    ${(devis as any).civilite || (devis as any).nomContact ? `<div style="font-size:11px;color:#555;margin-bottom:3px;">${[(devis as any).civilite, (devis as any).nomContact].filter(Boolean).join(' ')}</div>` : ""}
     <div class="addr">
       ${client.adresse ? `${client.adresse}<br>` : ""}
       ${(client.codePostal || client.ville) ? `${client.codePostal || ""} ${client.ville || ""}<br>` : ""}

@@ -35,6 +35,7 @@ interface DevisFormData {
   dateEcheance: string
   description: string
   civilite: string
+  nomContact: string
   delai: string
   livraison: string
   afficherTotaux: boolean
@@ -68,6 +69,7 @@ export function DevisForm({ mode, initialData, initialClientId }: Props) {
       : new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
     description: initialData?.description || "",
     civilite: initialData?.civilite || "Madame",
+    nomContact: (initialData as any)?.nomContact || "",
     delai: initialData?.delai || "",
     livraison: initialData?.livraison || "",
     afficherTotaux: (initialData as any)?.afficherTotaux !== false,
@@ -225,6 +227,10 @@ export function DevisForm({ mode, initialData, initialClientId }: Props) {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div>
+                <Label>Nom du contact</Label>
+                <Input value={form.nomContact} onChange={e => setField("nomContact", e.target.value)} placeholder="Ex: Marie MARTIN" />
               </div>
             </div>
             {selectedClient && (
