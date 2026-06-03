@@ -274,6 +274,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 <div class="info-row">
   <div class="soc-box">
     ${soc.nom ? `<strong>${soc.nom}</strong>` : ""}
+    ${soc.nomCommercial ? `${soc.nomCommercial}<br>` : ""}
     ${soc.adresse ? `${soc.adresse}<br>` : ""}
     ${soc.bp ? `${soc.bp}<br>` : ""}
     ${(soc.cp || soc.ville) ? `${soc.cp} ${soc.ville}<br>` : ""}
