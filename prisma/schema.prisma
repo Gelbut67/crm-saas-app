@@ -103,6 +103,7 @@ model Devis {
   livraison          String?
   conditionsPaiement String?
   validite           String?
+  afficherTotaux     Boolean  @default(true)
   
   client       Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
   piecesJointes PieceJointe[]

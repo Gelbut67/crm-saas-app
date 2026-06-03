@@ -39,10 +39,11 @@ const newId = () => Math.random().toString(36).slice(2, 9)
 interface Props {
   lignes: Ligne[]
   onChange: (lignes: Ligne[]) => void
-  tvaTaux?: string  // taux TVA par defaut
+  tvaTaux?: string
+  showTotaux?: boolean
 }
 
-export function DevisLignesEditor({ lignes, onChange, tvaTaux = "20" }: Props) {
+export function DevisLignesEditor({ lignes, onChange, tvaTaux = "20", showTotaux = true }: Props) {
   const update = (id: string, field: keyof Ligne, value: string) =>
     onChange(lignes.map(l => (l.id === id ? { ...l, [field]: value } : l)))
 
@@ -141,7 +142,7 @@ export function DevisLignesEditor({ lignes, onChange, tvaTaux = "20" }: Props) {
       </div>
 
       {/* Totaux */}
-      {(totaux.totalHT > 0 || totaux.totalTVA > 0) && (
+      {showTotaux && (totaux.totalHT > 0 || totaux.totalTVA > 0) && (
         <div className="flex justify-end mt-3">
           <table className="text-sm border-collapse">
             <tbody>

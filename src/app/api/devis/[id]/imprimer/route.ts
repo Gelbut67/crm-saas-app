@@ -239,6 +239,7 @@ ${devis.validite ? `<p class="validite-line">Durée de validité – ${devis.val
     <br>
     ${devis.conditionsPaiement ? `<span>${devis.conditionsPaiement}</span>` : ""}
   </div>
+  ${devis.afficherTotaux !== false ? `
   <table class="totaux-table">
     <tr>
       <td>Total HT</td>
@@ -252,7 +253,7 @@ ${devis.validite ? `<p class="validite-line">Durée de validité – ${devis.val
       <td>Net à payer</td>
       <td>${fmt(netAPayer)}</td>
     </tr>
-  </table>
+  </table>` : ""}
 </div>
 
 <!-- SIGNATURE -->

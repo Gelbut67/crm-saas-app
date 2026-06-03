@@ -37,6 +37,7 @@ interface DevisFormData {
   civilite: string
   delai: string
   livraison: string
+  afficherTotaux: boolean
 }
 
 interface Props {
@@ -69,6 +70,7 @@ export function DevisForm({ mode, initialData, initialClientId }: Props) {
     civilite: initialData?.civilite || "Madame",
     delai: initialData?.delai || "",
     livraison: initialData?.livraison || "",
+    afficherTotaux: (initialData as any)?.afficherTotaux !== false,
   })
 
   useEffect(() => {
@@ -284,8 +286,24 @@ export function DevisForm({ mode, initialData, initialClientId }: Props) {
               Les <strong>lignes chiffrées</strong> ont une quantité + prix au mille + TVA. Les <strong>lignes description</strong> n'ont que du texte (format, impression, matière…).
             </p>
           </CardHeader>
-          <CardContent>
-            <DevisLignesEditor lignes={form.lignes} onChange={v => setField("lignes", v)} />
+          <CardContent className="space-y-4">
+            <DevisLignesEditor
+              lignes={form.lignes}
+              onChange={v => setField("lignes", v)}
+              showTotaux={form.afficherTotaux}
+            />
+            <div className="flex items-center gap-2 pt-2 border-t">
+              <input
+                type="checkbox"
+                id="afficherTotaux"
+                checked={form.afficherTotaux}
+                onChange={e => setField("afficherTotaux", e.target.checked)}
+                className="w-4 h-4 accent-orange-600 cursor-pointer"
+              />
+              <label htmlFor="afficherTotaux" className="text-sm cursor-pointer select-none">
+                Afficher les totaux (Total HT, Total TVA, Net à payer) sur le document imprimé
+              </label>
+            </div>
           </CardContent>
         </Card>
       </div>

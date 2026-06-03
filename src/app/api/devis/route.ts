@@ -101,6 +101,7 @@ export async function POST(request: Request) {
         livraison: data.livraison || null,
         conditionsPaiement: data.conditionsPaiement || null,
         validite: data.validite || null,
+        afficherTotaux: data.afficherTotaux !== false,
       },
       include: {
         client: {
