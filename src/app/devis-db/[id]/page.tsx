@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Edit, FileText, Calendar, DollarSign, User, Building2, Mail, Phone } from "lucide-react"
+import { ArrowLeft, Edit, FileText, Calendar, DollarSign, User, Building2, Mail, Phone, Printer } from "lucide-react"
 import Link from "next/link"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
@@ -117,12 +117,25 @@ export default function DevisDetailPage() {
             </div>
           </div>
           
-          <Button asChild>
-            <Link href={`/devis-db/${devis.id}/edit`}>
-              <Edit className="w-4 h-4 mr-2" />
-              Modifier
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={async () => {
+              const res = await fetch(`/api/devis/${devis.id}/imprimer`)
+              if (res.ok) {
+                const html = await res.text()
+                const w = window.open('', '_blank')
+                if (w) { w.document.write(html); w.document.close(); w.print() }
+              }
+            }}>
+              <Printer className="w-4 h-4 mr-2" />
+              Imprimer
+            </Button>
+            <Button asChild>
+              <Link href={`/devis-db/${devis.id}/edit`}>
+                <Edit className="w-4 h-4 mr-2" />
+                Modifier
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
 

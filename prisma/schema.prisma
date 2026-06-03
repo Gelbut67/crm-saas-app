@@ -87,14 +87,22 @@ model Interaction {
 }
 
 model Devis {
-  id           String   @id @default(cuid())
-  clientId     String
-  titre        String
-  montant      Float
-  statut       String   // en_cours, gagne, perdu
-  dateEcheance DateTime
-  description  String?
-  dateCreation DateTime @default(now())
+  id                 String   @id @default(cuid())
+  clientId           String
+  titre              String
+  montant            Float
+  statut             String   // en_cours, gagne, perdu
+  dateEcheance       DateTime
+  description        String?
+  dateCreation       DateTime @default(now())
+  numero             String?
+  objet              String?
+  civilite           String?
+  lignes             String?
+  delai              String?
+  livraison          String?
+  conditionsPaiement String?
+  validite           String?
   
   client       Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
   piecesJointes PieceJointe[]
