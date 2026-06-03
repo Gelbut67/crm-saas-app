@@ -85,6 +85,13 @@ export async function GET(request: Request, { params }: { params: { id: string }
     const MIN_ROWS = 8
     const padRows = Math.max(0, MIN_ROWS - lignes.length)
 
+    const footerHtml = (soc.iban || soc.siret) ? `
+<div class="page-footer">
+  ${soc.iban ? `<strong>Banque :</strong> ${soc.iban}` : ""}
+  ${soc.iban && soc.siret ? "&nbsp;&nbsp;–&nbsp;&nbsp;" : ""}
+  ${soc.siret ? `<strong>Siret :</strong> ${soc.siret}` : ""}
+</div>` : ""
+
     const html = `<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -92,68 +99,161 @@ export async function GET(request: Request, { params }: { params: { id: string }
   <title>Devis ${numero}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; font-size: 11px; color: #1a1a1a; padding: 15px 22px; max-width: 800px; margin: 0 auto; }
 
-    /* Header principal */
-    .header-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
-    .logo-block img { max-height: 90px; max-width: 130px; object-fit: contain; }
-    .logo-block .logo-text { font-size: 22px; font-weight: 900; color: #333; line-height: 1.1; }
-    .logo-block .logo-sub { font-size: 10px; color: #777; font-style: italic; }
-    .title-block { text-align: right; }
-    .devis-title { font-size: 36px; font-weight: 900; color: #1a1a1a; letter-spacing: 2px; }
+    html, body { height: 100%; }
 
-    /* Blocs info */
-    .info-row { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
-    .soc-box { flex: 1; background: #f5f5f5; border: 1px solid #ddd; padding: 9px 11px; font-size: 10.5px; line-height: 1.7; }
-    .soc-box strong { font-size: 12px; font-weight: 700; display: block; margin-bottom: 3px; }
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 11.5px;
+      color: #1a1a1a;
+      background: #fff;
+      padding: 28px 32px 80px 32px;
+      max-width: 820px;
+      margin: 0 auto;
+    }
+
+    /* ── HEADER ── */
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 24px;
+    }
+    .logo-block img { max-height: 100px; max-width: 150px; object-fit: contain; display: block; }
+    .logo-text { font-size: 24px; font-weight: 900; color: #222; line-height: 1.15; }
+    .logo-sub { font-size: 10px; color: #888; font-style: italic; margin-top: 3px; }
+    .devis-title { font-size: 42px; font-weight: 900; color: #111; letter-spacing: 4px; }
+
+    /* ── INFO ROW ── */
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+    .soc-box {
+      flex: 1;
+      background: #f7f7f7;
+      border: 1px solid #ddd;
+      padding: 13px 15px;
+      font-size: 11px;
+      line-height: 2;
+    }
+    .soc-box strong { font-size: 12.5px; font-weight: 700; display: block; margin-bottom: 4px; }
     .soc-box a { color: #1a56db; text-decoration: none; }
-    .meta-client { flex: 1; display: flex; flex-direction: column; gap: 8px; }
-    .meta-nums { font-size: 11px; line-height: 1.8; }
-    .meta-nums span { color: #E85A00; font-weight: 700; }
-    .client-box { background: #f5f5f5; border: 1px solid #ddd; padding: 9px 11px; font-size: 10.5px; line-height: 1.7; }
-    .client-box .lbl { font-size: 10.5px; color: #555; }
-    .client-box .cnom { font-size: 12px; font-weight: 700; }
+    .meta-client { flex: 1; display: flex; flex-direction: column; gap: 12px; }
+    .meta-nums { font-size: 11.5px; line-height: 2; }
+    .meta-nums .num-val { color: #E85A00; font-weight: 700; font-style: italic; }
+    .client-box {
+      background: #f7f7f7;
+      border: 1px solid #ddd;
+      padding: 13px 15px;
+      font-size: 11px;
+      line-height: 2;
+    }
+    .client-box .lbl { font-size: 11px; color: #666; }
+    .client-box .cnom { font-size: 13px; font-weight: 700; margin-top: 2px; }
 
-    /* Objet */
-    .objet-line { margin: 12px 0 4px; font-size: 11.5px; }
-    .objet-line u { text-decoration: underline; }
-    .validite-line { font-size: 11px; margin-bottom: 12px; }
+    /* ── OBJET / VALIDITÉ ── */
+    .objet-line {
+      font-size: 12px;
+      margin: 18px 0 8px;
+      text-decoration: underline;
+    }
+    .validite-line { font-size: 11.5px; margin-bottom: 18px; color: #333; }
 
-    /* Tableau */
-    table.devis-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
-    table.devis-table thead tr { background: #E85A00; color: white; }
-    table.devis-table thead th { padding: 6px 7px; font-size: 11px; font-weight: 600; }
+    /* ── TABLEAU ── */
+    table.devis-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    table.devis-table thead tr { background: #E85A00; color: #fff; }
+    table.devis-table thead th {
+      padding: 8px 9px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
     table.devis-table thead th:first-child { text-align: left; }
     table.devis-table thead th:not(:first-child) { text-align: center; }
-    table.devis-table tbody tr { border-bottom: 1px solid #e0e0e0; }
-    table.devis-table tbody tr.empty { height: 22px; }
-    table.devis-table tbody td { padding: 4px 7px; font-size: 10.5px; }
+    table.devis-table tbody tr { border-bottom: 1px solid #e4e4e4; }
+    table.devis-table tbody tr:nth-child(even) { background: #fafafa; }
+    table.devis-table tbody tr.empty { height: 26px; }
+    table.devis-table tbody td { padding: 6px 9px; font-size: 11px; }
     table.devis-table tbody td:not(:first-child) { text-align: center; }
     table.devis-table tbody td.val { text-align: right; }
 
-    /* Conditions + totaux */
-    .bottom-section { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 6px; }
-    .conditions-block { font-size: 11px; line-height: 1.8; }
-    .conditions-block p { font-weight: 600; }
-    .totaux-table { border-collapse: collapse; min-width: 220px; }
-    .totaux-table tr td { padding: 5px 12px; font-size: 11px; border: 1px solid #ddd; }
-    .totaux-table tr td:first-child { background: #f0f0f0; font-weight: 600; }
-    .totaux-table tr td:last-child { text-align: right; min-width: 90px; }
-    .totaux-table tr.net { background: #E85A00; }
-    .totaux-table tr.net td { color: white; font-weight: 700; background: #E85A00; border-color: #E85A00; }
+    /* ── CONDITIONS + TOTAUX ── */
+    .bottom-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 30px;
+      margin-top: 10px;
+      margin-bottom: 28px;
+    }
+    .conditions-block { font-size: 11.5px; line-height: 2; flex: 1; }
+    .conditions-block .conditions-titre { font-weight: 700; margin-bottom: 4px; }
+    .totaux-table { border-collapse: collapse; min-width: 240px; }
+    .totaux-table tr td {
+      padding: 7px 14px;
+      font-size: 11.5px;
+      border: 1px solid #ddd;
+    }
+    .totaux-table tr td:first-child { background: #f0f0f0; font-weight: 600; width: 130px; }
+    .totaux-table tr td:last-child { text-align: right; min-width: 100px; }
+    .totaux-table tr.net td {
+      background: #E85A00;
+      color: #fff;
+      font-weight: 700;
+      border-color: #E85A00;
+    }
 
-    /* Signature */
-    .signature-section { margin-top: 18px; }
-    .signature-box { border: 1px dashed #aaa; background: #fafafa; padding: 8px 12px; min-height: 70px; }
-    .signature-label { font-size: 10px; color: #666; font-style: italic; }
+    /* ── SIGNATURE ── */
+    .signature-section { margin-bottom: 30px; }
+    .signature-label {
+      font-size: 10.5px;
+      color: #666;
+      font-style: italic;
+      display: block;
+      margin-bottom: 6px;
+    }
+    .signature-box {
+      border: 1px dashed #bbb;
+      background: #fafafa;
+      min-height: 80px;
+      border-radius: 2px;
+    }
 
-    /* Footer */
-    .page-footer { margin-top: 22px; padding-top: 8px; border-top: 2px solid #e0e0e0; text-align: center; font-size: 10px; color: #555; }
-    .page-footer strong { font-weight: 700; color: #333; }
+    /* ── FOOTER FIXE ── */
+    .page-footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #fff;
+      border-top: 2px solid #E85A00;
+      text-align: center;
+      font-size: 10.5px;
+      color: #444;
+      padding: 7px 32px;
+      letter-spacing: 0.2px;
+    }
+    .page-footer strong { font-weight: 700; color: #111; }
 
+    /* ── IMPRESSION ── */
     @media print {
-      body { padding: 8mm 12mm; font-size: 10px; }
-      @page { margin: 8mm; size: A4; }
+      body {
+        padding: 10mm 14mm 28mm 14mm;
+        font-size: 10.5px;
+        max-width: none;
+      }
+      @page { margin: 8mm; size: A4 portrait; }
+      table.devis-table tbody tr.empty { height: 24px; }
+      .page-footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 5px 14mm;
+      }
     }
   </style>
 </head>
@@ -162,17 +262,15 @@ export async function GET(request: Request, { params }: { params: { id: string }
 <!-- TOP HEADER -->
 <div class="header-top">
   <div class="logo-block">
-    ${soc.logoUrl
-      ? `<img src="${soc.logoUrl}" alt="Logo" />`
-      : soc.nom ? `<div class="logo-text">${soc.nom}</div>` : ""}
+    ${soc.logoUrl ? `<img src="${soc.logoUrl}" alt="Logo" />` : soc.nom ? `<div class="logo-text">${soc.nom}</div>` : ""}
     ${soc.tagline ? `<div class="logo-sub">${soc.tagline}</div>` : ""}
   </div>
-  <div class="title-block">
+  <div>
     <div class="devis-title">DEVIS</div>
   </div>
 </div>
 
-<!-- INFO ROW -->
+<!-- INFO ROW : SOCIÉTÉ  |  NUMÉRO + CLIENT -->
 <div class="info-row">
   <div class="soc-box">
     ${soc.nom ? `<strong>${soc.nom}</strong>` : ""}
@@ -185,7 +283,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
   </div>
   <div class="meta-client">
     <div class="meta-nums">
-      Numéro : <span>${numero}</span><br>
+      Numéro : <span class="num-val">${numero}</span><br>
       Date d'émission : ${dateFormatted}
     </div>
     <div class="client-box">
@@ -200,19 +298,19 @@ export async function GET(request: Request, { params }: { params: { id: string }
 </div>
 
 <!-- OBJET -->
-<p class="objet-line"><u>Objet : ${objet}</u></p>
+<p class="objet-line">Objet : ${objet}</p>
 ${devis.validite ? `<p class="validite-line">Durée de validité – ${devis.validite}</p>` : ""}
 
-<!-- TABLEAU -->
+<!-- TABLEAU DES LIGNES -->
 <table class="devis-table">
   <thead>
     <tr>
-      <th style="width:38%">Désignation</th>
-      <th style="width:12%">Quantité</th>
+      <th style="width:38%;text-align:left">Désignation</th>
+      <th style="width:11%">Quantité</th>
       <th style="width:14%">Prix au mille</th>
       <th style="width:8%">% TVA</th>
       <th style="width:14%">Total TVA</th>
-      <th style="width:14%">Total HT</th>
+      <th style="width:15%">Total HT</th>
     </tr>
   </thead>
   <tbody>
@@ -223,7 +321,7 @@ ${devis.validite ? `<p class="validite-line">Durée de validité – ${devis.val
         <td>${l.designation || ""}</td>
         <td>${hasValues ? l.quantite : ""}</td>
         <td>${hasValues ? fmt(parseFloat(l.prix)) : ""}</td>
-        <td>${hasValues && l.tva ? l.tva + " %" : ""}</td>
+        <td>${hasValues && l.tva ? l.tva + "&nbsp;%" : ""}</td>
         <td class="val">${hasValues && totalTVA > 0 ? fmt(totalTVA) : ""}</td>
         <td class="val">${hasValues && totalHT > 0 ? fmt(totalHT) : ""}</td>
       </tr>`
@@ -235,41 +333,25 @@ ${devis.validite ? `<p class="validite-line">Durée de validité – ${devis.val
 <!-- CONDITIONS + TOTAUX -->
 <div class="bottom-section">
   <div class="conditions-block">
-    <p>Conditions de règlement :</p>
-    <br>
-    ${devis.conditionsPaiement ? `<span>${devis.conditionsPaiement}</span>` : ""}
+    <div class="conditions-titre">Conditions de règlement :</div>
+    ${devis.conditionsPaiement ? `<div>${devis.conditionsPaiement}</div>` : ""}
   </div>
   ${devis.afficherTotaux !== false ? `
   <table class="totaux-table">
-    <tr>
-      <td>Total HT</td>
-      <td>${fmt(totaux.totalHT)}</td>
-    </tr>
-    <tr>
-      <td>Total TVA</td>
-      <td>${fmt(totaux.totalTVA)}</td>
-    </tr>
-    <tr class="net">
-      <td>Net à payer</td>
-      <td>${fmt(netAPayer)}</td>
-    </tr>
+    <tr><td>Total HT</td><td>${fmt(totaux.totalHT)}</td></tr>
+    <tr><td>Total TVA</td><td>${fmt(totaux.totalTVA)}</td></tr>
+    <tr class="net"><td>Net à payer</td><td>${fmt(netAPayer)}</td></tr>
   </table>` : ""}
 </div>
 
 <!-- SIGNATURE -->
 <div class="signature-section">
-  <div class="signature-box">
-    <span class="signature-label">Signature du client (précédée de la mention « Bon pour accord »)</span>
-  </div>
+  <span class="signature-label">Signature du client (précédée de la mention « Bon pour accord »)</span>
+  <div class="signature-box"></div>
 </div>
 
-<!-- FOOTER -->
-${soc.iban || soc.siret ? `
-<div class="page-footer">
-  ${soc.iban ? `<strong>Banque :</strong> ${soc.iban}` : ""}
-  ${soc.iban && soc.siret ? " – " : ""}
-  ${soc.siret ? `Siret : ${soc.siret}` : ""}
-</div>` : ""}
+<!-- FOOTER FIXE -->
+${footerHtml}
 
 </body>
 </html>`
