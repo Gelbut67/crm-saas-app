@@ -135,7 +135,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       gap: 18px;
       flex: 1;
     }
-    .header-logo img { max-height: 72px; max-width: 120px; object-fit: contain; display: block; }
+    .header-logo img { max-height: 100px; max-width: 170px; object-fit: contain; display: block; }
     .header-logo-text { font-size: 26px; font-weight: 900; color: #1a1a1a; letter-spacing: 1px; }
     .header-company-name {
       font-size: 15px;
@@ -151,10 +151,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
       display: inline-block;
       background: #E85A00;
       color: #fff;
-      font-size: 28px;
+      font-size: 22px;
       font-weight: 900;
-      letter-spacing: 7px;
-      padding: 10px 24px;
+      letter-spacing: 5px;
+      padding: 8px 18px;
       border-radius: 4px;
       margin-bottom: 10px;
     }
@@ -328,13 +328,14 @@ export async function GET(request: Request, { params }: { params: { id: string }
 <!-- INFO ROW : expéditeur | destinataire -->
 <div class="info-row">
   <div class="sender-block">
-    ${soc.nomCommercial ? `<div class="sender-contact">${soc.nomCommercial}</div>` : soc.nom ? `<div class="sender-contact">${soc.nom}</div>` : ""}
+    ${soc.nom ? `<div class="sender-contact">${soc.nom}</div>` : ""}
     ${soc.adresse ? `${soc.adresse}<br>` : ""}
     ${soc.bp ? `${soc.bp}<br>` : ""}
     ${(soc.cp || soc.ville) ? `${soc.cp} ${soc.ville}<br>` : ""}
     ${soc.tel ? `Tél&nbsp;: ${soc.tel}<br>` : ""}
     ${soc.mobile ? `Mobile&nbsp;: ${soc.mobile}<br>` : ""}
     ${soc.email ? `<a href="mailto:${soc.email}">${soc.email}</a>` : ""}
+    ${soc.nomCommercial ? `<div style="margin-top:6px;font-size:10.5px;color:#888;">Interlocuteur&nbsp;: <strong style="color:#1a1a1a">${soc.nomCommercial}</strong></div>` : ""}
   </div>
   <div class="recipient-block">
     <div class="recipient-label">Destinataire</div>
