@@ -20,7 +20,7 @@ const TourneeMap = dynamic(
 )
 
 interface VisiteOptimisee {
-  type: 'visite' | 'pause'
+  type: 'visite' | 'pause' | 'depart_domicile' | 'retour_domicile'
   client: {
     id: string
     nom: string
@@ -37,6 +37,7 @@ interface VisiteOptimisee {
   duree: number
   heureRdv?: string
   derniereVisite?: string | null
+  adresse?: string
 }
 
 export default function TourneesPage() {
@@ -671,6 +672,36 @@ export default function TourneesPage() {
               <CardContent>
                 <div className="space-y-3">
                   {tourneeOptimisee.map((visite, index) => {
+                    if (visite.type === 'depart_domicile' || visite.type === 'retour_domicile') {
+                      const isDepart = visite.type === 'depart_domicile'
+                      return (
+                        <div key={`${visite.type}-${index}`} className={`flex items-center gap-3 px-4 py-3 border border-dashed rounded-lg ${
+                          isDepart ? 'border-green-400 bg-green-50 dark:bg-green-900/20' : 'border-blue-400 bg-blue-50 dark:bg-blue-900/20'
+                        }`}>
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                            isDepart ? 'bg-green-200 dark:bg-green-800' : 'bg-blue-200 dark:bg-blue-800'
+                          }`}>
+                            <Home className={`w-5 h-5 ${isDepart ? 'text-green-700 dark:text-green-300' : 'text-blue-700 dark:text-blue-300'}`} />
+                          </div>
+                          <div>
+                            <p className={`text-sm font-semibold ${isDepart ? 'text-green-800 dark:text-green-200' : 'text-blue-800 dark:text-blue-200'}`}>
+                              {isDepart ? 'Départ domicile' : 'Retour domicile'}
+                            </p>
+                            <p className={`text-sm ${isDepart ? 'text-green-700 dark:text-green-300' : 'text-blue-700 dark:text-blue-300'}`}>
+                              <Clock className="w-3 h-3 inline mr-1" />
+                              {visite.heureArrivee}
+                              {!isDepart && visite.distance > 0 && (
+                                <span className="ml-2 text-xs">({visite.distance} km • {visite.duree} min de trajet)</span>
+                              )}
+                            </p>
+                            {visite.adresse && (
+                              <p className="text-xs text-muted-foreground mt-0.5">{visite.adresse}</p>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    }
+
                     if (visite.type === 'pause') {
                       return (
                         <div key={`pause-${index}`} className="flex items-center gap-3 px-4 py-3 border border-dashed border-yellow-400 rounded-lg bg-yellow-50 dark:bg-yellow-900/20">

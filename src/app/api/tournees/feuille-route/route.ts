@@ -231,6 +231,18 @@ export async function POST(request: Request) {
   </div>
 
   ${visites.map((visite: any) => {
+    if (visite.type === 'depart_domicile' || visite.type === 'retour_domicile') {
+      const isDepart = visite.type === 'depart_domicile'
+      return `
+    <div style="margin:5px 0;padding:7px 10px;border:1px dashed ${isDepart ? '#22c55e' : '#3b82f6'};border-radius:5px;background:${isDepart ? '#f0fdf4' : '#eff6ff'};display:flex;align-items:center;gap:8px;">
+      <span style="font-size:18px">🏠</span>
+      <div>
+        <span style="font-weight:bold;font-size:12px;color:${isDepart ? '#166534' : '#1e3a8a'};">${isDepart ? 'Départ domicile' : 'Retour domicile'}</span>
+        <span style="margin-left:8px;font-size:11px;color:${isDepart ? '#15803d' : '#1d4ed8'};">${visite.heureArrivee}${!isDepart && visite.distance > 0 ? ` (${visite.distance} km • ${visite.duree} min de trajet)` : ''}</span>
+        ${visite.adresse ? `<div style="font-size:10px;color:#64748b;margin-top:1px;">${visite.adresse}</div>` : ''}
+      </div>
+    </div>`
+    }
     if (visite.type === 'pause') {
       return `
     <div style="margin:5px 0;padding:7px 10px;border:1px dashed #f59e0b;border-radius:5px;background:#fffbeb;display:flex;align-items:center;gap:8px;">

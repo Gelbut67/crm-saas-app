@@ -645,6 +645,8 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
 
     // Calculer l'heure de retour réelle depuis le dernier client
     let heureRetourEstimee: string | null = null
+    let distanceRetour = 0
+    let dureeRetour = 0
     if (coordonneesDomicile && visites.length > 0) {
       const dernierClient = itineraireOptimise[visites.length - 1]
       if (dernierClient?.coordonnees) {
@@ -660,6 +662,41 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
         heureRetourEstimee = `${String(Math.floor(minutesRetour / 60)).padStart(2, '0')}:${String(minutesRetour % 60).padStart(2, '0')}`
         distanceTotale += Math.round(retour.distance * 10) / 10
         dureeTrajetTotale += retour.duration
+        distanceRetour = Math.round(retour.distance * 10) / 10
+        dureeRetour = retour.duration
+      }
+    }
+
+    // Ajouter les cartes départ/retour domicile
+    const adresseFormatted = pointDepart ? `${pointDepart.adresse}, ${pointDepart.codePostal} ${pointDepart.ville}` : ''
+    if (coordonneesDomicile) {
+      visites.unshift({
+        type: 'depart_domicile',
+        ordre: null,
+        heureArrivee: heureDepart,
+        heureDepart: heureDepart,
+        adresse: adresseFormatted,
+        distance: 0,
+        duree: 0,
+        client: null,
+        coordonnees: null,
+        routeGeometry: null,
+        derniereVisite: null,
+      })
+      if (heureRetourEstimee) {
+        visites.push({
+          type: 'retour_domicile',
+          ordre: null,
+          heureArrivee: heureRetourEstimee,
+          heureDepart: heureRetourEstimee,
+          adresse: adresseFormatted,
+          distance: distanceRetour,
+          duree: dureeRetour,
+          client: null,
+          coordonnees: null,
+          routeGeometry: null,
+          derniereVisite: null,
+        })
       }
     }
 
