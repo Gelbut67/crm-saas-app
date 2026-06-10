@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { Plus, Trash2, Users, ShieldCheck, User, KeyRound, X } from 'lucide-react'
+import { Plus, Trash2, Users, ShieldCheck, User, KeyRound, X, LogIn } from 'lucide-react'
+import { signIn } from 'next-auth/react'
 
 interface UserRow {
   id: string
@@ -28,6 +29,7 @@ export default function AdminUsersPage() {
   const [resetTarget, setResetTarget] = useState<{ id: string; nom: string } | null>(null)
   const [resetPassword, setResetPassword] = useState('')
   const [resetting, setResetting] = useState(false)
+  const [impersonating, setImpersonating] = useState<string | null>(null)
 
   useEffect(() => {
     if (status === 'authenticated') fetchUsers()
@@ -89,6 +91,23 @@ export default function AdminUsersPage() {
       }
     } finally {
       setResetting(false)
+    }
+  }
+
+  async function handleImpersonate(id: string, nom: string) {
+    if (!confirm(`Accéder au compte de "${nom}" ? Vous serez connecté en tant que cet utilisateur.`)) return
+    setImpersonating(id)
+    try {
+      const res = await fetch('/api/admin/impersonate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetUserId: id }),
+      })
+      if (!res.ok) { setError('Impossible d\'accéder à ce compte'); return }
+      const { token, adminId } = await res.json()
+      await signIn('credentials', { impersonateToken: token, impersonateUserId: id, adminId, redirect: true, callbackUrl: '/' })
+    } finally {
+      setImpersonating(null)
     }
   }
 
@@ -263,6 +282,16 @@ export default function AdminUsersPage() {
                       >
                         <KeyRound className="w-4 h-4" />
                       </button>
+                      {u.id !== session?.user?.id && (
+                        <button
+                          onClick={() => handleImpersonate(u.id, u.nom)}
+                          disabled={impersonating === u.id}
+                          className="p-2 text-purple-500 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition"
+                          title="Accéder au compte"
+                        >
+                          <LogIn className="w-4 h-4" />
+                        </button>
+                      )}
                       {u.id !== session?.user?.id && (
                         <button
                           onClick={() => handleDelete(u.id, u.nom)}
