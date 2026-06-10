@@ -38,8 +38,11 @@ export async function POST(request: Request) {
 
     const data: Record<string, string> = await request.json()
 
+    const isAdmin = session.user.role === 'admin'
+
     for (const [key, value] of Object.entries(data)) {
       if (!KEYS.includes(key)) continue
+      if (key === 'devis_societe_logo_url' && !isAdmin) continue
       await prisma.settings.upsert({
         where: { key_userId: { key, userId: session.user.id } },
         update: { value },

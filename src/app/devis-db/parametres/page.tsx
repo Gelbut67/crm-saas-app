@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
 import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -31,6 +32,8 @@ const FIELDS: { key: string; label: string; placeholder?: string; type?: string;
 ]
 
 export default function DevisParametresPage() {
+  const { data: session } = useSession()
+  const isAdmin = session?.user?.role === 'admin'
   const [values, setValues] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -80,7 +83,7 @@ export default function DevisParametresPage() {
           <CardTitle className="text-base">Informations société &amp; devis</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {FIELDS.map(f => (
+          {FIELDS.filter(f => f.key !== 'devis_societe_logo_url' || isAdmin).map(f => (
             <div key={f.key}>
               <Label className="text-sm font-medium">{f.label}</Label>
 
