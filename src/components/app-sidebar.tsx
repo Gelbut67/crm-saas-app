@@ -128,7 +128,7 @@ export function AppSidebar() {
       )}>
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200/50">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200/50">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 flex-shrink-0">
                 <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-md">
@@ -161,7 +161,7 @@ export function AppSidebar() {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-2">
+          <nav className="flex-1 overflow-y-auto p-2 space-y-0.5">
             {navigation.map((item) => {
               const isActive = pathname === item.href
               const badge = (item as any).badge
@@ -170,7 +170,7 @@ export function AppSidebar() {
                   key={item.name}
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
+                    "flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200",
                     "hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 dark:hover:from-purple-900/20 dark:hover:to-indigo-900/20",
                     isActive && "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg"
                   )}
@@ -200,7 +200,7 @@ export function AppSidebar() {
           </nav>
 
           {/* Footer */}
-          <div className="p-4 border-t border-gray-200/50 space-y-2">
+          <div className="p-3 border-t border-gray-200/50 space-y-1.5">
             <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20">
               <div className="flex items-center gap-2 min-w-0">
                 <div className="w-8 h-8 flex-shrink-0 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full flex items-center justify-center">
