@@ -10,27 +10,27 @@ import { ReminderToasts } from "@/components/ui/notifications"
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'YASAR DEV - Gestion Commerciale',
+  title: 'BELLE ETIQUETTE - Gestion Commerciale',
   description: 'Application CRM complète pour gérer votre cycle de vente',
   manifest: '/manifest.json',
   themeColor: '#3b82f6',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'CRM Client',
+    title: 'BELLE ETIQUETTE',
   },
   formatDetection: {
     telephone: false,
   },
   openGraph: {
     type: 'website',
-    siteName: 'YASAR DEV CRM',
+    siteName: 'BELLE ETIQUETTE',
     title: 'Gestion Commerciale',
     description: 'Application CRM complète',
   },
   twitter: {
     card: 'summary',
-    title: 'YASAR DEV CRM',
+    title: 'BELLE ETIQUETTE',
     description: 'Application CRM complète',
   },
 }

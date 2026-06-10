@@ -1,6 +1,14 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="512" fill="#3b82f6"/>
-  <path d="M256 128C192 128 128 192 128 256C128 320 192 384 256 384C320 384 384 320 384 256C384 192 320 128 256 128Z" fill="white"/>
-  <path d="M256 160C296 160 320 184 320 224C320 264 296 288 256 288C216 288 192 264 192 224C192 184 216 160 256 160Z" fill="#3b82f6"/>
-  <path d="M200 320C200 320 224 336 256 336C288 336 312 320 312 320" stroke="white" stroke-width="8" stroke-linecap="round"/>
+  <defs>
+    <linearGradient id="beGradFav" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#4f46e5"/>
+    </linearGradient>
+  </defs>
+  <!-- Tag/label shape -->
+  <path d="M48 72 H330 L464 256 L330 440 H48 Q24 440 24 416 V96 Q24 72 48 72 Z" fill="url(#beGradFav)"/>
+  <!-- Hole -->
+  <circle cx="102" cy="256" r="36" fill="white" fill-opacity="0.9"/>
+  <!-- BE letters -->
+  <text x="168" y="310" font-family="Arial" font-weight="900" font-size="200" fill="white" letter-spacing="-8">BE</text>
 </svg>

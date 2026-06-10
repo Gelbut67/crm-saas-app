@@ -130,14 +130,24 @@ export function AppSidebar() {
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200/50">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 gradient-bg rounded-xl flex items-center justify-center shadow-lg">
-                <BarChart3 className="w-6 h-6 text-white" />
+              <div className="w-10 h-10 flex-shrink-0">
+                <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-md">
+                  <defs>
+                    <linearGradient id="beGrad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+                      <stop offset="0%" stopColor="#7c3aed"/>
+                      <stop offset="100%" stopColor="#4f46e5"/>
+                    </linearGradient>
+                  </defs>
+                  <path d="M4 6 H26 L36 20 L26 34 H4 Q2 34 2 32 V8 Q2 6 4 6 Z" fill="url(#beGrad)"/>
+                  <circle cx="8.5" cy="20" r="2.5" fill="white" fillOpacity="0.9"/>
+                  <text x="13" y="25" fontFamily="Arial" fontWeight="900" fontSize="13" fill="white" letterSpacing="-0.5">BE</text>
+                </svg>
               </div>
               <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                  YASAR DEV
+                <h1 className="text-base font-black tracking-wide bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent leading-tight">
+                  BELLE ETIQUETTE
                 </h1>
-                <p className="text-xs text-muted-foreground">Gestion Commerciale</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">Gestion Commerciale by YASAR</p>
               </div>
             </div>
             <Button
