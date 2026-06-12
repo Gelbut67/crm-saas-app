@@ -880,10 +880,11 @@ export default function TourneesPage() {
                           </div>
                           <button
                             onClick={() => retirerVisite(client.id)}
-                            className="flex-shrink-0 p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                            title="Retirer de la tournée"
+                            disabled={optimizing}
+                            className="flex-shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            title="Retirer et remplacer automatiquement"
                           >
-                            <X className="w-4 h-4" />
+                            {optimizing ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
                           </button>
                         </div>
                       </div>
