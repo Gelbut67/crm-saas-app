@@ -1,10 +1,8 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useSession, signIn } from 'next-auth/react'
 import { Plus, Trash2, Users, ShieldCheck, User, KeyRound, X, LogIn } from 'lucide-react'
-import { signIn } from 'next-auth/react'
 
 interface UserRow {
   id: string
@@ -17,7 +15,6 @@ interface UserRow {
 
 export default function AdminUsersPage() {
   const { data: session, status } = useSession()
-  const router = useRouter()
 
   const [users, setUsers] = useState<UserRow[]>([])
   const [loading, setLoading] = useState(true)
