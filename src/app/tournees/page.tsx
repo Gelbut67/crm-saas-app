@@ -183,7 +183,7 @@ export default function TourneesPage() {
     setClientsSelectionnes(new Set())
   }
 
-  const lancerOptimisation = async (params: any) => {
+  const lancerOptimisation = async (params: any, resetEdits = true) => {
     setOptimizing(true)
     try {
       const response = await fetch('/api/tournees/optimiser', {
@@ -202,10 +202,12 @@ export default function TourneesPage() {
         setStats(data.stats)
         setPointDepartOptimise(data.pointDepart)
         setSavedOk(false)
-        setClientsExclus(new Set())
-        setClientsAjoutes(new Set())
-        setShowRemplacement(false)
-        setRechercheRemplacement('')
+        if (resetEdits) {
+          setClientsExclus(new Set())
+          setClientsAjoutes(new Set())
+          setShowRemplacement(false)
+          setRechercheRemplacement('')
+        }
       } else {
         const data = await response.json().catch(() => ({}))
         alert(data.error || 'Erreur lors de l\'optimisation de la tournée')
@@ -241,18 +243,41 @@ export default function TourneesPage() {
     await lancerOptimisation(params)
   }
 
-  const recalculerTournee = async () => {
-    if (!dernierParams) return
-    const currentIds = tourneeOptimisee
-      .filter(v => v.type === 'visite' && v.client && !clientsExclus.has(v.client.id))
-      .map(v => v.client!.id)
-    const newIds = Array.from(new Set([...currentIds, ...Array.from(clientsAjoutes)]))
-    await lancerOptimisation({ ...dernierParams, clientIds: newIds })
+  const buildParamsAvecExclus = (exclus: Set<string>, ajouts: Set<string>) => {
+    if (!dernierParams) return null
+    const ajoutsArr = Array.from(ajouts)
+    if (dernierParams.clientIds) {
+      const ids = Array.from(new Set([
+        ...dernierParams.clientIds.filter((id: string) => !exclus.has(id)),
+        ...ajoutsArr
+      ]))
+      return { ...dernierParams, clientIds: ids }
+    }
+    return {
+      ...dernierParams,
+      excludeClientIds: Array.from(exclus),
+      clientIds: ajoutsArr.length > 0
+        ? Array.from(new Set([
+            ...tourneeOptimisee
+              .filter(v => v.type === 'visite' && v.client && !exclus.has(v.client.id))
+              .map(v => v.client!.id),
+            ...ajoutsArr
+          ]))
+        : undefined
+    }
   }
 
-  const retirerVisite = (clientId: string) => {
-    setClientsExclus(prev => new Set(Array.from(prev).concat(clientId)))
+  const recalculerTournee = async () => {
+    const params = buildParamsAvecExclus(clientsExclus, clientsAjoutes)
+    if (params) await lancerOptimisation(params, false)
+  }
+
+  const retirerVisite = async (clientId: string) => {
+    const newExclus = new Set(Array.from(clientsExclus).concat(clientId))
+    setClientsExclus(newExclus)
     setTourneeOptimisee(prev => prev.filter(v => !(v.type === 'visite' && v.client?.id === clientId)))
+    const params = buildParamsAvecExclus(newExclus, clientsAjoutes)
+    if (params) await lancerOptimisation(params, false)
   }
 
   const ajouterClient = (clientId: string) => {
@@ -866,13 +891,11 @@ export default function TourneesPage() {
                   })}
                 </div>
 
-                {/* Panneau modifications en cours */}
-                {(clientsAjoutes.size > 0 || clientsExclus.size > 0) && (
+                {/* Panneau ajouts en attente */}
+                {clientsAjoutes.size > 0 && (
                   <div className="mt-4 flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
                     <p className="text-sm text-amber-800 dark:text-amber-300 font-medium">
-                      {clientsExclus.size > 0 && `${clientsExclus.size} visite${clientsExclus.size > 1 ? 's' : ''} retirée${clientsExclus.size > 1 ? 's' : ''}`}
-                      {clientsExclus.size > 0 && clientsAjoutes.size > 0 && ' · '}
-                      {clientsAjoutes.size > 0 && `${clientsAjoutes.size} ajout${clientsAjoutes.size > 1 ? 's' : ''} en attente`}
+                      {clientsAjoutes.size} ajout{clientsAjoutes.size > 1 ? 's' : ''} en attente de recalcul
                     </p>
                     <Button onClick={recalculerTournee} disabled={optimizing} size="sm">
                       {optimizing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}

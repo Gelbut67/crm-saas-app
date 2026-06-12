@@ -303,7 +303,7 @@ export async function POST(request: Request) {
     const session = await getAuthSession()
     if (!session) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
-    const { typeTournee, heureDepart, heureRetour, dureeRdv, tempsPause, heurePause, departements, villes, pointDepart, rdvFixes, filtrerVisites, joursDepuisVisite, clientIds } = await request.json()
+    const { typeTournee, heureDepart, heureRetour, dureeRdv, tempsPause, heurePause, departements, villes, pointDepart, rdvFixes, filtrerVisites, joursDepuisVisite, clientIds, excludeClientIds } = await request.json()
 
     // Construire les filtres
     const where: any = {}
@@ -325,6 +325,9 @@ export async function POST(request: Request) {
 
       if (Array.isArray(villes) && villes.length > 0) {
         where.ville = { in: villes }
+      }
+      if (Array.isArray(excludeClientIds) && excludeClientIds.length > 0) {
+        where.id = { notIn: excludeClientIds }
       }
     }
 
