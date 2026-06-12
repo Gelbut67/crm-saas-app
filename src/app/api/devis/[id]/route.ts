@@ -128,6 +128,14 @@ export async function PUT(
       })
     }
 
+    // Convertir le prospect en client si le devis passe en gagné ou facturé
+    if ((data.statut === 'gagne' || data.statut === 'facture') && ancienDevis.client.statut === 'prospect') {
+      await prisma.client.update({
+        where: { id: updatedDevis.clientId },
+        data: { statut: 'client' }
+      })
+    }
+
     // Formater la réponse
     const formattedDevis = {
       ...updatedDevis,

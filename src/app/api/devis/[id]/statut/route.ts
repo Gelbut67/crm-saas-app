@@ -43,6 +43,14 @@ export async function PUT(
       .filter(d => d.statut === 'gagne' || d.statut === 'facture')
       .reduce((sum, d) => sum + d.montant, 0)
 
+    // Convertir le prospect en client si le devis est gagné ou facturé
+    if ((statut === 'gagne' || statut === 'facture') && devis.client.statut === 'prospect') {
+      await prisma.client.update({
+        where: { id: devis.clientId },
+        data: { statut: 'client' }
+      })
+    }
+
     // Mettre à jour le CA du client
     await prisma.client.update({
       where: { id: devis.clientId },
