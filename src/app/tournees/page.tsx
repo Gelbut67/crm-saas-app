@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { MapPin, Clock, Users, Navigation, FileText, Loader2, Calendar, Home, HistoryIcon, Search, ListChecks, Sliders, Coffee, Save, History } from "lucide-react"
+import { MapPin, Clock, Users, Navigation, FileText, Loader2, Calendar, Home, HistoryIcon, Search, ListChecks, Sliders, Coffee, Save, History, X, RefreshCw, UserPlus } from "lucide-react"
 import { TourneeHistory } from "@/components/tournee-history"
 import { useClients, useProspects } from "@/hooks/useDatabase"
 import { RdvFixesManager } from "@/components/rdv-fixes-manager"
@@ -71,6 +71,11 @@ export default function TourneesPage() {
   const [saving, setSaving] = useState(false)
   const [savedOk, setSavedOk] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
+  const [clientsExclus, setClientsExclus] = useState<Set<string>>(new Set())
+  const [clientsAjoutes, setClientsAjoutes] = useState<Set<string>>(new Set())
+  const [dernierParams, setDernierParams] = useState<any>(null)
+  const [rechercheRemplacement, setRechercheRemplacement] = useState('')
+  const [showRemplacement, setShowRemplacement] = useState(false)
   const [stats, setStats] = useState<{
     distanceTotale: number
     dureeTrajet: number
@@ -103,6 +108,19 @@ export default function TourneesPage() {
   const clientsAvecAdresse = clientsDisponibles.filter(c => 
     c.adresse && c.ville && c.codePostal
   )
+
+  // Clients disponibles pour remplacer / ajouter dans la route en cours
+  const clientsDisponiblesPourAjout = allClientsAndProspects.filter(c => {
+    if (!c.adresse || !c.ville || !c.codePostal) return false
+    if (typeTournee === 'client' && c.statut !== 'client') return false
+    if (typeTournee === 'prospect' && c.statut !== 'prospect') return false
+    if (tourneeOptimisee.some(v => v.type === 'visite' && v.client?.id === c.id)) return false
+    const search = rechercheRemplacement.toLowerCase()
+    if (search && !c.nom.toLowerCase().includes(search) &&
+        !(c.entreprise || '').toLowerCase().includes(search) &&
+        !(c.ville || '').toLowerCase().includes(search)) return false
+    return true
+  })
 
   // Charger l'adresse du domicile depuis les paramètres
   useEffect(() => {
@@ -151,57 +169,29 @@ export default function TourneesPage() {
     setClientsSelectionnes(new Set())
   }
 
-  const optimiserTournee = async () => {
-    if (modeSelection === 'manuel' && clientsSelectionnes.size === 0) {
-      alert('Veuillez sélectionner au moins un client ou prospect.')
-      return
-    }
+  const lancerOptimisation = async (params: any) => {
     setOptimizing(true)
     try {
       const response = await fetch('/api/tournees/optimiser', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          typeTournee,
-          heureDepart,
-          heureRetour,
-          dureeRdv: parseInt(dureeRdv),
-          tempsPause: parseInt(tempsPause) || 0,
-          heurePause,
-          departement,
-          ville,
-          clientIds: modeSelection === 'manuel' ? Array.from(clientsSelectionnes) : undefined,
-          pointDepart: adresseDomicile && villeDomicile && codePostalDomicile ? {
-            adresse: adresseDomicile,
-            ville: villeDomicile,
-            codePostal: codePostalDomicile
-          } : null,
-          filtrerVisites,
-          joursDepuisVisite: parseInt(joursDepuisVisite) || 30,
-          rdvFixes: rdvFixes.map(rdv => ({
-            clientId: rdv.clientId,
-            heureRdv: rdv.heureRdv
-          }))
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params),
       })
-
       if (response.ok) {
         const data = await response.json()
-        // Enrichir avec le nombre de visites effectuées (depuis les interactions locales)
         const enriched = data.visites.map((v: any) => {
-          if (v.type === 'pause') return v
+          if (v.type === 'pause' || v.type === 'depart_domicile' || v.type === 'retour_domicile') return v
           const local = allClientsAndProspects.find((c: any) => c.id === v.client?.id)
-          return {
-            ...v,
-            nombreVisites: local?.interactions?.filter((i: any) => i.type === 'visite').length ?? 0,
-          }
+          return { ...v, nombreVisites: local?.interactions?.filter((i: any) => i.type === 'visite').length ?? 0 }
         })
         setTourneeOptimisee(enriched)
         setStats(data.stats)
         setPointDepartOptimise(data.pointDepart)
         setSavedOk(false)
+        setClientsExclus(new Set())
+        setClientsAjoutes(new Set())
+        setShowRemplacement(false)
+        setRechercheRemplacement('')
       } else {
         const data = await response.json().catch(() => ({}))
         alert(data.error || 'Erreur lors de l\'optimisation de la tournée')
@@ -212,6 +202,50 @@ export default function TourneesPage() {
     } finally {
       setOptimizing(false)
     }
+  }
+
+  const optimiserTournee = async () => {
+    if (modeSelection === 'manuel' && clientsSelectionnes.size === 0) {
+      alert('Veuillez sélectionner au moins un client ou prospect.')
+      return
+    }
+    const params = {
+      typeTournee, heureDepart, heureRetour,
+      dureeRdv: parseInt(dureeRdv),
+      tempsPause: parseInt(tempsPause) || 0, heurePause,
+      departement, ville,
+      clientIds: modeSelection === 'manuel' ? Array.from(clientsSelectionnes) : undefined,
+      pointDepart: adresseDomicile && villeDomicile && codePostalDomicile ? {
+        adresse: adresseDomicile, ville: villeDomicile, codePostal: codePostalDomicile
+      } : null,
+      filtrerVisites,
+      joursDepuisVisite: parseInt(joursDepuisVisite) || 30,
+      rdvFixes: rdvFixes.map(rdv => ({ clientId: rdv.clientId, heureRdv: rdv.heureRdv }))
+    }
+    setDernierParams(params)
+    await lancerOptimisation(params)
+  }
+
+  const recalculerTournee = async () => {
+    if (!dernierParams) return
+    const currentIds = tourneeOptimisee
+      .filter(v => v.type === 'visite' && v.client && !clientsExclus.has(v.client.id))
+      .map(v => v.client!.id)
+    const newIds = Array.from(new Set([...currentIds, ...Array.from(clientsAjoutes)]))
+    await lancerOptimisation({ ...dernierParams, clientIds: newIds })
+  }
+
+  const retirerVisite = (clientId: string) => {
+    setClientsExclus(prev => new Set(Array.from(prev).concat(clientId)))
+    setTourneeOptimisee(prev => prev.filter(v => !(v.type === 'visite' && v.client?.id === clientId)))
+  }
+
+  const ajouterClient = (clientId: string) => {
+    setClientsAjoutes(prev => new Set(Array.from(prev).concat(clientId)))
+  }
+
+  const retirerAjout = (clientId: string) => {
+    setClientsAjoutes(prev => { const s = new Set(prev); s.delete(clientId); return s })
   }
 
   const sauvegarderTournee = async () => {
@@ -784,11 +818,105 @@ export default function TourneesPage() {
                               )}
                             </div>
                           </div>
+                          <button
+                            onClick={() => retirerVisite(client.id)}
+                            className="flex-shrink-0 p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                            title="Retirer de la tournée"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
                         </div>
                       </div>
                     )
                   })}
                 </div>
+
+                {/* Panneau modifications en cours */}
+                {(clientsAjoutes.size > 0 || clientsExclus.size > 0) && (
+                  <div className="mt-4 flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
+                    <p className="text-sm text-amber-800 dark:text-amber-300 font-medium">
+                      {clientsExclus.size > 0 && `${clientsExclus.size} visite${clientsExclus.size > 1 ? 's' : ''} retirée${clientsExclus.size > 1 ? 's' : ''}`}
+                      {clientsExclus.size > 0 && clientsAjoutes.size > 0 && ' · '}
+                      {clientsAjoutes.size > 0 && `${clientsAjoutes.size} ajout${clientsAjoutes.size > 1 ? 's' : ''} en attente`}
+                    </p>
+                    <Button onClick={recalculerTournee} disabled={optimizing} size="sm">
+                      {optimizing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+                      Recalculer
+                    </Button>
+                  </div>
+                )}
+
+                {/* Bouton ajouter des visites */}
+                {tourneeOptimisee.some(v => v.type === 'visite') && (
+                  <div className="mt-3">
+                    <button
+                      onClick={() => setShowRemplacement(s => !s)}
+                      className="flex items-center gap-2 text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-800 transition-colors"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      {showRemplacement ? 'Masquer' : 'Ajouter / remplacer des visites'}
+                    </button>
+
+                    {showRemplacement && (
+                      <div className="mt-2 p-3 border rounded-lg bg-muted/30">
+                        <Input
+                          placeholder="Rechercher un client ou prospect..."
+                          value={rechercheRemplacement}
+                          onChange={e => setRechercheRemplacement(e.target.value)}
+                          className="mb-2"
+                        />
+                        {/* Ajouts en attente */}
+                        {clientsAjoutes.size > 0 && (
+                          <div className="mb-2 space-y-1">
+                            {Array.from(clientsAjoutes).map(id => {
+                              const c = allClientsAndProspects.find(x => x.id === id)
+                              if (!c) return null
+                              return (
+                                <div key={id} className="flex items-center justify-between px-3 py-1.5 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg">
+                                  <div>
+                                    <span className="text-sm font-medium text-green-800 dark:text-green-300">{c.nom}</span>
+                                    {c.entreprise && <span className="text-xs text-green-600 dark:text-green-400 ml-2">{c.entreprise}</span>}
+                                    <span className="text-xs text-muted-foreground ml-2">{c.ville}</span>
+                                  </div>
+                                  <button onClick={() => retirerAjout(id)} className="text-green-500 hover:text-red-500 transition-colors">
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                        {/* Liste des disponibles */}
+                        <div className="max-h-48 overflow-y-auto space-y-1">
+                          {clientsDisponiblesPourAjout.length === 0 ? (
+                            <p className="text-xs text-muted-foreground text-center py-3">Aucun client disponible</p>
+                          ) : clientsDisponiblesPourAjout.map(c => (
+                            <div key={c.id} className="flex items-center justify-between px-3 py-2 hover:bg-muted rounded-lg transition-colors">
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium truncate">{c.nom}</p>
+                                <p className="text-xs text-muted-foreground truncate">{c.entreprise ? `${c.entreprise} · ` : ''}{c.ville}</p>
+                              </div>
+                              <button
+                                onClick={() => ajouterClient(c.id)}
+                                disabled={clientsAjoutes.has(c.id)}
+                                className="ml-2 flex-shrink-0 p-1 rounded text-purple-500 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors disabled:opacity-40"
+                                title="Ajouter à la tournée"
+                              >
+                                <UserPlus className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                        {clientsAjoutes.size > 0 && (
+                          <Button onClick={recalculerTournee} disabled={optimizing} size="sm" className="w-full mt-2">
+                            {optimizing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+                            Recalculer avec ces ajouts
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
