@@ -56,8 +56,8 @@ export default function TourneesPage() {
   const [heurePause, setHeurePause] = useState('12:00')
   const [filtrerVisites, setFiltrerVisites] = useState(false)
   const [joursDepuisVisite, setJoursDepuisVisite] = useState('30')
-  const [departement, setDepartement] = useState('tous')
-  const [ville, setVille] = useState('toutes')
+  const [departementsSel, setDepartementsSel] = useState<string[]>([])
+  const [villesSel, setVillesSel] = useState<string[]>([])
   const [adresseDomicile, setAdresseDomicile] = useState('')
   const [villeDomicile, setVilleDomicile] = useState('')
   const [codePostalDomicile, setCodePostalDomicile] = useState('')
@@ -91,7 +91,7 @@ export default function TourneesPage() {
 
   const villes = Array.from(new Set(
     allClientsAndProspects
-      .filter(c => c.ville && (departement === 'tous' || c.departement === departement))
+      .filter(c => c.ville && (departementsSel.length === 0 || departementsSel.includes(c.departement)))
       .map(c => c.ville)
   )).sort()
 
@@ -99,9 +99,9 @@ export default function TourneesPage() {
   const clientsDisponibles = allClientsAndProspects.filter(c => {
     if (typeTournee === 'client' && c.statut !== 'client') return false
     if (typeTournee === 'prospect' && c.statut !== 'prospect') return false
-    if (departement !== 'tous' && c.departement !== departement) return false
-    if (ville !== 'toutes' && c.ville !== ville) return false
-    return true // Afficher tous les clients correspondants
+    if (departementsSel.length > 0 && !departementsSel.includes(c.departement)) return false
+    if (villesSel.length > 0 && !villesSel.includes(c.ville)) return false
+    return true
   })
   
   // Clients avec adresse complète pour l'optimisation
@@ -114,6 +114,7 @@ export default function TourneesPage() {
     if (!c.adresse || !c.ville || !c.codePostal) return false
     if (typeTournee === 'client' && c.statut !== 'client') return false
     if (typeTournee === 'prospect' && c.statut !== 'prospect') return false
+    if (clientsAjoutes.has(c.id)) return false
     if (tourneeOptimisee.some(v => v.type === 'visite' && v.client?.id === c.id)) return false
     const search = rechercheRemplacement.toLowerCase()
     if (search && !c.nom.toLowerCase().includes(search) &&
@@ -151,6 +152,19 @@ export default function TourneesPage() {
         !(c.ville || '').toLowerCase().includes(search)) return false
     return true
   })
+
+  const toggleDepartement = (dept: string) => {
+    setDepartementsSel(prev =>
+      prev.includes(dept) ? prev.filter(d => d !== dept) : [...prev, dept]
+    )
+    setVillesSel([]) // Réinitialiser les villes si on change de département
+  }
+
+  const toggleVille = (v: string) => {
+    setVillesSel(prev =>
+      prev.includes(v) ? prev.filter(x => x !== v) : [...prev, v]
+    )
+  }
 
   const toggleClientSelection = (id: string) => {
     setClientsSelectionnes(prev => {
@@ -213,7 +227,8 @@ export default function TourneesPage() {
       typeTournee, heureDepart, heureRetour,
       dureeRdv: parseInt(dureeRdv),
       tempsPause: parseInt(tempsPause) || 0, heurePause,
-      departement, ville,
+      departements: departementsSel,
+      villes: villesSel,
       clientIds: modeSelection === 'manuel' ? Array.from(clientsSelectionnes) : undefined,
       pointDepart: adresseDomicile && villeDomicile && codePostalDomicile ? {
         adresse: adresseDomicile, ville: villeDomicile, codePostal: codePostalDomicile
@@ -482,36 +497,56 @@ export default function TourneesPage() {
               </div>
             )}
 
-            {modeSelection === 'auto' && (
+            {modeSelection === 'auto' && departements.length > 0 && (
             <div>
-              <Label>Département</Label>
-              <Select value={departement} onValueChange={setDepartement}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Tous les départements" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="tous">Tous les départements</SelectItem>
-                  {departements.map(dept => (
-                    <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center justify-between mb-1">
+                <Label>Départements</Label>
+                {departementsSel.length > 0 && (
+                  <button onClick={() => { setDepartementsSel([]); setVillesSel([]) }} className="text-xs text-muted-foreground underline">Tous</button>
+                )}
+              </div>
+              <div className="border rounded-md overflow-y-auto max-h-36 divide-y">
+                {departements.map(dept => (
+                  <label key={dept} className="flex items-center gap-2 px-3 py-1.5 hover:bg-muted cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={departementsSel.includes(dept)}
+                      onChange={() => toggleDepartement(dept)}
+                      className="accent-primary"
+                    />
+                    <span className="text-sm">{dept}</span>
+                  </label>
+                ))}
+              </div>
+              {departementsSel.length > 0 && (
+                <p className="text-xs text-primary font-medium mt-1">{departementsSel.length} département{departementsSel.length > 1 ? 's' : ''} sélectionné{departementsSel.length > 1 ? 's' : ''}</p>
+              )}
             </div>)}
 
-            {modeSelection === 'auto' && (
+            {modeSelection === 'auto' && villes.length > 0 && (
             <div>
-              <Label>Ville</Label>
-              <Select value={ville} onValueChange={setVille}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Toutes les villes" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="toutes">Toutes les villes</SelectItem>
-                  {villes.map(v => (
-                    <SelectItem key={v} value={v}>{v}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center justify-between mb-1">
+                <Label>Villes</Label>
+                {villesSel.length > 0 && (
+                  <button onClick={() => setVillesSel([])} className="text-xs text-muted-foreground underline">Toutes</button>
+                )}
+              </div>
+              <div className="border rounded-md overflow-y-auto max-h-36 divide-y">
+                {villes.map(v => (
+                  <label key={v} className="flex items-center gap-2 px-3 py-1.5 hover:bg-muted cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={villesSel.includes(v)}
+                      onChange={() => toggleVille(v)}
+                      className="accent-primary"
+                    />
+                    <span className="text-sm">{v}</span>
+                  </label>
+                ))}
+              </div>
+              {villesSel.length > 0 && (
+                <p className="text-xs text-primary font-medium mt-1">{villesSel.length} ville{villesSel.length > 1 ? 's' : ''} sélectionnée{villesSel.length > 1 ? 's' : ''}</p>
+              )}
             </div>
             )}
 
