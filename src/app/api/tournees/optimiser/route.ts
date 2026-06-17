@@ -317,6 +317,8 @@ export async function POST(request: Request) {
 
     let clientsRaw: any[]
 
+    console.log('[tournées] params reçus:', { mandatoryClientIds, clientIds, departements, villes, typeTournee })
+
     if (mandatoryClientIds && Array.isArray(mandatoryClientIds) && mandatoryClientIds.length > 0) {
       // Mode manuel enrichi : clients obligatoires + candidats de la zone
       const zoneWhere: any = { ...baseWhere }
@@ -329,6 +331,7 @@ export async function POST(request: Request) {
         (prisma.client.findMany as any)({ where: { ...baseWhere, id: { in: mandatoryClientIds } }, select: selectClients }),
         (prisma.client.findMany as any)({ where: { ...zoneWhere, id: { notIn: mandatoryClientIds } }, select: selectClients })
       ])
+      console.log('[tournées] mandatoryClients trouvés:', mandatoryClients.length, '| zoneClients:', zoneClients.length)
       clientsRaw = [
         ...mandatoryClients.map((c: any) => ({ ...c, _mandatory: true })),
         ...zoneClients

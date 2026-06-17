@@ -144,6 +144,7 @@ export default function TourneesPage() {
   }, [])
 
   const clientsFiltresPourSelection = allClientsAndProspects.filter(c => {
+    if (!c.adresse || !c.ville || !c.codePostal) return false // adresse incomplète → non géocodable
     if (typeTournee === 'client' && c.statut !== 'client') return false
     if (typeTournee === 'prospect' && c.statut !== 'prospect') return false
     const search = rechercheSelection.toLowerCase()
