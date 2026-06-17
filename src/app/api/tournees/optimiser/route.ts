@@ -255,30 +255,51 @@ async function obtenirMatriceDistances(points: { lat: number, lon: number }[]): 
 async function optimiserItineraire(
   clients: any[],
   pointDepart: { lat: number, lon: number },
-  clientPrioritaire?: any
+  clientPrioritaire?: any,
+  mandatoryIds?: string[]
 ): Promise<any[]> {
-  // Construire la liste de points : [domicile, ...clients]
   const points = [pointDepart, ...clients.map(c => c.coordonnees)]
   const matrice = await obtenirMatriceDistances(points)
-  // matrice[0] = durées depuis le point de départ, matrice[i+1] = depuis le client i
 
   const visites: any[] = []
   const utilises = new Set<number>()
-  let posIdx = 0 // index dans `points` (0 = domicile)
+  let posIdx = 0
 
-  // Si client prioritaire, le placer en premier
-  if (clientPrioritaire) {
-    const idx = clients.findIndex(c => c.id === clientPrioritaire.id)
-    if (idx >= 0) {
-      const ptIdx = idx + 1
-      const route = await calculerDistanceVoiture(points[posIdx].lat, points[posIdx].lon, points[ptIdx].lat, points[ptIdx].lon)
-      visites.push({ ...clients[idx], distance: Math.round(route.distance * 10) / 10, duree: matrice[posIdx][ptIdx], routeGeometry: route.geometry })
-      utilises.add(idx)
-      posIdx = ptIdx
-    }
+  // Helper : visiter un client par son index dans `clients`
+  const visiterClient = async (idx: number) => {
+    const ptIdx = idx + 1
+    const route = await calculerDistanceVoiture(points[posIdx].lat, points[posIdx].lon, points[ptIdx].lat, points[ptIdx].lon)
+    visites.push({ ...clients[idx], distance: Math.round(route.distance * 10) / 10, duree: matrice[posIdx][ptIdx], routeGeometry: route.geometry })
+    utilises.add(idx)
+    posIdx = ptIdx
   }
 
-  // Greedy nearest-neighbor sur la matrice
+  // 1. Clients obligatoires en PREMIER (nearest-neighbor parmi eux)
+  const mandatorySet = new Set(mandatoryIds || [])
+  const mandatoryIndices = clients
+    .map((c, i) => ({ c, i }))
+    .filter(({ c }) => c._mandatory || mandatorySet.has(c.id))
+    .map(({ i }) => i)
+
+  while (mandatoryIndices.some(i => !utilises.has(i))) {
+    let plusProche = -1
+    let dureeMin = Infinity
+    for (const idx of mandatoryIndices) {
+      if (utilises.has(idx)) continue
+      const duree = matrice[posIdx][idx + 1]
+      if (duree < dureeMin) { dureeMin = duree; plusProche = idx }
+    }
+    if (plusProche === -1) break
+    await visiterClient(plusProche)
+  }
+
+  // 2. Client RDV prioritaire (si non déjà visité)
+  if (clientPrioritaire) {
+    const idx = clients.findIndex(c => c.id === clientPrioritaire.id)
+    if (idx >= 0 && !utilises.has(idx)) await visiterClient(idx)
+  }
+
+  // 3. Greedy nearest-neighbor sur le reste
   while (utilises.size < clients.length) {
     let plusProche = -1
     let dureeMin = Infinity
@@ -288,11 +309,7 @@ async function optimiserItineraire(
       if (duree < dureeMin) { dureeMin = duree; plusProche = i }
     }
     if (plusProche === -1) break
-    const ptIdx = plusProche + 1
-    const route = await calculerDistanceVoiture(points[posIdx].lat, points[posIdx].lon, points[ptIdx].lat, points[ptIdx].lon)
-    visites.push({ ...clients[plusProche], distance: Math.round(route.distance * 10) / 10, duree: matrice[posIdx][ptIdx], routeGeometry: route.geometry })
-    utilises.add(plusProche)
-    posIdx = ptIdx
+    await visiterClient(plusProche)
   }
 
   return visites
@@ -493,13 +510,13 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
         // Fallback sur l'algorithme classique
         const clientPrioritaire = clientsRdvFixes.length > 0 ? clientsRdvFixes[0] : null
         const pointDepartCoord = coordonneesDomicile || (clientPrioritaire ? clientPrioritaire.coordonnees : clientsAvecCoordonnees[0].coordonnees)
-        itineraireOptimise = await optimiserItineraire(clientsAvecCoordonnees, pointDepartCoord, clientPrioritaire)
+        itineraireOptimise = await optimiserItineraire(clientsAvecCoordonnees, pointDepartCoord, clientPrioritaire, mandatoryClientIds)
       }
     } else {
       // Pas d'API Gemini, utiliser l'algorithme classique
       const clientPrioritaire = clientsRdvFixes.length > 0 ? clientsRdvFixes[0] : null
       const pointDepartCoord = coordonneesDomicile || (clientPrioritaire ? clientPrioritaire.coordonnees : clientsAvecCoordonnees[0].coordonnees)
-      itineraireOptimise = await optimiserItineraire(clientsAvecCoordonnees, pointDepartCoord, clientPrioritaire)
+      itineraireOptimise = await optimiserItineraire(clientsAvecCoordonnees, pointDepartCoord, clientPrioritaire, mandatoryClientIds)
     }
 
     console.log('Itinéraire optimisé:', itineraireOptimise?.length || 0, 'clients')
