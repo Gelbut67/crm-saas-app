@@ -240,6 +240,7 @@ export default function TourneesPage() {
       joursDepuisVisite: parseInt(joursDepuisVisite) || 30,
       rdvFixes: rdvFixes.map(rdv => ({ clientId: rdv.clientId, heureRdv: rdv.heureRdv }))
     }
+    console.log('[tournées UI] params envoyés:', { modeSelection, mandatoryClientIds: params.mandatoryClientIds, departements: params.departements })
     setDernierParams(params)
     await lancerOptimisation(params)
   }
