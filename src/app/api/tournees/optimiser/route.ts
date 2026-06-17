@@ -456,7 +456,7 @@ OBJECTIF: Crée un itinéraire optimal qui:
 RÉPONDS UNIQUEMENT avec un JSON contenant un tableau 'itineraire' avec les IDs des clients dans l'ordre optimal, sans explication.
 Format: {"itineraire": ["id1", "id2", "id3", ...]}`
 
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
         const result = await model.generateContent(prompt)
         const response = await result.response
         const text = response.text()
@@ -636,12 +636,41 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
       distanceTotale += (i === 0 && coordonneesDomicile ? distanceDepuisDomicile : (client.distance || 0))
     }
 
+    // Ajouter les clients obligatoires qui ont été coupés par la limite horaire
+    if (Array.isArray(mandatoryClientIds) && mandatoryClientIds.length > 0 && itineraireOptimise) {
+      const visitedIds = new Set(visites.filter((v: any) => v.client).map((v: any) => v.client.id))
+      const missingMandatory = itineraireOptimise.filter((c: any) =>
+        (c._mandatory || mandatoryClientIds.includes(c.id)) && !visitedIds.has(c.id)
+      )
+      for (const client of missingMandatory) {
+        const heureArrivee = toHHMM(minutesActuelles)
+        minutesActuelles += dureeRdv
+        const heureDepartVisite = toHHMM(minutesActuelles)
+        visites.push({
+          type: 'visite',
+          client: { id: client.id, nom: client.nom, entreprise: client.entreprise, adresse: client.adresse, ville: client.ville, codePostal: client.codePostal, statut: client.statut },
+          ordre: ordreVisite++,
+          heureArrivee,
+          heureDepart: heureDepartVisite,
+          distance: client.distance || 0,
+          duree: client.duree || 0,
+          coordonnees: client.coordonnees,
+          heureRdv: client.heureRdv || null,
+          routeGeometry: client.routeGeometry || null,
+          derniereVisite: client.derniereVisite || null
+        })
+        distanceTotale += client.distance || 0
+        dureeTrajetTotale += client.duree || 0
+        console.log('[tournées] client obligatoire ajouté hors plage horaire:', client.nom)
+      }
+    }
+
     // Calculer l'heure de retour réelle depuis le dernier client
     let heureRetourEstimee: string | null = null
     let distanceRetour = 0
     let dureeRetour = 0
     if (coordonneesDomicile && visites.length > 0) {
-      const dernierClient = itineraireOptimise[visites.length - 1]
+      const dernierClient = [...visites].reverse().find((v: any) => v.type === 'visite' && v.coordonnees)
       if (dernierClient?.coordonnees) {
         const retour = await calculerDistanceVoiture(
           dernierClient.coordonnees.lat,
