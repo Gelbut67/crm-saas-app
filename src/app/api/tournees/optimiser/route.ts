@@ -303,64 +303,47 @@ export async function POST(request: Request) {
     const session = await getAuthSession()
     if (!session) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
-    const { typeTournee, heureDepart, heureRetour, dureeRdv, tempsPause, heurePause, departements, villes, pointDepart, rdvFixes, filtrerVisites, joursDepuisVisite, clientIds, excludeClientIds } = await request.json()
+    const { typeTournee, heureDepart, heureRetour, dureeRdv, tempsPause, heurePause, departements, villes, pointDepart, rdvFixes, filtrerVisites, joursDepuisVisite, clientIds, excludeClientIds, mandatoryClientIds } = await request.json()
 
-    // Construire les filtres
-    const where: any = {}
-
-    if (clientIds && Array.isArray(clientIds) && clientIds.length > 0) {
-      // Mode sélection manuelle : on prend exactement ces clients
-      where.id = { in: clientIds }
-    } else {
-      // Mode automatique : filtres type/dépt/ville
-      if (typeTournee === 'client') {
-        where.statut = 'client'
-      } else if (typeTournee === 'prospect') {
-        where.statut = 'prospect'
-      }
-
-      if (Array.isArray(departements) && departements.length > 0) {
-        where.departement = { in: departements }
-      }
-
-      if (Array.isArray(villes) && villes.length > 0) {
-        where.ville = { in: villes }
-      }
-      if (Array.isArray(excludeClientIds) && excludeClientIds.length > 0) {
-        where.id = { notIn: excludeClientIds }
-      }
+    const selectClients = {
+      id: true, nom: true, entreprise: true, adresse: true,
+      ville: true, codePostal: true, departement: true, statut: true, lat: true, lon: true,
+      interactions: { where: { type: 'visite' }, orderBy: { date: 'desc' }, take: 1, select: { date: true } }
+    }
+    const baseWhere = {
+      userId: session.user.id,
+      AND: [{ adresse: { not: null } }, { ville: { not: null } }, { codePostal: { not: null } }]
     }
 
-    // Récupérer les clients/prospects avec adresse complète + dernière visite
-    const clientsRaw: any[] = await (prisma.client.findMany as any)({
-      where: {
-        ...where,
-        userId: session.user.id,
-        AND: [
-          { adresse: { not: null } },
-          { ville: { not: null } },
-          { codePostal: { not: null } }
-        ]
-      },
-      select: {
-        id: true,
-        nom: true,
-        entreprise: true,
-        adresse: true,
-        ville: true,
-        codePostal: true,
-        departement: true,
-        statut: true,
-        lat: true,
-        lon: true,
-        interactions: {
-          where: { type: 'visite' },
-          orderBy: { date: 'desc' },
-          take: 1,
-          select: { date: true }
-        }
-      }
-    } as any)
+    let clientsRaw: any[]
+
+    if (mandatoryClientIds && Array.isArray(mandatoryClientIds) && mandatoryClientIds.length > 0) {
+      // Mode manuel enrichi : clients obligatoires + candidats de la zone
+      const zoneWhere: any = { ...baseWhere }
+      if (typeTournee === 'client') zoneWhere.statut = 'client'
+      else if (typeTournee === 'prospect') zoneWhere.statut = 'prospect'
+      if (Array.isArray(departements) && departements.length > 0) zoneWhere.departement = { in: departements }
+      if (Array.isArray(villes) && villes.length > 0) zoneWhere.ville = { in: villes }
+
+      const [mandatoryClients, zoneClients] = await Promise.all([
+        (prisma.client.findMany as any)({ where: { ...baseWhere, id: { in: mandatoryClientIds } }, select: selectClients }),
+        (prisma.client.findMany as any)({ where: { ...zoneWhere, id: { notIn: mandatoryClientIds } }, select: selectClients })
+      ])
+      clientsRaw = [
+        ...mandatoryClients.map((c: any) => ({ ...c, _mandatory: true })),
+        ...zoneClients
+      ]
+    } else if (clientIds && Array.isArray(clientIds) && clientIds.length > 0) {
+      clientsRaw = await (prisma.client.findMany as any)({ where: { ...baseWhere, id: { in: clientIds } }, select: selectClients })
+    } else {
+      const autoWhere: any = { ...baseWhere }
+      if (typeTournee === 'client') autoWhere.statut = 'client'
+      else if (typeTournee === 'prospect') autoWhere.statut = 'prospect'
+      if (Array.isArray(departements) && departements.length > 0) autoWhere.departement = { in: departements }
+      if (Array.isArray(villes) && villes.length > 0) autoWhere.ville = { in: villes }
+      if (Array.isArray(excludeClientIds) && excludeClientIds.length > 0) autoWhere.id = { notIn: excludeClientIds }
+      clientsRaw = await (prisma.client.findMany as any)({ where: autoWhere, select: selectClients })
+    }
 
     // Filtrer et trier selon les visites
     const maintenant = new Date()
@@ -368,13 +351,16 @@ export async function POST(request: Request) {
 
     const clientsFiltres = filtrerVisites
       ? clientsRaw.filter(c => {
+          if (c._mandatory) return true // toujours garder les clients obligatoires
           if (c.interactions.length === 0) return true // jamais visité → garder
           return c.interactions[0].date < seuilVisite // visité il y a plus de X jours → garder
         })
       : clientsRaw
 
-    // Prioriser : jamais visités d'abord, puis par date de visite la plus ancienne
+    // Prioriser : obligatoires d'abord, puis jamais visités, puis par date de visite la plus ancienne
     clientsFiltres.sort((a, b) => {
+      if (a._mandatory && !b._mandatory) return -1
+      if (!a._mandatory && b._mandatory) return 1
       const aVisited = a.interactions.length > 0
       const bVisited = b.interactions.length > 0
       if (!aVisited && bVisited) return -1
@@ -575,7 +561,8 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
 
       // Vérifier si on a encore le temps (trajet + pause éventuelle + RDV + retour domicile)
       const tempsNecessaire = travelDuration + pauseAInserer + dureeRdv + dureeRetourDomicile
-      if (minutesActuelles + tempsNecessaire > heureR * 60 + minuteR) {
+      const isMandatory = client._mandatory || (Array.isArray(mandatoryClientIds) && mandatoryClientIds.includes(client.id))
+      if (!isMandatory && minutesActuelles + tempsNecessaire > heureR * 60 + minuteR) {
         break // Plus de temps disponible (pause + retour domicile inclus)
       }
 

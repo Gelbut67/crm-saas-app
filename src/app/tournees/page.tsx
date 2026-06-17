@@ -231,7 +231,7 @@ export default function TourneesPage() {
       tempsPause: parseInt(tempsPause) || 0, heurePause,
       departements: departementsSel,
       villes: villesSel,
-      clientIds: modeSelection === 'manuel' ? Array.from(clientsSelectionnes) : undefined,
+      mandatoryClientIds: modeSelection === 'manuel' ? Array.from(clientsSelectionnes) : undefined,
       pointDepart: adresseDomicile && villeDomicile && codePostalDomicile ? {
         adresse: adresseDomicile, ville: villeDomicile, codePostal: codePostalDomicile
       } : null,
@@ -246,12 +246,12 @@ export default function TourneesPage() {
   const buildParamsAvecExclus = (exclus: Set<string>, ajouts: Set<string>) => {
     if (!dernierParams) return null
     const ajoutsArr = Array.from(ajouts)
-    if (dernierParams.clientIds) {
+    if (dernierParams.mandatoryClientIds) {
       const ids = Array.from(new Set([
-        ...dernierParams.clientIds.filter((id: string) => !exclus.has(id)),
+        ...dernierParams.mandatoryClientIds.filter((id: string) => !exclus.has(id)),
         ...ajoutsArr
       ]))
-      return { ...dernierParams, clientIds: ids }
+      return { ...dernierParams, mandatoryClientIds: ids }
     }
     return {
       ...dernierParams,
@@ -517,12 +517,13 @@ export default function TourneesPage() {
                   ))}
                 </div>
                 {clientsSelectionnes.size > 0 && (
-                  <p className="text-xs text-primary font-medium">{clientsSelectionnes.size} sélectionné{clientsSelectionnes.size > 1 ? 's' : ''}</p>
+                  <p className="text-xs text-primary font-medium">{clientsSelectionnes.size} sélectionné{clientsSelectionnes.size > 1 ? 's' : ''} → inclus en priorité</p>
                 )}
+                <p className="text-xs text-muted-foreground italic mt-1">La tournée sera complétée automatiquement avec les clients de la zone.</p>
               </div>
             )}
 
-            {modeSelection === 'auto' && departements.length > 0 && (
+            {departements.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-1">
                 <Label>Départements</Label>
@@ -548,7 +549,7 @@ export default function TourneesPage() {
               )}
             </div>)}
 
-            {modeSelection === 'auto' && villes.length > 0 && (
+            {villes.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-1">
                 <Label>Villes</Label>
