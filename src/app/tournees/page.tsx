@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { MapPin, Clock, Users, Navigation, FileText, Loader2, Calendar, Home, HistoryIcon, Search, ListChecks, Sliders, Coffee, Save, History, X, RefreshCw, UserPlus } from "lucide-react"
+import { MapPin, Clock, Users, Navigation, FileText, Loader2, Calendar, Home, HistoryIcon, Search, ListChecks, Sliders, Coffee, Save, History, X, RefreshCw, UserPlus, Sparkles } from "lucide-react"
 import { TourneeHistory } from "@/components/tournee-history"
 import { useClients, useProspects } from "@/hooks/useDatabase"
 import { RdvFixesManager } from "@/components/rdv-fixes-manager"
@@ -62,6 +62,7 @@ export default function TourneesPage() {
   const [villeDomicile, setVilleDomicile] = useState('')
   const [codePostalDomicile, setCodePostalDomicile] = useState('')
   const [rdvFixes, setRdvFixes] = useState<any[]>([])
+  const [promptIA, setPromptIA] = useState('')
   const [modeSelection, setModeSelection] = useState<'auto' | 'manuel'>('auto')
   const [clientsSelectionnes, setClientsSelectionnes] = useState<Set<string>>(new Set())
   const [rechercheSelection, setRechercheSelection] = useState('')
@@ -233,6 +234,7 @@ export default function TourneesPage() {
       departements: departementsSel,
       villes: villesSel,
       mandatoryClientIds: modeSelection === 'manuel' ? Array.from(clientsSelectionnes) : undefined,
+      promptIA: promptIA.trim() || undefined,
       pointDepart: adresseDomicile && villeDomicile && codePostalDomicile ? {
         adresse: adresseDomicile, ville: villeDomicile, codePostal: codePostalDomicile
       } : null,
@@ -643,6 +645,21 @@ export default function TourneesPage() {
                   </p>
                 </div>
               )}
+            </div>
+
+            <div className="pt-4 border-t space-y-2">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-purple-500" />
+                <Label className="text-sm font-medium">Demande spécifique à l'IA</Label>
+                <span className="text-xs text-muted-foreground">(optionnel)</span>
+              </div>
+              <textarea
+                className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+                placeholder="Ex: Commence par le nord, évite les autoroutes, priorise les clients non visités depuis 3 mois..."
+                value={promptIA}
+                onChange={e => setPromptIA(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground italic">L'IA prendra en compte votre demande lors de l'optimisation de la tournée.</p>
             </div>
 
             <Button 

@@ -320,7 +320,7 @@ export async function POST(request: Request) {
     const session = await getAuthSession()
     if (!session) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
-    const { typeTournee, heureDepart, heureRetour, dureeRdv, tempsPause, heurePause, departements, villes, pointDepart, rdvFixes, filtrerVisites, joursDepuisVisite, clientIds, excludeClientIds, mandatoryClientIds } = await request.json()
+    const { typeTournee, heureDepart, heureRetour, dureeRdv, tempsPause, heurePause, departements, villes, pointDepart, rdvFixes, filtrerVisites, joursDepuisVisite, clientIds, excludeClientIds, mandatoryClientIds, promptIA } = await request.json()
 
     const selectClients = {
       id: true, nom: true, entreprise: true, adresse: true,
@@ -462,13 +462,23 @@ RDV FIXES (OBLIGATOIRES À CES HORAIRES PRÉCIS):
 ${clientsRdvFixes.map((c: any, i: number) => `${i + 1}. ${c.nom} (${c.ville}) - RDV FIXÉ À ${c.heureRdv} (NE PAS MODIFIER)`).join('\n') || 'Aucun'}
 
 CLIENTS DISPONIBLES (à placer entre les RDV fixes):
-${clientsLibres.map((c: any, i: number) => `${i + 1}. ${c.nom} - ${c.ville} (${c.codePostal}) - Coordonnées: ${c.coordonnees.lat.toFixed(4)}, ${c.coordonnees.lon.toFixed(4)}`).join('\n')}
+${clientsLibres.map((c: any, i: number) => {
+          const lastVisit = c.derniereVisite ? `dernière visite: ${new Date(c.derniereVisite).toLocaleDateString('fr-FR')}` : 'jamais visité'
+          return `${i + 1}. [ID:${c.id}] ${c.nom}${c.entreprise ? ' / ' + c.entreprise : ''} - ${c.ville} (${c.codePostal}) - statut: ${c.statut} - ${lastVisit} - GPS: ${c.coordonnees.lat.toFixed(4)},${c.coordonnees.lon.toFixed(4)}`
+        }).join('\n')}
+
+CLIENTS OBLIGATOIRES (doivent apparaître EN PREMIER dans l'itinéraire, avant tous les autres):
+${mandatoryClientIds && mandatoryClientIds.length > 0 ? clientsLibres.filter((c: any) => mandatoryClientIds.includes(c.id)).map((c: any) => `- ${c.nom} (ID: ${c.id})`).join('\n') || 'Aucun' : 'Aucun'}
+
+DEMANDE SPÉCIFIQUE DE L'UTILISATEUR:
+${promptIA ? promptIA : 'Optimiser la distance totale parcourue.'}
 
 OBJECTIF: Crée un itinéraire optimal qui:
 1. RESPECTE ABSOLUMENT les horaires des RDV fixes
-2. Insère les clients disponibles entre les RDV fixes pour minimiser les distances
-3. Optimise le temps de trajet total
-4. Respecte les contraintes horaires (départ/retour)
+2. Place les clients OBLIGATOIRES EN PREMIER dans l'ordre indiqué
+3. Tient compte de la DEMANDE SPÉCIFIQUE de l'utilisateur pour ordonner les autres clients
+4. Insère les clients disponibles pour minimiser les distances
+5. Respecte les contraintes horaires (départ/retour)
 
 RÉPONDS UNIQUEMENT avec un JSON contenant un tableau 'itineraire' avec les IDs des clients dans l'ordre optimal, sans explication.
 Format: {"itineraire": ["id1", "id2", "id3", ...]}`
