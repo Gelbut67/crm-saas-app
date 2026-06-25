@@ -323,7 +323,7 @@ export async function POST(request: Request) {
     const { typeTournee, heureDepart, heureRetour, dureeRdv, tempsPause, heurePause, departements, villes, pointDepart, rdvFixes, filtrerVisites, joursDepuisVisite, clientIds, excludeClientIds, mandatoryClientIds, promptIA } = await request.json()
 
     const selectClients = {
-      id: true, nom: true, entreprise: true, adresse: true,
+      id: true, nom: true, entreprise: true, adresse: true, secteur: true,
       ville: true, codePostal: true, departement: true, statut: true, lat: true, lon: true,
       interactions: { where: { type: 'visite' }, orderBy: { date: 'desc' }, take: 1, select: { date: true } }
     }
@@ -449,39 +449,66 @@ export async function POST(request: Request) {
     
     if (genAI && clientsAvecCoordonnees.length > 0) {
       try {
-        // Préparer les données pour l'IA
-        const prompt = `Tu es un expert en optimisation de tournées commerciales. 
+        // Format compact pour Gemini : une ligne par client
+        const formatClient = (c: any, i: number) => {
+          const lastVisit = c.derniereVisite ? new Date(c.derniereVisite).toLocaleDateString('fr-FR') : 'jamais'
+          const secteurInfo = c.secteur ? ` | secteur: ${c.secteur}` : ''
+          const entrepriseInfo = c.entreprise ? ` / ${c.entreprise}` : ''
+          return `${i + 1}. [${c.id}] ${c.nom}${entrepriseInfo} - ${c.ville}${secteurInfo} | dernière visite: ${lastVisit} | GPS: ${c.coordonnees.lat.toFixed(4)},${c.coordonnees.lon.toFixed(4)}`
+        }
+
+        let prompt: string
+
+        if (promptIA && promptIA.trim()) {
+          // Mode sélection intelligente : Gemini choisit ET ordonne selon la demande
+          const clientsStr = clientsLibres.map(formatClient).join('\n')
+          prompt = `Tu es un assistant commercial expert en tournées de vente.
+
+DEMANDE DE L'UTILISATEUR: "${promptIA}"
+
+CONTRAINTES HORAIRES:
+- Départ: ${heureDepart} | Retour: ${heureRetour} | Durée RDV: ${dureeRdv} min
+${(tempsPause || 0) > 0 ? `- Pause: ${tempsPause} min à ${heurePause}` : ''}
+
+CLIENTS OBLIGATOIRES (à inclure EN PREMIER quoi qu'il arrive):
+${mandatoryClientIds && mandatoryClientIds.length > 0 ? clientsAvecCoordonnees.filter((c: any) => mandatoryClientIds.includes(c.id)).map((c: any) => `- [${c.id}] ${c.nom}${c.entreprise ? ' / ' + c.entreprise : ''}${c.secteur ? ' | ' + c.secteur : ''} - ${c.ville}`).join('\n') : 'Aucun'}
+
+CATALOGUE COMPLET (${clientsLibres.length} clients/prospects disponibles):
+${clientsStr}
+
+INSTRUCTIONS:
+1. Lis attentivement la demande de l'utilisateur
+2. Sélectionne UNIQUEMENT les clients/prospects qui correspondent à cette demande (type de commerce, secteur, ville, critère de visite, etc.)
+3. Si la demande mentionne un type (ex: "brasseurs", "boulangers", "restaurants") → filtre sur le nom ET le secteur
+4. Si la demande mentionne une zone géographique → filtre sur la ville/département
+5. Si la demande mentionne "non visités" ou "jamais visités" → priorise ceux avec "dernière visite: jamais"
+6. Ordonne les sélectionnés par proximité géographique (minimise trajets)
+7. Ajoute les clients OBLIGATOIRES EN PREMIER dans le résultat
+
+RÉPONDS UNIQUEMENT avec ce JSON (inclure SEULEMENT les clients sélectionnés selon la demande):
+{"itineraire": ["id1", "id2", ...]}`
+        } else {
+          // Mode standard : ordonnancement uniquement sur tous les clients
+          prompt = `Tu es un expert en optimisation de tournées commerciales.
 
 CONTRAINTES:
 - Heure de départ: ${heureDepart}
 - Heure de retour: ${heureRetour}
 - Durée moyenne d'un RDV: ${dureeRdv} minutes
-${(tempsPause || 0) > 0 ? `- Pause obligatoire de ${tempsPause} minutes à partir de ${heurePause} (aucun RDV ne doit chevaucher cette plage)` : ''}
+${(tempsPause || 0) > 0 ? `- Pause obligatoire de ${tempsPause} minutes à partir de ${heurePause}` : ''}
 
-RDV FIXES (OBLIGATOIRES À CES HORAIRES PRÉCIS):
-${clientsRdvFixes.map((c: any, i: number) => `${i + 1}. ${c.nom} (${c.ville}) - RDV FIXÉ À ${c.heureRdv} (NE PAS MODIFIER)`).join('\n') || 'Aucun'}
+RDV FIXES:
+${clientsRdvFixes.map((c: any, i: number) => `${i + 1}. ${c.nom} (${c.ville}) - RDV FIXÉ À ${c.heureRdv}`).join('\n') || 'Aucun'}
 
-CLIENTS DISPONIBLES (à placer entre les RDV fixes):
-${clientsLibres.map((c: any, i: number) => {
-          const lastVisit = c.derniereVisite ? `dernière visite: ${new Date(c.derniereVisite).toLocaleDateString('fr-FR')}` : 'jamais visité'
-          return `${i + 1}. [ID:${c.id}] ${c.nom}${c.entreprise ? ' / ' + c.entreprise : ''} - ${c.ville} (${c.codePostal}) - statut: ${c.statut} - ${lastVisit} - GPS: ${c.coordonnees.lat.toFixed(4)},${c.coordonnees.lon.toFixed(4)}`
-        }).join('\n')}
+CLIENTS DISPONIBLES:
+${clientsLibres.map(formatClient).join('\n')}
 
-CLIENTS OBLIGATOIRES (doivent apparaître EN PREMIER dans l'itinéraire, avant tous les autres):
-${mandatoryClientIds && mandatoryClientIds.length > 0 ? clientsLibres.filter((c: any) => mandatoryClientIds.includes(c.id)).map((c: any) => `- ${c.nom} (ID: ${c.id})`).join('\n') || 'Aucun' : 'Aucun'}
+CLIENTS OBLIGATOIRES (EN PREMIER):
+${mandatoryClientIds && mandatoryClientIds.length > 0 ? clientsAvecCoordonnees.filter((c: any) => mandatoryClientIds.includes(c.id)).map((c: any) => `- [${c.id}] ${c.nom} - ${c.ville}`).join('\n') : 'Aucun'}
 
-DEMANDE SPÉCIFIQUE DE L'UTILISATEUR:
-${promptIA ? promptIA : 'Optimiser la distance totale parcourue.'}
-
-OBJECTIF: Crée un itinéraire optimal qui:
-1. RESPECTE ABSOLUMENT les horaires des RDV fixes
-2. Place les clients OBLIGATOIRES EN PREMIER dans l'ordre indiqué
-3. Tient compte de la DEMANDE SPÉCIFIQUE de l'utilisateur pour ordonner les autres clients
-4. Insère les clients disponibles pour minimiser les distances
-5. Respecte les contraintes horaires (départ/retour)
-
-RÉPONDS UNIQUEMENT avec un JSON contenant un tableau 'itineraire' avec les IDs des clients dans l'ordre optimal, sans explication.
-Format: {"itineraire": ["id1", "id2", "id3", ...]}`
+OBJECTIF: Itinéraire optimal minimisant les distances. Clients obligatoires en premier.
+RÉPONDS UNIQUEMENT avec: {"itineraire": ["id1", "id2", ...]}`
+        }
 
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
         const result = await model.generateContent(prompt)
@@ -517,16 +544,43 @@ Format: {"itineraire": ["id1", "id2", "id3", ...]}`
         }
       } catch (error) {
         console.error('Erreur Gemini:', error)
-        // Fallback sur l'algorithme classique
+        // Fallback : si promptIA défini, filtre par mots-clés sur nom/entreprise/secteur
+        let candidats = clientsAvecCoordonnees
+        if (promptIA && promptIA.trim()) {
+          const mots = promptIA.toLowerCase().split(/\s+/).filter((m: string) => m.length > 3)
+          const filtered = clientsAvecCoordonnees.filter((c: any) => {
+            const haystack = [c.nom, c.entreprise, c.secteur, c.ville].filter(Boolean).join(' ').toLowerCase()
+            return mots.some((m: string) => haystack.includes(m))
+          })
+          // Garder les obligatoires même s'ils ne matchent pas les mots-clés
+          const obligatoires = clientsAvecCoordonnees.filter((c: any) => mandatoryClientIds?.includes(c.id))
+          const obligatoiresIds = new Set(obligatoires.map((c: any) => c.id))
+          candidats = [...obligatoires, ...filtered.filter((c: any) => !obligatoiresIds.has(c.id))]
+          if (candidats.length === 0) candidats = clientsAvecCoordonnees
+          console.log('[tournées] fallback keyword filter: ' + mots.join(',') + ' → ' + candidats.length + ' clients')
+        }
         const clientPrioritaire = clientsRdvFixes.length > 0 ? clientsRdvFixes[0] : null
-        const pointDepartCoord = coordonneesDomicile || (clientPrioritaire ? clientPrioritaire.coordonnees : clientsAvecCoordonnees[0].coordonnees)
-        itineraireOptimise = await optimiserItineraire(clientsAvecCoordonnees, pointDepartCoord, clientPrioritaire, mandatoryClientIds)
+        const pointDepartCoord = coordonneesDomicile || (clientPrioritaire ? clientPrioritaire.coordonnees : candidats[0].coordonnees)
+        itineraireOptimise = await optimiserItineraire(candidats, pointDepartCoord, clientPrioritaire, mandatoryClientIds)
       }
     } else {
-      // Pas d'API Gemini, utiliser l'algorithme classique
+      // Pas d'API Gemini : fallback keyword si promptIA défini
+      let candidats = clientsAvecCoordonnees
+      if (promptIA && promptIA.trim()) {
+        const mots = promptIA.toLowerCase().split(/\s+/).filter((m: string) => m.length > 3)
+        const filtered = clientsAvecCoordonnees.filter((c: any) => {
+          const haystack = [c.nom, c.entreprise, c.secteur, c.ville].filter(Boolean).join(' ').toLowerCase()
+          return mots.some((m: string) => haystack.includes(m))
+        })
+        const obligatoires = clientsAvecCoordonnees.filter((c: any) => mandatoryClientIds?.includes(c.id))
+        const obligatoiresIds = new Set(obligatoires.map((c: any) => c.id))
+        candidats = [...obligatoires, ...filtered.filter((c: any) => !obligatoiresIds.has(c.id))]
+        if (candidats.length === 0) candidats = clientsAvecCoordonnees
+        console.log('[tournées] no-gemini keyword filter: ' + mots.join(',') + ' → ' + candidats.length + ' clients')
+      }
       const clientPrioritaire = clientsRdvFixes.length > 0 ? clientsRdvFixes[0] : null
-      const pointDepartCoord = coordonneesDomicile || (clientPrioritaire ? clientPrioritaire.coordonnees : clientsAvecCoordonnees[0].coordonnees)
-      itineraireOptimise = await optimiserItineraire(clientsAvecCoordonnees, pointDepartCoord, clientPrioritaire, mandatoryClientIds)
+      const pointDepartCoord = coordonneesDomicile || (clientPrioritaire ? clientPrioritaire.coordonnees : candidats[0].coordonnees)
+      itineraireOptimise = await optimiserItineraire(candidats, pointDepartCoord, clientPrioritaire, mandatoryClientIds)
     }
 
     console.log('Itinéraire optimisé:', itineraireOptimise?.length || 0, 'clients')
