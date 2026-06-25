@@ -40,6 +40,25 @@ async function appelIA(prompt: string): Promise<string> {
 
 const hasIA = !!(process.env.GROQ_API_KEY || process.env.GEMINI_API_KEY)
 
+// Filtre par mots-clés avec matching par racine ("brasseurs" trouve "brasserie", "brasseur"...)
+function filtrerParPrompt(clients: any[], prompt: string, obligatoiresIds?: Set<string>): any[] {
+  const mots = prompt.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // retire accents
+    .split(/\s+/)
+    .filter((m: string) => m.length > 3)
+  if (mots.length === 0) return clients
+  // Racine = 6 premiers chars pour les mots longs (brasseurs → brasse, boulangers → boulan)
+  const stems = mots.map((m: string) => m.length >= 7 ? m.slice(0, 6) : m)
+  const filtered = clients.filter((c: any) => {
+    if (obligatoiresIds?.has(c.id)) return true
+    const raw = [c.nom, c.entreprise, c.secteur, c.ville, c.departement].filter(Boolean).join(' ')
+    const haystack = raw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    return stems.some((stem: string) => haystack.includes(stem))
+  })
+  console.log('[tournées] filtrerParPrompt stems=[' + stems.join(',') + '] → ' + filtered.length + '/' + clients.length + ' clients')
+  return filtered.length > 0 ? filtered : clients
+}
+
 // Fonction pour calculer la distance entre deux points (formule de Haversine - à vol d'oiseau)
 function calculerDistanceVolOiseau(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371 // Rayon de la Terre en km
@@ -491,20 +510,10 @@ export async function POST(request: Request) {
         }
 
         // Pré-filtrer par mots-clés si promptIA est défini (l'IA ne reçoit que les clients pertinents)
-        let candidatsIA = clientsLibres
-        if (promptIA && promptIA.trim()) {
-          const mots = promptIA.toLowerCase().split(/\s+/).filter((m: string) => m.length > 3)
-          if (mots.length > 0) {
-            const filtered = clientsLibres.filter((c: any) => {
-              const haystack = [c.nom, c.entreprise, c.secteur, c.ville, c.departement].filter(Boolean).join(' ').toLowerCase()
-              return mots.some((m: string) => haystack.includes(m))
-            })
-            if (filtered.length > 0) {
-              candidatsIA = filtered
-              console.log('[tournées] pré-filtre keyword: ' + mots.join(',') + ' → ' + filtered.length + '/' + clientsLibres.length + ' clients')
-            }
-          }
-        }
+        const obligatoiresSet = new Set<string>(mandatoryClientIds || [])
+        const candidatsIA = promptIA?.trim()
+          ? filtrerParPrompt(clientsLibres, promptIA, obligatoiresSet)
+          : clientsLibres
 
         const obligatoiresInfo = mandatoryClientIds && mandatoryClientIds.length > 0
           ? clientsAvecCoordonnees.filter((c: any) => mandatoryClientIds.includes(c.id)).map((c: any) => `- [${c.id}] ${c.nom}${c.entreprise ? ' / ' + c.entreprise : ''}${c.secteur ? ' | ' + c.secteur : ''} - ${c.ville}`).join('\n')
@@ -584,40 +593,19 @@ RÉPONDS UNIQUEMENT avec: {"itineraire": ["id1", "id2", ...]}`
         }
       } catch (error) {
         console.error('Erreur IA:', error)
-        // Fallback : si promptIA défini, filtre par mots-clés sur nom/entreprise/secteur
-        let candidats = clientsAvecCoordonnees
-        if (promptIA && promptIA.trim()) {
-          const mots = promptIA.toLowerCase().split(/\s+/).filter((m: string) => m.length > 3)
-          const filtered = clientsAvecCoordonnees.filter((c: any) => {
-            const haystack = [c.nom, c.entreprise, c.secteur, c.ville].filter(Boolean).join(' ').toLowerCase()
-            return mots.some((m: string) => haystack.includes(m))
-          })
-          // Garder les obligatoires même s'ils ne matchent pas les mots-clés
-          const obligatoires = clientsAvecCoordonnees.filter((c: any) => mandatoryClientIds?.includes(c.id))
-          const obligatoiresIds = new Set(obligatoires.map((c: any) => c.id))
-          candidats = [...obligatoires, ...filtered.filter((c: any) => !obligatoiresIds.has(c.id))]
-          if (candidats.length === 0) candidats = clientsAvecCoordonnees
-          console.log('[tournées] fallback keyword filter: ' + mots.join(',') + ' → ' + candidats.length + ' clients')
-        }
+        // Fallback : si promptIA défini, filtre par mots-clés
+        const candidats = promptIA?.trim()
+          ? filtrerParPrompt(clientsAvecCoordonnees, promptIA, new Set<string>(mandatoryClientIds || []))
+          : clientsAvecCoordonnees
         const clientPrioritaire = clientsRdvFixes.length > 0 ? clientsRdvFixes[0] : null
         const pointDepartCoord = coordonneesDomicile || (clientPrioritaire ? clientPrioritaire.coordonnees : candidats[0].coordonnees)
         itineraireOptimise = await optimiserItineraire(candidats, pointDepartCoord, clientPrioritaire, mandatoryClientIds)
       }
     } else {
       // Pas d'API IA configurée : fallback keyword si promptIA défini
-      let candidats = clientsAvecCoordonnees
-      if (promptIA && promptIA.trim()) {
-        const mots = promptIA.toLowerCase().split(/\s+/).filter((m: string) => m.length > 3)
-        const filtered = clientsAvecCoordonnees.filter((c: any) => {
-          const haystack = [c.nom, c.entreprise, c.secteur, c.ville].filter(Boolean).join(' ').toLowerCase()
-          return mots.some((m: string) => haystack.includes(m))
-        })
-        const obligatoires = clientsAvecCoordonnees.filter((c: any) => mandatoryClientIds?.includes(c.id))
-        const obligatoiresIds = new Set(obligatoires.map((c: any) => c.id))
-        candidats = [...obligatoires, ...filtered.filter((c: any) => !obligatoiresIds.has(c.id))]
-        if (candidats.length === 0) candidats = clientsAvecCoordonnees
-        console.log('[tournées] no-ia keyword filter: ' + mots.join(',') + ' → ' + candidats.length + ' clients')
-      }
+      const candidats = promptIA?.trim()
+        ? filtrerParPrompt(clientsAvecCoordonnees, promptIA, new Set<string>(mandatoryClientIds || []))
+        : clientsAvecCoordonnees
       const clientPrioritaire = clientsRdvFixes.length > 0 ? clientsRdvFixes[0] : null
       const pointDepartCoord = coordonneesDomicile || (clientPrioritaire ? clientPrioritaire.coordonnees : candidats[0].coordonnees)
       itineraireOptimise = await optimiserItineraire(candidats, pointDepartCoord, clientPrioritaire, mandatoryClientIds)
