@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { GoogleGenAI } from '@google/genai'
 import { getAuthSession } from '@/lib/auth'
 
 export async function GET() {
@@ -12,15 +12,17 @@ export async function GET() {
       return NextResponse.json({ ok: false, error: 'GEMINI_API_KEY absente du fichier .env' })
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey, { apiVersion: 'v1' } as any)
-    const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-flash-001', 'gemini-1.5-pro']
+    const ai = new GoogleGenAI({ apiKey })
+    const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash-lite']
     const errors: any[] = []
 
     for (const modelName of models) {
       try {
-        const model = genAI.getGenerativeModel({ model: modelName })
-        const result = await model.generateContent('Réponds uniquement par le mot: OK')
-        const text = result.response.text().trim()
+        const response = await ai.models.generateContent({
+          model: modelName,
+          contents: 'Réponds uniquement par le mot: OK'
+        })
+        const text = response.text?.trim() || ''
         return NextResponse.json({
           ok: true,
           model: modelName,
@@ -28,7 +30,7 @@ export async function GET() {
           message: `Clé Gemini fonctionnelle ✓ (modèle: ${modelName})`
         })
       } catch (err: any) {
-        errors.push({ model: modelName, status: err?.status, error: err?.message?.slice(0, 120) })
+        errors.push({ model: modelName, status: err?.status, error: err?.message?.slice(0, 150) })
       }
     }
 
