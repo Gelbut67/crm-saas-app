@@ -1,11 +1,44 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import { getAuthSession } from '@/lib/auth'
 
 export const maxDuration = 60 // secondes (Vercel Pro)
 
-const genAI = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null
+// Appel IA générique : Groq (gratuit, prioritaire) ou Gemini (fallback)
+async function appelIA(prompt: string): Promise<string> {
+  if (process.env.GROQ_API_KEY) {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${process.env.GROQ_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: prompt }],
+        response_format: { type: 'json_object' },
+        temperature: 0.1
+      })
+    })
+    if (!res.ok) throw new Error(`Groq ${res.status}: ${await res.text()}`)
+    const data = await res.json()
+    return data.choices[0].message.content
+  }
+  if (process.env.GEMINI_API_KEY) {
+    for (const v of ['v1', 'v1beta']) {
+      const res = await fetch(`https://generativelanguage.googleapis.com/${v}/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      })
+      if (res.ok) {
+        const data = await res.json()
+        return data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+      }
+    }
+    throw new Error('Gemini indisponible')
+  }
+  throw new Error('Aucune clé IA configurée (GROQ_API_KEY ou GEMINI_API_KEY)')
+}
+
+const hasIA = !!(process.env.GROQ_API_KEY || process.env.GEMINI_API_KEY)
 
 // Fonction pour calculer la distance entre deux points (formule de Haversine - à vol d'oiseau)
 function calculerDistanceVolOiseau(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -447,7 +480,7 @@ export async function POST(request: Request) {
     // Utiliser Google Gemini pour optimiser la tournée
     let itineraireOptimise
     
-    if (genAI && clientsAvecCoordonnees.length > 0) {
+    if (hasIA && clientsAvecCoordonnees.length > 0) {
       try {
         // Format compact pour Gemini : une ligne par client
         const formatClient = (c: any, i: number) => {
@@ -521,11 +554,7 @@ OBJECTIF: Itinéraire optimal minimisant les distances. Obligatoires EN PREMIER.
 RÉPONDS UNIQUEMENT avec: {"itineraire": ["id1", "id2", ...]}`
         }
 
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
-        const result = await model.generateContent(prompt)
-        const response = await result.response
-        const text = response.text()
-        
+        const text = await appelIA(prompt)
         const resultat = JSON.parse(text.replace(/```json\n?|```/g, '').trim())
         
         // Reconstruire l'itinéraire avec les distances
