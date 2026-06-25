@@ -35,7 +35,15 @@ export async function GET() {
       }
     }
 
-    return NextResponse.json({ ok: false, message: 'Aucun modèle disponible', errors })
+    // Lister les modèles réellement disponibles pour cette clé
+    let modelsDisponibles: string[] = []
+    try {
+      const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`)
+      const listData = await listRes.json()
+      modelsDisponibles = (listData.models || []).map((m: any) => m.name)
+    } catch {}
+
+    return NextResponse.json({ ok: false, message: 'Aucun modèle disponible', errors, modelsDisponibles })
   } catch (error: any) {
     return NextResponse.json({
       ok: false,
