@@ -12,8 +12,8 @@ export async function GET() {
       return NextResponse.json({ ok: false, error: 'GEMINI_API_KEY absente du fichier .env' })
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey)
-    const models = ['gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-flash-001', 'gemini-1.5-flash']
+    const genAI = new GoogleGenerativeAI(apiKey, { apiVersion: 'v1' } as any)
+    const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-flash-001', 'gemini-1.5-pro']
     const errors: any[] = []
 
     for (const modelName of models) {
