@@ -13,27 +13,31 @@ export async function GET() {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+    const models = ['gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-flash-001', 'gemini-1.5-flash']
+    const errors: any[] = []
 
-    const result = await model.generateContent('Réponds uniquement par le mot: OK')
-    const text = result.response.text().trim()
+    for (const modelName of models) {
+      try {
+        const model = genAI.getGenerativeModel({ model: modelName })
+        const result = await model.generateContent('Réponds uniquement par le mot: OK')
+        const text = result.response.text().trim()
+        return NextResponse.json({
+          ok: true,
+          model: modelName,
+          reponse: text,
+          message: `Clé Gemini fonctionnelle ✓ (modèle: ${modelName})`
+        })
+      } catch (err: any) {
+        errors.push({ model: modelName, status: err?.status, error: err?.message?.slice(0, 120) })
+      }
+    }
 
-    return NextResponse.json({
-      ok: true,
-      model: 'gemini-2.0-flash',
-      reponse: text,
-      message: 'Clé Gemini fonctionnelle ✓'
-    })
+    return NextResponse.json({ ok: false, message: 'Aucun modèle disponible', errors })
   } catch (error: any) {
     return NextResponse.json({
       ok: false,
       error: error?.message || String(error),
-      status: error?.status,
-      hint: error?.status === 404
-        ? 'Modèle introuvable — essayer gemini-1.5-flash-latest ou vérifier les droits de la clé'
-        : error?.status === 403 || error?.status === 401
-        ? 'Clé API invalide ou sans accès à ce modèle'
-        : 'Erreur inattendue'
+      status: error?.status
     })
   }
 }
