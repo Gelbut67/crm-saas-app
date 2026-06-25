@@ -477,12 +477,12 @@ export async function POST(request: Request) {
       return { ...client, heureRdv: rdv.heureRdv }
     }).filter(Boolean) : []
 
-    // Utiliser Google Gemini pour optimiser la tournée
+    // Utiliser l'IA (Groq / Gemini) pour optimiser la tournée
     let itineraireOptimise
     
     if (hasIA && clientsAvecCoordonnees.length > 0) {
       try {
-        // Format compact pour Gemini : une ligne par client
+        // Format compact pour l'IA : une ligne par client
         const formatClient = (c: any, i: number) => {
           const lastVisit = c.derniereVisite ? new Date(c.derniereVisite).toLocaleDateString('fr-FR') : 'jamais visité'
           const secteurInfo = c.secteur ? ` | secteur: ${c.secteur}` : ''
@@ -490,8 +490,8 @@ export async function POST(request: Request) {
           return `${i + 1}. [${c.id}] ${c.nom}${entrepriseInfo} - ${c.ville}${secteurInfo} | ${lastVisit} | GPS: ${c.coordonnees.lat.toFixed(4)},${c.coordonnees.lon.toFixed(4)}`
         }
 
-        // Pré-filtrer par mots-clés si promptIA est défini (Gemini ne reçoit que les clients pertinents)
-        let candidatsGemini = clientsLibres
+        // Pré-filtrer par mots-clés si promptIA est défini (l'IA ne reçoit que les clients pertinents)
+        let candidatsIA = clientsLibres
         if (promptIA && promptIA.trim()) {
           const mots = promptIA.toLowerCase().split(/\s+/).filter((m: string) => m.length > 3)
           if (mots.length > 0) {
@@ -500,7 +500,7 @@ export async function POST(request: Request) {
               return mots.some((m: string) => haystack.includes(m))
             })
             if (filtered.length > 0) {
-              candidatsGemini = filtered
+              candidatsIA = filtered
               console.log('[tournées] pré-filtre keyword: ' + mots.join(',') + ' → ' + filtered.length + '/' + clientsLibres.length + ' clients')
             }
           }
@@ -524,8 +524,8 @@ ${filtrerVisites ? `Filtre visite actif: seuls les clients non visités depuis p
 CLIENTS OBLIGATOIRES (EN PREMIER absolument):
 ${obligatoiresInfo}
 
-CLIENTS DISPONIBLES PRÉ-FILTRÉS (${candidatsGemini.length} correspondants à ta demande):
-${candidatsGemini.map(formatClient).join('\n')}
+CLIENTS DISPONIBLES PRÉ-FILTRÉS (${candidatsIA.length} correspondants à ta demande):
+${candidatsIA.map(formatClient).join('\n')}
 
 INSTRUCTIONS:
 1. Ordonne ces clients par proximité géographique pour minimiser les trajets
@@ -547,8 +547,8 @@ ${clientsRdvFixes.map((c: any, i: number) => `${i + 1}. ${c.nom} (${c.ville}) - 
 CLIENTS OBLIGATOIRES (EN PREMIER):
 ${obligatoiresInfo}
 
-CLIENTS DISPONIBLES (${candidatsGemini.length}):
-${candidatsGemini.map(formatClient).join('\n')}
+CLIENTS DISPONIBLES (${candidatsIA.length}):
+${candidatsIA.map(formatClient).join('\n')}
 
 OBJECTIF: Itinéraire optimal minimisant les distances. Obligatoires EN PREMIER.
 RÉPONDS UNIQUEMENT avec: {"itineraire": ["id1", "id2", ...]}`
@@ -583,7 +583,7 @@ RÉPONDS UNIQUEMENT avec: {"itineraire": ["id1", "id2", ...]}`
           }
         }
       } catch (error) {
-        console.error('Erreur Gemini:', error)
+        console.error('Erreur IA:', error)
         // Fallback : si promptIA défini, filtre par mots-clés sur nom/entreprise/secteur
         let candidats = clientsAvecCoordonnees
         if (promptIA && promptIA.trim()) {
@@ -604,7 +604,7 @@ RÉPONDS UNIQUEMENT avec: {"itineraire": ["id1", "id2", ...]}`
         itineraireOptimise = await optimiserItineraire(candidats, pointDepartCoord, clientPrioritaire, mandatoryClientIds)
       }
     } else {
-      // Pas d'API Gemini : fallback keyword si promptIA défini
+      // Pas d'API IA configurée : fallback keyword si promptIA défini
       let candidats = clientsAvecCoordonnees
       if (promptIA && promptIA.trim()) {
         const mots = promptIA.toLowerCase().split(/\s+/).filter((m: string) => m.length > 3)
@@ -616,7 +616,7 @@ RÉPONDS UNIQUEMENT avec: {"itineraire": ["id1", "id2", ...]}`
         const obligatoiresIds = new Set(obligatoires.map((c: any) => c.id))
         candidats = [...obligatoires, ...filtered.filter((c: any) => !obligatoiresIds.has(c.id))]
         if (candidats.length === 0) candidats = clientsAvecCoordonnees
-        console.log('[tournées] no-gemini keyword filter: ' + mots.join(',') + ' → ' + candidats.length + ' clients')
+        console.log('[tournées] no-ia keyword filter: ' + mots.join(',') + ' → ' + candidats.length + ' clients')
       }
       const clientPrioritaire = clientsRdvFixes.length > 0 ? clientsRdvFixes[0] : null
       const pointDepartCoord = coordonneesDomicile || (clientPrioritaire ? clientPrioritaire.coordonnees : candidats[0].coordonnees)
