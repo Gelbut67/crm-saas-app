@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { GoogleGenAI } from '@google/genai'
 import { getAuthSession } from '@/lib/auth'
 
 export async function GET() {
@@ -12,25 +11,27 @@ export async function GET() {
       return NextResponse.json({ ok: false, error: 'GEMINI_API_KEY absente du fichier .env' })
     }
 
-    const ai = new GoogleGenAI({ apiKey })
-    const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash-lite']
+    const models = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash', 'gemini-2.0-flash-lite']
     const errors: any[] = []
 
     for (const modelName of models) {
-      try {
-        const response = await ai.models.generateContent({
-          model: modelName,
-          contents: 'Réponds uniquement par le mot: OK'
-        })
-        const text = response.text?.trim() || ''
-        return NextResponse.json({
-          ok: true,
-          model: modelName,
-          reponse: text,
-          message: `Clé Gemini fonctionnelle ✓ (modèle: ${modelName})`
-        })
-      } catch (err: any) {
-        errors.push({ model: modelName, status: err?.status, error: err?.message?.slice(0, 150) })
+      for (const apiVersion of ['v1', 'v1beta']) {
+        try {
+          const url = `https://generativelanguage.googleapis.com/${apiVersion}/models/${modelName}:generateContent?key=${apiKey}`
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: 'Réponds uniquement par le mot: OK' }] }] })
+          })
+          const data = await res.json()
+          if (res.ok) {
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || ''
+            return NextResponse.json({ ok: true, model: modelName, apiVersion, reponse: text, message: `✓ ${modelName} (${apiVersion})` })
+          }
+          errors.push({ model: modelName, apiVersion, status: res.status, error: data?.error?.message?.slice(0, 120) })
+        } catch (err: any) {
+          errors.push({ model: modelName, error: err?.message?.slice(0, 80) })
+        }
       }
     }
 
