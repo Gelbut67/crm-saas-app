@@ -121,38 +121,24 @@ export default function ProspectionPage() {
         parts.push(`way["${tag}"]["name"](around:${rayonGen},${pos.lat},${pos.lon});`)
       })
 
-      const query = `[out:json][timeout:30];\n(\n${parts.join('\n')}\n);\nout center;`
-      const body = 'data=' + encodeURIComponent(query)
+      const query = `[out:json][timeout:28];\n(\n${parts.join('\n')}\n);\nout center;`
 
-      const mirrors = [
-        'https://overpass-api.de/api/interpreter',
-        'https://overpass.kumi.systems/api/interpreter',
-        'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
-      ]
-      let elements: any[] = []
-      let success = false
-      for (const url of mirrors) {
-        try {
-          const ctrl = new AbortController()
-          const t = setTimeout(() => ctrl.abort(), 28000)
-          const res = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body,
-            signal: ctrl.signal
-          })
-          clearTimeout(t)
-          if (res.ok) {
-            const d = await res.json()
-            elements = d.elements || []
-            success = true
-            break
-          }
-        } catch { continue }
+      // Appel via proxy serveur (evite blocages CORS/reseau navigateur)
+      const proxyRes = await fetch('/api/prospection/overpass', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query })
+      })
+
+      if (!proxyRes.ok) {
+        showMsg('Erreur serveur lors de la recherche cartographique.', 'error')
+        return
       }
+      const osmData = await proxyRes.json()
+      const elements: any[] = osmData.elements || []
 
-      if (!success) {
-        showMsg('Service cartographique inaccessible. Verifie ta connexion et reessaie.', 'error')
+      if (osmData.error && elements.length === 0) {
+        showMsg('Service cartographique indisponible. Reessayez.', 'error')
         return
       }
 

@@ -29,17 +29,20 @@ async function genererTagsOSM(prompt: string): Promise<{ tags: {key:string,value
         model: 'llama-3.3-70b-versatile',
         messages: [{
           role: 'user',
-          content: `Tu es expert OpenStreetMap. L'utilisateur cherche: "${prompt}"\n\nDonne les tags OSM et mots-cles (fr+en) pour trouver ces entreprises.\nExemples:\n- "apiculteur" => tags: craft=beekeeper, shop=honey | keywords: apiculteur,ruche,miel,beekeeper,honey\n- "brasserie" => tags: craft=brewery,amenity=bar | keywords: brasserie,brasseur,brewery,biere\n- "vigneron" => tags: craft=winery | keywords: vigneron,vignoble,cave,vin,winery\n- "boucher" => tags: shop=butcher | keywords: boucherie,boucher,viande\n- "boulanger" => tags: shop=bakery | keywords: boulangerie,boulanger,pain\n\nReponds UNIQUEMENT avec:\n{"tags":[{"key":"craft","value":"beekeeper"}],"keywords":["apiculteur","miel","ruche","beekeeper","honey"]}`
+          content: `Tu es expert en semantique commerciale et OpenStreetMap. L'utilisateur cherche: "${prompt}"\n\nGenere le CHAMP SEMANTIQUE COMPLET: tous les mots (fr+en) designant les memes metiers, produits, lieux associes. "miel" et "apiculteur" doivent generer les MEMES mots cles car ils appartiennent au meme univers.\n\nRegles:\n- minimum 15 mots-cles varies (metiers, produits, lieux, synonymes, anglais)\n- tags OSM les plus pertinents\n\nExemples:\n- "miel" ou "apiculteur" => tags:[craft=beekeeper,shop=honey], keywords:[miel,honey,apiculteur,apiculture,apicole,ruche,rucher,miellerie,abeille,beekeeper,apiary,propolis,cire,pollen,gelée royale,mellification,apiariste]\n- "biere" ou "brasserie" ou "brasseur" => tags:[craft=brewery,shop=beer,amenity=bar], keywords:[biere,beer,brasserie,brasseur,brewery,microbrasserie,houblon,malt,malterie,brassage,craft,ale,lager,ipa,stout,levure,fermentation,bieriste]\n- "vin" ou "vigneron" ou "cave" => tags:[craft=winery,shop=wine,amenity=winery], keywords:[vin,wine,vigneron,vignoble,cave,winery,domaine,chateau,cepage,vendange,vinification,sommelier,caviste,viticulture,millesime]\n- "boulanger" ou "boulangerie" ou "pain" => tags:[shop=bakery,craft=baker], keywords:[boulangerie,boulanger,pain,bakery,patisserie,viennoiserie,farine,levain,brioche,croissant,baker,artisan]\n\nReponds UNIQUEMENT avec JSON:\n{"tags":[{"key":"craft","value":"beekeeper"},{"key":"shop","value":"honey"}],"keywords":["mot1","mot2","mot3"...]}`
         }],
         response_format: { type: 'json_object' },
-        temperature: 0.1
+        temperature: 0.2
       })
     })
     if (!res.ok) throw new Error('groq error')
     const data = await res.json()
     const result = JSON.parse(data.choices[0].message.content)
-    return { tags: result.tags || [], keywords: result.keywords || [] }
-  } catch {
+    const kws: string[] = (result.keywords || []).filter((k: string) => k.length > 2)
+    console.log('[prospection] Groq keywords for "' + prompt + '":', kws.slice(0, 8).join(', ') + '...')
+    return { tags: result.tags || [], keywords: kws }
+  } catch (e) {
+    console.warn('[prospection] Groq fallback:', e)
     return { tags: [], keywords: prompt.split(/\s+/).filter((w: string) => w.length > 2) }
   }
 }
@@ -80,3 +83,4 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+
