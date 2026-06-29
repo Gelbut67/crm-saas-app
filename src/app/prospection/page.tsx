@@ -29,7 +29,7 @@ type Resultat = {
   source: 'base' | 'osm'
 }
 
-const RAYONS = [1, 2, 5, 10, 20]
+const RAYONS = [5, 10, 20, 50, 100]
 
 function formatDist(d: number) {
   return d < 1 ? `${Math.round(d * 1000)} m` : `${d.toFixed(1)} km`
@@ -316,8 +316,19 @@ export default function ProspectionPage() {
     }
   }, [position, existants, nouveaux, rayon, selected])
 
-  const listeActive = onglet === 'existants' ? existants : nouveaux
-  const total = existants.length + nouveaux.length
+  // Filtrage client-side de la base par prompt
+  const existantsFiltres = (() => {
+    if (!prompt.trim()) return existants
+    const mots = normaliserLocal(prompt).split(/\s+/).filter(m => m.length > 2)
+    if (mots.length === 0) return existants
+    return existants.filter(r => {
+      const h = normaliserLocal([r.nom, r.entreprise, r.secteur, r.ville, r.type].filter(Boolean).join(' '))
+      return mots.some(m => h.includes(m))
+    })
+  })()
+
+  const listeActive = onglet === 'existants' ? existantsFiltres : nouveaux
+  const total = existantsFiltres.length + nouveaux.length
 
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
@@ -402,7 +413,7 @@ export default function ProspectionPage() {
                 )}
               >
                 <Users className="h-3.5 w-3.5" />
-                Base ({existants.length})
+                Base ({existantsFiltres.length}{prompt.trim() && existantsFiltres.length !== existants.length ? `/${existants.length}` : ''})
               </button>
               <button
                 onClick={() => setOnglet('nouveaux')}

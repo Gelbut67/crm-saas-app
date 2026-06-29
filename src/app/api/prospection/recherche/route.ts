@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const lat = parseFloat(searchParams.get('lat') || '0')
     const lon = parseFloat(searchParams.get('lon') || '0')
-    const rayon = Math.min(parseFloat(searchParams.get('rayon') || '5'), 20)
+    const rayon = Math.min(parseFloat(searchParams.get('rayon') || '5'), 150)
     const prompt = searchParams.get('prompt') || ''
 
     if (!lat || !lon) return NextResponse.json({ error: 'Coordonnees requises' }, { status: 400 })
