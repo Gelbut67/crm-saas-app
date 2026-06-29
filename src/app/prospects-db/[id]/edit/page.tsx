@@ -244,6 +244,22 @@ export default function EditProspectPage() {
                     <SelectValue placeholder="Sélectionner un secteur" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="Agriculture">Agriculture</SelectItem>
+                    <SelectItem value="Maraîchage">Maraîchage</SelectItem>
+                    <SelectItem value="Viticulture / Vigneron">Viticulture / Vigneron</SelectItem>
+                    <SelectItem value="Brasserie / Brasseur">Brasserie / Brasseur</SelectItem>
+                    <SelectItem value="Restauration">Restauration</SelectItem>
+                    <SelectItem value="Hôtellerie">Hôtellerie</SelectItem>
+                    <SelectItem value="Traiteur">Traiteur</SelectItem>
+                    <SelectItem value="Épicerie / Épicerie fine">Épicerie / Épicerie fine</SelectItem>
+                    <SelectItem value="Cave à vins">Cave à vins</SelectItem>
+                    <SelectItem value="Boulangerie / Pâtisserie">Boulangerie / Pâtisserie</SelectItem>
+                    <SelectItem value="Charcuterie / Fromagerie">Charcuterie / Fromagerie</SelectItem>
+                    <SelectItem value="CHR (Café, Hôtel, Restaurant)">CHR (Café, Hôtel, Restaurant)</SelectItem>
+                    <SelectItem value="Grande distribution">Grande distribution</SelectItem>
+                    <SelectItem value="Grossiste alimentaire">Grossiste alimentaire</SelectItem>
+                    <SelectItem value="Producteur local">Producteur local</SelectItem>
+                    <SelectItem value="Coopérative agricole">Coopérative agricole</SelectItem>
                     <SelectItem value="Technologie">Technologie</SelectItem>
                     <SelectItem value="Services">Services</SelectItem>
                     <SelectItem value="Commerce">Commerce</SelectItem>

@@ -8,8 +8,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Textarea } from '@/components/ui/textarea'
-import { toast } from '@/components/ui/use-toast'
 import { cn } from '@/lib/utils'
 
 type Resultat = {
@@ -60,13 +58,19 @@ export default function ProspectionPage() {
   const [selected, setSelected] = useState<Resultat | null>(null)
   const [ajoutEnCours, setAjoutEnCours] = useState<string | null>(null)
   const [ajoutsOk, setAjoutsOk] = useState<Set<string>>(new Set())
+  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
+
+  const showMsg = (text: string, type: 'success' | 'error' = 'success') => {
+    setMessage({ text, type })
+    setTimeout(() => setMessage(null), 3500)
+  }
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<any>(null)
   const markersRef = useRef<any[]>([])
 
   const getPosition = useCallback(() => {
     if (!navigator.geolocation) {
-      toast({ title: 'GPS non disponible', variant: 'destructive' })
+      showMsg('GPS non disponible sur ce navigateur', 'error')
       return
     }
     setGpsLoading(true)
@@ -76,7 +80,7 @@ export default function ProspectionPage() {
         setGpsLoading(false)
       },
       () => {
-        toast({ title: 'Impossible d\'obtenir la position', variant: 'destructive' })
+        showMsg('Impossible d\'obtenir la position GPS', 'error')
         setGpsLoading(false)
       },
       { enableHighAccuracy: true, timeout: 10000 }
@@ -100,7 +104,7 @@ export default function ProspectionPage() {
       setNouveaux(data.nouveaux || [])
       setOnglet(data.existants?.length > 0 ? 'existants' : 'nouveaux')
     } catch (e: any) {
-      toast({ title: 'Erreur de recherche', description: e.message, variant: 'destructive' })
+      showMsg('Erreur de recherche : ' + e.message, 'error')
     } finally {
       setLoading(false)
     }
@@ -124,9 +128,9 @@ export default function ProspectionPage() {
       })
       if (!res.ok) throw new Error(await res.text())
       setAjoutsOk(prev => new Set([...prev, r.id]))
-      toast({ title: `${r.nom} ajouté comme prospect ✓` })
+      showMsg(`${r.nom} ajouté comme prospect ✓`)
     } catch (e: any) {
-      toast({ title: 'Erreur', description: e.message, variant: 'destructive' })
+      showMsg('Erreur : ' + (e as any).message, 'error')
     } finally {
       setAjoutEnCours(null)
     }
@@ -230,6 +234,16 @@ export default function ProspectionPage() {
 
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
+      {/* Message flottant */}
+      {message && (
+        <div className={cn(
+          'fixed top-4 right-4 z-[9999] px-4 py-3 rounded-lg shadow-lg text-sm font-medium flex items-center gap-2 transition-all',
+          message.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+        )}>
+          {message.type === 'success' ? <CheckCircle2 className="h-4 w-4" /> : <X className="h-4 w-4" />}
+          {message.text}
+        </div>
+      )}
       {/* Header */}
       <div className="border-b bg-card px-4 py-3 flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">

@@ -64,15 +64,31 @@ export function AdvancedFilters({
     filters.sortOrder !== "asc"
 
   const secteurOptions = [
+    "Agriculture",
+    "Maraîchage",
+    "Viticulture / Vigneron",
+    "Brasserie / Brasseur",
+    "Restauration",
+    "Hôtellerie",
+    "Traiteur",
+    "Épicerie / Épicerie fine",
+    "Cave à vins",
+    "Boulangerie / Pâtisserie",
+    "Charcuterie / Fromagerie",
+    "CHR (Café, Hôtel, Restaurant)",
+    "Grande distribution",
+    "Grossiste alimentaire",
+    "Producteur local",
+    "Coopérative agricole",
     "Technologie",
-    "Services", 
+    "Services",
     "Commerce",
     "Industrie",
     "Consulting",
     "Santé",
     "Éducation",
     "Finance",
-    "Autre"
+    "Autre",
   ]
 
   return (
