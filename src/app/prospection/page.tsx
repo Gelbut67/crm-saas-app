@@ -106,7 +106,7 @@ export default function ProspectionPage() {
             if (stripped !== kl) kwSet.add(stripped)
           }
         })
-        const escaped = [...kwSet].map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+        const escaped = Array.from(kwSet).map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
         if (escaped.length > 0) {
           const regex = escaped.join('|')
           parts.push(`node["name"~"${regex}",i](around:${rayonM},${pos.lat},${pos.lon});`)
