@@ -52,6 +52,7 @@ export default function ProspectionPage() {
   const [rayon, setRayon] = useState(5)
   const [prompt, setPrompt] = useState('')
   const [loading, setLoading] = useState(false)
+  const [osmLoading, setOsmLoading] = useState(false)
   const [existants, setExistants] = useState<Resultat[]>([])
   const [nouveaux, setNouveaux] = useState<Resultat[]>([])
   const [onglet, setOnglet] = useState<'existants' | 'nouveaux'>('existants')
@@ -64,6 +65,90 @@ export default function ProspectionPage() {
     setMessage({ text, type })
     setTimeout(() => setMessage(null), 3500)
   }
+
+  const normaliserLocal = (s: string) =>
+    s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+
+  const haversineLocal = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371, dLat = (lat2 - lat1) * Math.PI / 180, dLon = (lon2 - lon1) * Math.PI / 180
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+  }
+
+  const rechercherOSM = useCallback(async (
+    pos: {lat:number,lon:number},
+    r: number,
+    osmTags: {key:string,value:string}[],
+    osmKeywords: string[],
+    nomsConnus: string[]
+  ) => {
+    setOsmLoading(true)
+    setNouveaux([])
+    try {
+      const rayonM = Math.round(r * 1000)
+      const parts: string[] = []
+      // Tags specifiques generes par l'IA
+      osmTags.forEach(t => {
+        parts.push(`node["${t.key}"="${t.value}"](around:${rayonM},${pos.lat},${pos.lon});`)
+        parts.push(`way["${t.key}"="${t.value}"](around:${rayonM},${pos.lat},${pos.lon});`)
+      })
+      // Mots-cles dans le nom
+      if (osmKeywords.length > 0) {
+        const kw = osmKeywords.map(k => k.replace(/[^a-zA-Z0-9]/g, '')).filter(Boolean).join('|')
+        if (kw) {
+          parts.push(`node["name"~"${kw}",i](around:${rayonM},${pos.lat},${pos.lon});`)
+          parts.push(`way["name"~"${kw}",i](around:${rayonM},${pos.lat},${pos.lon});`)
+        }
+      }
+      // Si pas de prompt, recherche generale
+      if (parts.length === 0) {
+        ;['shop','amenity','craft','office'].forEach(tag => {
+          parts.push(`node["${tag}"]["name"](around:${rayonM},${pos.lat},${pos.lon});`)
+          parts.push(`way["${tag}"]["name"](around:${rayonM},${pos.lat},${pos.lon});`)
+        })
+      }
+      const query = `[out:json][timeout:30];\n(\n${parts.join('\n')}\n);\nout center;`
+      const mirrors = ['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter']
+      let elements: any[] = []
+      for (const url of mirrors) {
+        try {
+          const res = await fetch(url, { method: 'POST', body: query })
+          if (res.ok) { const d = await res.json(); elements = d.elements || []; break }
+        } catch { continue }
+      }
+      const nomsSet = new Set(nomsConnus)
+      const results: Resultat[] = elements
+        .filter((e: any) => e.tags?.name)
+        .map((e: any) => {
+          const elat = e.lat ?? e.center?.lat
+          const elon = e.lon ?? e.center?.lon
+          if (!elat || !elon) return null
+          if (nomsSet.has(normaliserLocal(e.tags.name))) return null
+          const cat = e.tags.craft || e.tags.shop || e.tags.amenity || e.tags.office || 'entreprise'
+          return {
+            id: `osm_${e.type}_${e.id}`, nom: e.tags.name, type: cat,
+            lat: elat, lon: elon,
+            adresse: [e.tags['addr:housenumber'], e.tags['addr:street']].filter(Boolean).join(' ') || undefined,
+            ville: e.tags['addr:city'] || e.tags['addr:town'] || e.tags['addr:village'] || undefined,
+            codePostal: e.tags['addr:postcode'] || undefined,
+            phone: e.tags.phone || e.tags['contact:phone'] || undefined,
+            website: e.tags.website || e.tags['contact:website'] || undefined,
+            distance: haversineLocal(pos.lat, pos.lon, elat, elon),
+            source: 'osm' as const
+          }
+        })
+        .filter(Boolean) as Resultat[]
+      results.sort((a, b) => a.distance - b.distance)
+      setNouveaux(results)
+      if (results.length === 0) showMsg('Aucun nouveau prospect trouv\u00e9 dans ce rayon. Essayez un rayon plus grand.', 'error')
+      else setOnglet('nouveaux')
+    } catch (e: any) {
+      showMsg('Erreur Overpass : ' + e.message, 'error')
+    } finally {
+      setOsmLoading(false)
+    }
+  }, [])
+
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<any>(null)
   const markersRef = useRef<any[]>([])
@@ -90,6 +175,7 @@ export default function ProspectionPage() {
   const rechercher = useCallback(async () => {
     if (!position) return
     setLoading(true)
+    setNouveaux([])
     try {
       const params = new URLSearchParams({
         lat: position.lat.toString(),
@@ -101,14 +187,15 @@ export default function ProspectionPage() {
       if (!res.ok) throw new Error(await res.text())
       const data = await res.json()
       setExistants(data.existants || [])
-      setNouveaux(data.nouveaux || [])
-      setOnglet(data.existants?.length > 0 ? 'existants' : 'nouveaux')
+      setOnglet('nouveaux')
+      // Appel Overpass depuis le navigateur (pas de blocage serveur)
+      rechercherOSM(position, rayon, data.osmTags || [], data.osmKeywords || [], data.nomsConnus || [])
     } catch (e: any) {
       showMsg('Erreur de recherche : ' + e.message, 'error')
     } finally {
       setLoading(false)
     }
-  }, [position, rayon, prompt])
+  }, [position, rayon, prompt, rechercherOSM])
 
   const ajouterProspect = useCallback(async (r: Resultat) => {
     setAjoutEnCours(r.id)
@@ -291,7 +378,7 @@ export default function ProspectionPage() {
               />
             </div>
 
-            <Button size="sm" onClick={rechercher} disabled={loading} className="gap-2">
+            <Button size="sm" onClick={rechercher} disabled={loading || osmLoading} className="gap-2">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
               {loading ? 'Recherche...' : 'Rechercher'}
             </Button>
@@ -324,8 +411,8 @@ export default function ProspectionPage() {
                   onglet === 'nouveaux' ? 'border-b-2 border-violet-500 text-violet-600' : 'text-muted-foreground hover:text-foreground'
                 )}
               >
-                <Sparkles className="h-3.5 w-3.5" />
-                Nouveaux ({nouveaux.length})
+                {osmLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                Nouveaux ({osmLoading ? '...' : nouveaux.length})
               </button>
             </div>
           )}
@@ -343,21 +430,23 @@ export default function ProspectionPage() {
               </div>
             )}
 
-            {position && total === 0 && !loading && (
+            {position && total === 0 && !loading && !osmLoading && (
               <div className="flex flex-col items-center justify-center h-full gap-3 p-6 text-center">
                 <Search className="h-10 w-10 text-muted-foreground/40" />
                 <p className="text-muted-foreground text-sm">Aucun résultat.<br />Ajustez le rayon ou le prompt.</p>
               </div>
             )}
 
-            {loading && (
+            {(loading || (osmLoading && onglet === 'nouveaux')) && (
               <div className="flex flex-col items-center justify-center h-full gap-3">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-sm text-muted-foreground">Recherche en cours...</p>
+                <Loader2 className="h-8 w-8 animate-spin text-violet-500" />
+                <p className="text-sm text-muted-foreground">
+                  {loading ? 'Analyse de votre base...' : 'Recherche de nouveaux prospects sur la carte...'}
+                </p>
               </div>
             )}
 
-            {!loading && listeActive.map(r => (
+            {!loading && !(osmLoading && onglet === 'nouveaux') && listeActive.map(r => (
               <div
                 key={r.id}
                 onClick={() => setSelected(selected?.id === r.id ? null : r)}
