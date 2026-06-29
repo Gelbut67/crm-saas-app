@@ -20,6 +20,7 @@ import {
   ShieldCheck,
   Activity,
   Bell,
+  Radar,
 } from "lucide-react"
 import {
   Sidebar,
@@ -82,6 +83,11 @@ export function AppSidebar() {
       name: "Tournées",
       href: "/tournees",
       icon: Navigation,
+    },
+    {
+      name: "Radar Prospection",
+      href: "/prospection",
+      icon: Radar,
     },
     {
       name: "Activités",
