@@ -53,6 +53,7 @@ export default function ProspectionPage() {
   const [prompt, setPrompt] = useState('')
   const [loading, setLoading] = useState(false)
   const [osmLoading, setOsmLoading] = useState(false)
+  const [groqKeywords, setGroqKeywords] = useState<string[]>([])
   const [existants, setExistants] = useState<Resultat[]>([])
   const [nouveaux, setNouveaux] = useState<Resultat[]>([])
   const [onglet, setOnglet] = useState<'existants' | 'nouveaux'>('existants')
@@ -87,37 +88,79 @@ export default function ProspectionPage() {
     try {
       const rayonM = Math.round(r * 1000)
       const parts: string[] = []
-      // Tags specifiques generes par l'IA
+
+      // 1. Tags OSM specifiques generes par Groq
       osmTags.forEach(t => {
         parts.push(`node["${t.key}"="${t.value}"](around:${rayonM},${pos.lat},${pos.lon});`)
         parts.push(`way["${t.key}"="${t.value}"](around:${rayonM},${pos.lat},${pos.lon});`)
       })
-      // Mots-cles dans le nom
+
+      // 2. Recherche par mots-cles dans le nom (avec et sans accents)
       if (osmKeywords.length > 0) {
-        const kw = osmKeywords.map(k => k.replace(/[^a-zA-Z0-9]/g, '')).filter(Boolean).join('|')
-        if (kw) {
-          parts.push(`node["name"~"${kw}",i](around:${rayonM},${pos.lat},${pos.lon});`)
-          parts.push(`way["name"~"${kw}",i](around:${rayonM},${pos.lat},${pos.lon});`)
+        const kwSet = new Set<string>()
+        osmKeywords.forEach(k => {
+          const kl = k.trim().toLowerCase()
+          if (kl.length > 2) {
+            kwSet.add(kl)
+            const stripped = kl.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            if (stripped !== kl) kwSet.add(stripped)
+          }
+        })
+        const escaped = [...kwSet].map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+        if (escaped.length > 0) {
+          const regex = escaped.join('|')
+          parts.push(`node["name"~"${regex}",i](around:${rayonM},${pos.lat},${pos.lon});`)
+          parts.push(`way["name"~"${regex}",i](around:${rayonM},${pos.lat},${pos.lon});`)
         }
       }
-      // Si pas de prompt, recherche generale
-      if (parts.length === 0) {
-        ;['shop','amenity','craft','office'].forEach(tag => {
-          parts.push(`node["${tag}"]["name"](around:${rayonM},${pos.lat},${pos.lon});`)
-          parts.push(`way["${tag}"]["name"](around:${rayonM},${pos.lat},${pos.lon});`)
-        })
-      }
+
+      // 3. Toujours ajouter une recherche generale (rayon limite a 15km)
+      const rayonGen = Math.min(rayonM, 15000)
+      ;['shop','craft','amenity','office'].forEach(tag => {
+        parts.push(`node["${tag}"]["name"](around:${rayonGen},${pos.lat},${pos.lon});`)
+        parts.push(`way["${tag}"]["name"](around:${rayonGen},${pos.lat},${pos.lon});`)
+      })
+
       const query = `[out:json][timeout:30];\n(\n${parts.join('\n')}\n);\nout center;`
-      const mirrors = ['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter']
+      const body = 'data=' + encodeURIComponent(query)
+
+      const mirrors = [
+        'https://overpass-api.de/api/interpreter',
+        'https://overpass.kumi.systems/api/interpreter',
+        'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+      ]
       let elements: any[] = []
+      let success = false
       for (const url of mirrors) {
         try {
-          const res = await fetch(url, { method: 'POST', body: query })
-          if (res.ok) { const d = await res.json(); elements = d.elements || []; break }
+          const ctrl = new AbortController()
+          const t = setTimeout(() => ctrl.abort(), 28000)
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body,
+            signal: ctrl.signal
+          })
+          clearTimeout(t)
+          if (res.ok) {
+            const d = await res.json()
+            elements = d.elements || []
+            success = true
+            break
+          }
         } catch { continue }
       }
+
+      if (!success) {
+        showMsg('Service cartographique inaccessible. Verifie ta connexion et reessaie.', 'error')
+        return
+      }
+
+      // 4. Normaliser les keywords pour le scoring
+      const kwNorm = osmKeywords.map(k => k.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''))
+
       const nomsSet = new Set(nomsConnus)
-      const results: Resultat[] = elements
+      const results: (Resultat & {_score: number})[] = elements
         .filter((e: any) => e.tags?.name)
         .map((e: any) => {
           const elat = e.lat ?? e.center?.lat
@@ -125,8 +168,12 @@ export default function ProspectionPage() {
           if (!elat || !elon) return null
           if (nomsSet.has(normaliserLocal(e.tags.name))) return null
           const cat = e.tags.craft || e.tags.shop || e.tags.amenity || e.tags.office || 'entreprise'
+          const haystack = normaliserLocal(e.tags.name + ' ' + cat)
+          const score = kwNorm.filter(k => haystack.includes(k)).length
           return {
-            id: `osm_${e.type}_${e.id}`, nom: e.tags.name, type: cat,
+            id: `osm_${e.type}_${e.id}`,
+            nom: e.tags.name,
+            type: cat,
             lat: elat, lon: elon,
             adresse: [e.tags['addr:housenumber'], e.tags['addr:street']].filter(Boolean).join(' ') || undefined,
             ville: e.tags['addr:city'] || e.tags['addr:town'] || e.tags['addr:village'] || undefined,
@@ -134,13 +181,17 @@ export default function ProspectionPage() {
             phone: e.tags.phone || e.tags['contact:phone'] || undefined,
             website: e.tags.website || e.tags['contact:website'] || undefined,
             distance: haversineLocal(pos.lat, pos.lon, elat, elon),
-            source: 'osm' as const
+            source: 'osm' as const,
+            _score: score
           }
         })
-        .filter(Boolean) as Resultat[]
-      results.sort((a, b) => a.distance - b.distance)
+        .filter(Boolean) as (Resultat & {_score: number})[]
+
+      // Trier : keyword matches d'abord, puis par distance
+      results.sort((a, b) => (b._score - a._score) || (a.distance - b.distance))
+
       setNouveaux(results)
-      if (results.length === 0) showMsg('Aucun nouveau prospect trouv\u00e9 dans ce rayon. Essayez un rayon plus grand.', 'error')
+      if (results.length === 0) showMsg('Aucun nouveau prospect dans ce rayon via OpenStreetMap.', 'error')
       else setOnglet('nouveaux')
     } catch (e: any) {
       showMsg('Erreur Overpass : ' + e.message, 'error')
@@ -187,6 +238,7 @@ export default function ProspectionPage() {
       if (!res.ok) throw new Error(await res.text())
       const data = await res.json()
       setExistants(data.existants || [])
+      setGroqKeywords(data.osmKeywords || [])
       setOnglet('nouveaux')
       // Appel Overpass depuis le navigateur (pas de blocage serveur)
       rechercherOSM(position, rayon, data.osmTags || [], data.osmKeywords || [], data.nomsConnus || [])
@@ -316,14 +368,17 @@ export default function ProspectionPage() {
     }
   }, [position, existants, nouveaux, rayon, selected])
 
-  // Filtrage client-side de la base par prompt
+  // Filtrage semantique : utilise les keywords Groq si disponibles, sinon le prompt brut
   const existantsFiltres = (() => {
     if (!prompt.trim()) return existants
-    const mots = normaliserLocal(prompt).split(/\s+/).filter(m => m.length > 2)
-    if (mots.length === 0) return existants
+    // Preferer les keywords semantiques de Groq (ex: "biere" -> ["brasserie","brewery","malterie"...])
+    const termes = groqKeywords.length > 0
+      ? groqKeywords.map(k => normaliserLocal(k)).filter(m => m.length > 2)
+      : normaliserLocal(prompt).split(/\s+/).filter(m => m.length > 2)
+    if (termes.length === 0) return existants
     return existants.filter(r => {
       const h = normaliserLocal([r.nom, r.entreprise, r.secteur, r.ville, r.type].filter(Boolean).join(' '))
-      return mots.some(m => h.includes(m))
+      return termes.some(m => h.includes(m))
     })
   })()
 
