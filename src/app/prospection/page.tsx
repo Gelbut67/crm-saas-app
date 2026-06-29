@@ -114,32 +114,60 @@ export default function ProspectionPage() {
         }
       }
 
-      // 3. Toujours ajouter une recherche generale (rayon limite a 15km)
-      const rayonGen = Math.min(rayonM, 15000)
-      ;['shop','craft','amenity','office'].forEach(tag => {
-        parts.push(`node["${tag}"]["name"](around:${rayonGen},${pos.lat},${pos.lon});`)
-        parts.push(`way["${tag}"]["name"](around:${rayonGen},${pos.lat},${pos.lon});`)
-      })
-
-      const query = `[out:json][timeout:28];\n(\n${parts.join('\n')}\n);\nout center;`
-
-      // Appel via proxy serveur (evite blocages CORS/reseau navigateur)
-      const proxyRes = await fetch('/api/prospection/overpass', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query })
-      })
-
-      if (!proxyRes.ok) {
-        showMsg('Erreur serveur lors de la recherche cartographique.', 'error')
-        return
+      // Si pas de prompt : ajouter recherche generale legere (2km seulement)
+      if (osmTags.length === 0 && osmKeywords.length === 0) {
+        const rayonGen = Math.min(rayonM, 2000)
+        ;['shop','craft','amenity'].forEach(tag => {
+          parts.push(`node["${tag}"]["name"](around:${rayonGen},${pos.lat},${pos.lon});`)
+          parts.push(`way["${tag}"]["name"](around:${rayonGen},${pos.lat},${pos.lon});`)
+        })
       }
-      const osmData = await proxyRes.json()
-      const elements: any[] = osmData.elements || []
 
-      if (osmData.error && elements.length === 0) {
-        showMsg('Service cartographique indisponible. Reessayez.', 'error')
-        return
+      // Limiter les resultats pour eviter timeout
+      const query = `[out:json][timeout:20];\n(\n${parts.join('\n')}\n);\nout 150 center;`
+
+      // Tentative 1 : proxy serveur
+      let elements: any[] = []
+      let gotResults = false
+      try {
+        const proxyRes = await fetch('/api/prospection/overpass', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query })
+        })
+        if (proxyRes.ok) {
+          const osmData = await proxyRes.json()
+          if (osmData.ok && osmData.elements?.length > 0) {
+            elements = osmData.elements
+            gotResults = true
+          }
+        }
+      } catch { /* continue to fallback */ }
+
+      // Tentative 2 : appel direct navigateur (GET)
+      if (!gotResults) {
+        const mirrors = [
+          'https://overpass-api.de/api/interpreter',
+          'https://overpass.kumi.systems/api/interpreter',
+        ]
+        for (const url of mirrors) {
+          try {
+            const ctrl = new AbortController()
+            const t = setTimeout(() => ctrl.abort(), 25000)
+            const res = await fetch(`${url}?data=${encodeURIComponent(query)}`, { signal: ctrl.signal })
+            clearTimeout(t)
+            if (res.ok) {
+              const d = await res.json()
+              elements = d.elements || []
+              gotResults = true
+              break
+            }
+          } catch { continue }
+        }
+      }
+
+      if (!gotResults && elements.length === 0) {
+        showMsg('Aucun resultat cartographique. Verifiez votre connexion ou agrandissez le rayon.', 'error')
       }
 
       // 4. Normaliser les keywords pour le scoring

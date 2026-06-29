@@ -16,10 +16,33 @@ function normaliser(s: string): string {
   return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }
 
+const SEMANTIC_FALLBACK: Record<string, string[]> = {
+  miel: ['miel','honey','apiculteur','apiculture','ruche','miellerie','apicole','abeille','beekeeper','propolis'],
+  apiculteur: ['apiculteur','apiculture','miel','honey','ruche','miellerie','apicole','abeille','beekeeper'],
+  biere: ['biere','beer','brasserie','brasseur','brewery','houblon','malt','malterie','ale','lager','craft'],
+  brasserie: ['brasserie','brasseur','biere','beer','brewery','houblon','malt','microbrasserie'],
+  vin: ['vin','wine','vigneron','vignoble','cave','winery','domaine','chateau','caviste','viticulture'],
+  vigneron: ['vigneron','vignoble','vin','wine','cave','winery','domaine','viticulture'],
+  fromage: ['fromage','fromager','fromagerie','cheese','laiterie','lait','dairy'],
+  ferme: ['ferme','farm','agriculteur','agriculture','maraicher','eleveur','paysan','bio'],
+  boulanger: ['boulanger','boulangerie','pain','bakery','patisserie','artisan','levain'],
+  boucher: ['boucher','boucherie','viande','charcutier','charcuterie','butcher','carnivore'],
+  restaurant: ['restaurant','brasserie','bistrot','cafe','eatery','traiteur','cuisine','gastronomie'],
+  epicerie: ['epicerie','superette','alimentation','grocery','commerce'],
+  charcutier: ['charcutier','charcuterie','boucher','boucherie','viande','jambon','saucisse'],
+  chocolatier: ['chocolatier','chocolaterie','chocolate','confiseur','confiserie','patisserie'],
+  poissonnier: ['poissonnier','poissonnerie','poisson','fish','fruits de mer','seafood'],
+}
+
 async function genererTagsOSM(prompt: string): Promise<{ tags: {key:string,value:string}[], keywords: string[] }> {
   if (!prompt.trim()) return { tags: [], keywords: [] }
+
+  // Fallback semantique local (sans Groq)
+  const promptNorm = prompt.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim()
+  const fallbackKws = SEMANTIC_FALLBACK[promptNorm] || prompt.split(/\s+/).filter((w: string) => w.length > 2)
+
   if (!process.env.GROQ_API_KEY) {
-    return { tags: [], keywords: prompt.split(/\s+/).filter((w: string) => w.length > 2) }
+    return { tags: [], keywords: fallbackKws }
   }
   try {
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {

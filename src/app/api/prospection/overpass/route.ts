@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { getAuthSession } from '@/lib/auth'
 
 export const maxDuration = 55
@@ -6,7 +6,7 @@ export const maxDuration = 55
 const MIRRORS = [
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
-  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+  'https://lz4.overpass-api.de/api/interpreter',
 ]
 
 export async function POST(request: NextRequest) {
@@ -20,24 +20,23 @@ export async function POST(request: NextRequest) {
     for (const url of MIRRORS) {
       try {
         const ctrl = new AbortController()
-        const t = setTimeout(() => ctrl.abort(), 25000)
-        // GET avec data= est le mode le plus fiable pour Overpass
-        const res = await fetch(`${url}?data=${encodeURIComponent(query)}`, { signal: ctrl.signal })
+        const t = setTimeout(() => ctrl.abort(), 22000)
+        const encoded = encodeURIComponent(query)
+        const res = await fetch(`${url}?data=${encoded}`, { signal: ctrl.signal })
         clearTimeout(t)
         if (res.ok) {
           const data = await res.json()
-          console.log('[overpass proxy]', url, '->', data.elements?.length, 'elements')
-          return NextResponse.json(data)
+          console.log('[overpass proxy]', url, '->', data.elements?.length ?? 0, 'elements')
+          return NextResponse.json({ elements: data.elements || [], ok: true })
         }
-        console.warn('[overpass proxy] non-ok', url, res.status)
+        console.warn('[overpass proxy] status', res.status, url)
       } catch (e: any) {
-        console.warn('[overpass proxy] error', url, e?.message?.slice(0, 80))
+        console.warn('[overpass proxy] error', url, e?.message?.slice(0, 60))
       }
     }
 
-    return NextResponse.json({ elements: [], error: 'all mirrors failed' })
+    return NextResponse.json({ elements: [], ok: false, error: 'mirrors_failed' })
   } catch (e: any) {
-    console.error('[overpass proxy] fatal', e)
-    return NextResponse.json({ elements: [], error: e.message }, { status: 500 })
+    return NextResponse.json({ elements: [], ok: false, error: e.message }, { status: 500 })
   }
 }
