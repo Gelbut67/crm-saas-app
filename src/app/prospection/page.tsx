@@ -127,7 +127,7 @@ export default function ProspectionPage() {
         })
       })
       if (!res.ok) throw new Error(await res.text())
-      setAjoutsOk(prev => new Set([...prev, r.id]))
+      setAjoutsOk(prev => { const next = new Set(prev); next.add(r.id); return next })
       showMsg(`${r.nom} ajouté comme prospect ✓`)
     } catch (e: any) {
       showMsg('Erreur : ' + (e as any).message, 'error')
