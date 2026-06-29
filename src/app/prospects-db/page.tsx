@@ -5,7 +5,7 @@ import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Search, Edit, Trash2, Eye, Phone, Mail, Building, Users, TrendingUp, UserPlus, User, MapPin } from "lucide-react"
+import { Plus, Search, Edit, Trash2, Eye, Phone, Mail, Building, Users, TrendingUp, UserPlus, User, MapPin, Globe } from "lucide-react"
 import { useProspects, useClients } from "@/hooks/useDatabase"
 import { useProspectFilters } from "@/hooks/useProspectFilters"
 import { AdvancedFilters } from "@/components/advanced-filters"
@@ -132,9 +132,15 @@ export default function ProspectsDBPage() {
               Gérez vos prospects et convertissez-les en clients
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <ExportButton type="prospects" data={exportData} />
             <ImportButton type="prospects" />
+            <Button variant="outline" asChild>
+              <Link href="/prospects-db/from-url">
+                <Globe className="w-4 h-4 mr-2" />
+                Importer depuis un site
+              </Link>
+            </Button>
             <Button asChild>
               <Link href="/prospects-db/new">
                 <Plus className="w-4 h-4 mr-2" />
