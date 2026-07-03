@@ -39,7 +39,7 @@
     "next-auth": "^4.24.7",
     "next-pwa": "^2.0.2",
     "next-themes": "^0.2.1",
-    "nodemailer": "^9.0.3",
+    "nodemailer": "^7.0.13",
     "prisma": "^5.10.0",
     "react": "^18",
     "react-dom": "^18",
