@@ -11,6 +11,7 @@ import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 import { Interactions } from "@/components/interactions"
 import { ClientReminders } from "@/components/client-reminders"
+import { EmailComposer } from "@/components/email-composer"
 
 export default function ProspectDetailPage() {
   const params = useParams()
@@ -120,11 +121,16 @@ export default function ProspectDetailPage() {
               </div>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button onClick={convertToClient} disabled={converting}>
               <UserPlus className="w-4 h-4 mr-2" />
               {converting ? 'Conversion...' : 'Convertir en client'}
             </Button>
+            <EmailComposer
+              clientId={prospect.id}
+              defaultTo={prospect.email || prospect.contacts?.find((c: any) => c.isPrincipal)?.email || prospect.contacts?.[0]?.email}
+              onSent={() => loadProspect()}
+            />
             <Button variant="outline" asChild>
               <Link href={`/prospects-db/${prospect.id}/edit`}>
                 <Edit className="w-4 h-4 mr-2" />

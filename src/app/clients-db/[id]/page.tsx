@@ -11,6 +11,7 @@ import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 import { Interactions } from "@/components/interactions"
 import { ClientReminders } from "@/components/client-reminders"
+import { EmailComposer } from "@/components/email-composer"
 
 export default function ClientDetailPage() {
   const params = useParams()
@@ -113,13 +114,18 @@ export default function ClientDetailPage() {
               </div>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button asChild>
               <Link href={`/devis-db/new?clientId=${client.id}`}>
                 <Plus className="w-4 h-4 mr-2" />
                 Nouveau devis
               </Link>
             </Button>
+            <EmailComposer
+              clientId={client.id}
+              defaultTo={client.email || client.contacts?.find((c: any) => c.isPrincipal)?.email || client.contacts?.[0]?.email}
+              onSent={() => loadClient()}
+            />
             <Button variant="outline" asChild>
               <Link href={`/clients-db/${client.id}/edit`}>
                 <Edit className="w-4 h-4 mr-2" />

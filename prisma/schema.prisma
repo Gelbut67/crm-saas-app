@@ -23,6 +23,7 @@ model User {
   settings      Settings[]
   reminders    Reminder[]
   tournees     Tournee[]
+  emailAccounts EmailAccount[]
 
   @@map("users")
 }
@@ -53,6 +54,7 @@ model Client {
   devis          Devis[]
   reminders      Reminder[]
   tourneeVisites TourneeVisite[]
+  emailLogs      EmailLog[]
   
   @@map("clients")
 }
@@ -183,4 +185,54 @@ model TourneeVisite {
   createdAt     DateTime @default(now())
 
   @@map("tournee_visites")
+}
+
+model EmailAccount {
+  id          String    @id @default(cuid())
+  userId      String
+  label       String
+  fromEmail   String
+  fromName    String?
+  smtpHost    String
+  smtpPort    Int
+  smtpUser    String
+  smtpPass    String
+  smtpSecure  Boolean   @default(true)
+  imapHost    String?
+  imapPort    Int?
+  imapUser    String?
+  imapPass    String?
+  imapSecure  Boolean?  @default(true)
+  isDefault   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  emails      EmailLog[]
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("email_accounts")
+}
+
+model EmailLog {
+  id            String        @id @default(cuid())
+  userId        String
+  accountId     String?
+  clientId      String?
+  contactId     String?
+  direction     String        // outbound, inbound
+  subject       String
+  body          String        @db.Text
+  to            String
+  fromEmail     String
+  status        String        @default("draft") // draft, sent, received, failed
+  aiGenerated   Boolean       @default(false)
+  aiPrompt      String?       @db.Text
+  errorMessage  String?
+  sentAt        DateTime?
+  createdAt     DateTime      @default(now())
+
+  account       EmailAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  client        Client?       @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  @@map("email_logs")
 }
