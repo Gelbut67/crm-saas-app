@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -19,11 +19,7 @@ export default function ProspectDetailPage() {
   const [loading, setLoading] = useState(true)
   const [converting, setConverting] = useState(false)
 
-  useEffect(() => {
-    loadProspect()
-  }, [params.id])
-
-  const loadProspect = async () => {
+  const loadProspect = useCallback(async () => {
     try {
       const response = await fetch(`/api/prospects/${params.id}`)
       if (response.ok) {
@@ -35,7 +31,11 @@ export default function ProspectDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [params.id])
+
+  useEffect(() => {
+    loadProspect()
+  }, [loadProspect])
 
   const convertToClient = async () => {
     setConverting(true)

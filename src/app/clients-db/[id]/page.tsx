@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -18,11 +18,7 @@ export default function ClientDetailPage() {
   const [client, setClient] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    loadClient()
-  }, [params.id])
-
-  const loadClient = async () => {
+  const loadClient = useCallback(async () => {
     try {
       const response = await fetch(`/api/clients/${params.id}`)
       if (response.ok) {
@@ -34,7 +30,11 @@ export default function ClientDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [params.id])
+
+  useEffect(() => {
+    loadClient()
+  }, [loadClient])
 
   const getStatutBadge = (statut: string) => {
     switch (statut) {

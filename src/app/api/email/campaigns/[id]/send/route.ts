@@ -22,6 +22,11 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       }
     })
 
+    const signatureSetting = await prisma.settings.findFirst({
+      where: { userId: session.user.id, key: 'signatureEmail' }
+    })
+    const signature = signatureSetting?.value || ''
+
     if (!campaign) return NextResponse.json({ error: 'Campagne introuvable' }, { status: 404 })
 
     const account = await prisma.emailAccount.findFirst({
@@ -60,14 +65,21 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       if (process.env.GROQ_API_KEY) {
         try {
           const ctx = [
-            `Tu es un commercial B2B. Rédige un email personnalisé en français.`,
+            `Tu es un commercial B2B senior. Rédige un email professionnel, personnalisé et bien développé en français (250 à 450 mots).`,
             `Destinataire : ${nom}`,
             `Entreprise : ${entreprise}`,
             `Secteur : ${secteur}`,
             `Ville : ${ville}`,
             `Sujet demandé : ${campaign.subject}`,
             `Instructions : ${campaign.prompt}`,
-            `Règles : email professionnel, 3-5 paragraphes, personnalisé, appel à l'action clair.`,
+            `STRUCTURE OBLIGATOIRE :`,
+            `1. Accroche personnalisée : mentionne l'entreprise, le secteur ou la ville.`,
+            `2. Contexte : pourquoi tu écris (problème, opportunité, actualité).`,
+            `3. Proposition de valeur : 2 à 3 bénéfices concrets, chiffrés si possible.`,
+            `4. Crédibilité : une phrase montrant que tu connais le marché ou que tu as accompagné des entreprises similaires.`,
+            `5. Appel à l'action clair.`,
+            `6. Formule de politesse + signature : ${signature || 'Cordialement, [ton nom]'}`,
+            `RÈGLES : ton professionnel et chaleureux, pas de formule creuse, pas d'emoji, un seul appel à l'action.`,
             `Réponds UNIQUEMENT avec JSON : {"objet":"","corps":""}`
           ].join('\n')
 
@@ -78,7 +90,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
               model: 'llama-3.3-70b-versatile',
               messages: [{ role: 'user', content: ctx }],
               response_format: { type: 'json_object' },
-              temperature: 0.7
+              temperature: 0.65,
+              max_tokens: 4096
             })
           })
           if (res.ok) {

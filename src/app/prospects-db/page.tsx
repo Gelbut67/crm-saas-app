@@ -35,7 +35,7 @@ export default function ProspectsDBPage() {
       }
     }
     fetchConvertedCount()
-  }, [prospects, clients])
+  }, [prospects, clients, setTotalConverted])
 
   // Calculer les statistiques
   const totalProspectsAndConverted = prospects.length + totalConverted

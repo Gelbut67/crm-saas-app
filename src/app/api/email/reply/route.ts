@@ -29,23 +29,35 @@ export async function POST(request: NextRequest) {
     const contact = client?.contacts?.find(c => c.isPrincipal) || client?.contacts?.[0]
     const nomContact = contact?.nom || client?.nom || client?.entreprise || 'Madame, Monsieur'
     const entreprise = client?.entreprise || client?.nom || ''
+    const secteur = client?.secteur || ''
     const originalText = original?.body || originalBody || ''
     const originalSubject = original?.subject || subject || 'RE: ...'
     const dest = to || original?.fromEmail || client?.email || contact?.email
 
     if (!dest) return NextResponse.json({ error: 'Destinataire inconnu' }, { status: 400 })
 
+    const signatureSetting = await prisma.settings.findFirst({
+      where: { userId: session.user.id, key: 'signatureEmail' }
+    })
+    const signature = signatureSetting?.value || ''
+
     let replyBody = ''
 
     if (process.env.GROQ_API_KEY) {
       const ctx = [
-        `Tu réponds à un email professionnel en français.`,
+        `Tu réponds à un email professionnel en français. Rédige une réponse complète, structurée et utile (150 à 300 mots).`,
         `Destinataire : ${nomContact} ${entreprise ? `(${entreprise})` : ''}`,
+        `Secteur : ${secteur}`,
         `Sujet original : ${originalSubject}`,
         `Email reçu :`,
-        originalText.slice(0, 2000),
-        `\nInstructions du commercial : ${prompt || 'Réponds de manière professionnelle et concise.'}`,
-        `\nRègles : réponse courte, 2-4 paragraphes, ton professionnel, citation du contexte si pertinent, signature simple.`,
+        originalText.slice(0, 2500),
+        `\nInstructions du commercial : ${prompt || 'Réponds de manière professionnelle, structurée et utile, en citant les points clés du message original.'}`,
+        `\nSTRUCTURE DE LA RÉPONSE :`,
+        `1. Accuse réception et reformule la demande du client en 1 phrase.`,
+        `2. Apporte une réponse concrète, personnalisée et argumentée.`,
+        `3. Si pertinent, propose la suite / un rendez-vous / une démo.`,
+        `4. Formule de politesse + signature : ${signature || 'Cordialement, [ton nom]'}`,
+        `\nRÈGLES : ton professionnel et chaleureux, pas de formule creuse, pas d'emoji, un seul appel à l'action.`,
         `Réponds UNIQUEMENT avec ce JSON : {"objet":"","corps":""}`
       ].join('\n')
 
@@ -56,7 +68,8 @@ export async function POST(request: NextRequest) {
           model: 'llama-3.3-70b-versatile',
           messages: [{ role: 'user', content: ctx }],
           response_format: { type: 'json_object' },
-          temperature: 0.6
+          temperature: 0.6,
+          max_tokens: 4096
         })
       })
       if (res.ok) {
@@ -67,7 +80,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!replyBody) {
-      replyBody = `Bonjour ${nomContact},\n\nMerci pour votre retour. Je vous réponds dans les plus brefs délais.\n\nCordialement,`
+      replyBody = `Bonjour ${nomContact},\n\nMerci pour votre retour. J'ai bien pris note de votre demande et je reviens vers vous très rapidement avec une réponse détaillée.\n\nN'hésitez pas si vous avez des précisions à apporter d'ici là.\n\n${signature || 'Cordialement,'}`
     }
 
     const finalSubject = `RE: ${originalSubject.replace(/^RE:\s*/i, '')}`

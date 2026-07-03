@@ -38,25 +38,22 @@ export default function EditClientPage() {
   const [contactsToDelete, setContactsToDelete] = useState<string[]>([])
 
   useEffect(() => {
-    loadClient()
-  }, [params.id])
-
-  const loadClient = async () => {
-    try {
-      const response = await fetch(`/api/clients/${params.id}`)
-      if (response.ok) {
-        const client = await response.json()
-        setFormData({
-          entreprise: client.entreprise || "",
-          secteur: client.secteur || "",
-          adresse: client.adresse || "",
-          codePostal: client.codePostal || "",
-          ville: client.ville || "",
-          departement: client.departement || "",
-        })
-        
-        if (client.contacts && client.contacts.length > 0) {
-          setContacts(client.contacts.map((c: any) => ({
+    const loadClient = async () => {
+      try {
+        const response = await fetch(`/api/clients/${params.id}`)
+        if (response.ok) {
+          const client = await response.json()
+          setFormData({
+            entreprise: client.entreprise || "",
+            secteur: client.secteur || "",
+            adresse: client.adresse || "",
+            codePostal: client.codePostal || "",
+            ville: client.ville || "",
+            departement: client.departement || "",
+          })
+          
+          if (client.contacts && client.contacts.length > 0) {
+            setContacts(client.contacts.map((c: any) => ({
             id: c.id,
             nom: c.nom || "",
             email: c.email || "",
@@ -76,6 +73,9 @@ export default function EditClientPage() {
       setLoading(false)
     }
   }
+
+  loadClient()
+  }, [params.id])
 
   const handleAddContact = () => {
     setContacts([...contacts, { nom: "", email: "", telephone: "", telephoneFixe: "", telephonePortable: "", poste: "", isPrincipal: false }])

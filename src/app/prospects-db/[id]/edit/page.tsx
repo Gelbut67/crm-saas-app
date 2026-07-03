@@ -38,44 +38,44 @@ export default function EditProspectPage() {
   const [contactsToDelete, setContactsToDelete] = useState<string[]>([])
 
   useEffect(() => {
+    const loadProspect = async () => {
+      try {
+        const response = await fetch(`/api/prospects/${params.id}`)
+        if (response.ok) {
+          const prospect = await response.json()
+          setFormData({
+            entreprise: prospect.entreprise || "",
+            secteur: prospect.secteur || "",
+            adresse: prospect.adresse || "",
+            codePostal: prospect.codePostal || "",
+            ville: prospect.ville || "",
+            departement: prospect.departement || "",
+          })
+          
+          if (prospect.contacts && prospect.contacts.length > 0) {
+            setContacts(prospect.contacts.map((c: any) => ({
+              id: c.id,
+              nom: c.nom || "",
+              email: c.email || "",
+              telephone: c.telephone || "",
+              telephoneFixe: c.telephoneFixe || "",
+              telephonePortable: c.telephonePortable || "",
+              poste: c.poste || "",
+              isPrincipal: c.isPrincipal || false,
+            })))
+          } else {
+            setContacts([{ nom: "", email: "", telephone: "", telephoneFixe: "", telephonePortable: "", poste: "", isPrincipal: true }])
+          }
+        }
+      } catch (error) {
+        console.error('Erreur:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
     loadProspect()
   }, [params.id])
-
-  const loadProspect = async () => {
-    try {
-      const response = await fetch(`/api/prospects/${params.id}`)
-      if (response.ok) {
-        const prospect = await response.json()
-        setFormData({
-          entreprise: prospect.entreprise || "",
-          secteur: prospect.secteur || "",
-          adresse: prospect.adresse || "",
-          codePostal: prospect.codePostal || "",
-          ville: prospect.ville || "",
-          departement: prospect.departement || "",
-        })
-        
-        if (prospect.contacts && prospect.contacts.length > 0) {
-          setContacts(prospect.contacts.map((c: any) => ({
-            id: c.id,
-            nom: c.nom || "",
-            email: c.email || "",
-            telephone: c.telephone || "",
-            telephoneFixe: c.telephoneFixe || "",
-            telephonePortable: c.telephonePortable || "",
-            poste: c.poste || "",
-            isPrincipal: c.isPrincipal || false,
-          })))
-        } else {
-          setContacts([{ nom: "", email: "", telephone: "", telephoneFixe: "", telephonePortable: "", poste: "", isPrincipal: true }])
-        }
-      }
-    } catch (error) {
-      console.error('Erreur:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleAddContact = () => {
     setContacts([...contacts, { nom: "", email: "", telephone: "", telephoneFixe: "", telephonePortable: "", poste: "", isPrincipal: false }])

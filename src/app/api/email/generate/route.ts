@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getAuthSession } from '@/lib/auth'
 
-export const maxDuration = 30
+export const maxDuration = 45
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,12 +24,30 @@ export async function POST(request: NextRequest) {
     const secteur = client.secteur || ''
     const ville = client.ville || ''
 
-    const systemPrompt = `Tu es un commercial B2B expert. Tu rédiges un email professionnel en français, chaleureux mais pas trop familier, destiné à un prospect ou client.\n\nInfos du destinataire :\n- Nom contact : ${nomContact}\n- Entreprise : ${entreprise}\n- Secteur : ${secteur}\n- Ville : ${ville}\n\n${contexte ? `Contexte / historique :\n${contexte}\n\n` : ''}${prompt ? `Instructions spécifiques du commercial :\n${prompt}\n\n` : ''}Objet demandé : ${object || 'Prise de contact'}\n\nRègles :\n1. Email court (3-5 paragraphes max)\n2. Personnalisé avec le nom/entreprise/secteur/ville quand c'est pertinent\n3. Pas de formules trop génériques comme "j'espère que vous allez bien"\n4. Proposition de valeur claire\n5. Appel à l'action simple\n6. Signe avec le prénom/nom du commercial si possible, sinon "Cordialement"\n\nRéponds UNIQUEMENT avec ce JSON :\n{"objet":"","corps":""}`
+    const signatureSetting = await prisma.settings.findFirst({
+      where: { userId: session.user.id, key: 'signatureEmail' }
+    })
+    const signature = signatureSetting?.value || ''
+
+    const systemPrompt = `Tu es un commercial B2B senior. Rédige un email professionnel en français, percutant, personnalisé et bien développé (entre 250 et 450 mots).\n\nINFOS DESTINATAIRE :\n- Nom contact : ${nomContact}\n- Entreprise : ${entreprise}\n- Secteur d'activité : ${secteur}\n- Ville : ${ville}\n\n${contexte ? `CONTEXTE / HISTORIQUE :\n${contexte}\n\n` : ''}${prompt ? `INSTRUCTIONS DU COMMERCIAL :\n${prompt}\n\n` : ''}OBJET SUGGÉRÉ : ${object || 'Prise de contact'}\n\nSTRUCTURE OBLIGATOIRE DE L'EMAIL :\n1. Accroche personnalisée : mentionne l'entreprise, le secteur ou la ville du contact pour montrer que l'email n'est pas un spam.\n2. Présentation du contexte : pourquoi tu écris aujourd'hui (problème, opportunité, actualité).\n3. Proposition de valeur détaillée : 2 à 3 bénéfices concrets, chiffrés si possible, adaptés au secteur.\n4. Preuve / crédibilité : une phrase montrant que tu connais le marché ou que tu as déjà accompagné des entreprises similaires.\n5. Appel à l'action clair : propose un rendez-vous, un appel, une démo, ou demande une réponse simple.\n6. Formule de politesse + signature.\n\nRÈGLES DE TON :\n- Ton professionnel, chaleureux et confiant, sans être familier.\n- Évite les formules creuses : "J'espère que vous allez bien", "Je me permets de vous contacter".\n- N'utilise pas de jargon inutile.\n- Un seul appel à l'action.\n- Pas d'emoji.\n- Signature : ${signature || 'Cordialement, [ton nom]'}\n\nRéponds UNIQUEMENT avec ce JSON exact :\n{"objet":"","corps":""}`
 
     if (!process.env.GROQ_API_KEY) {
+      const fallbackLines = [
+        `Bonjour ${nomContact},`,
+        '',
+        `Je vous écris car ${entreprise || 'votre entreprise'} opère dans le secteur ${secteur || 'de l activité'} et je pense que notre offre peut vous apporter une vraie valeur ajoutée.`,
+        '',
+        `Nous accompagnons des entreprises similaires sur ${ville || 'votre région'} pour optimiser leur développement commercial et gagner du temps au quotidien. Grâce à notre solution, nos clients constatent généralement un gain de productivité significatif et une meilleure visibilité sur leurs opportunités.`,
+        '',
+        `Je serais ravi d'échanger quelques minutes avec vous pour comprendre vos enjeux et voir comment nous pourrions collaborer ensemble.`,
+        '',
+        `Etes-vous disponible pour un appel la semaine prochaine ?`,
+        '',
+        signature || 'Cordialement,'
+      ]
       return NextResponse.json({
         objet: object || 'Prise de contact',
-        corps: `Bonjour ${nomContact},\n\nJe me permets de vous contacter au sujet de ${entreprise || 'votre entreprise'}.\n\nCordialement,`
+        corps: fallbackLines.join('\n')
       })
     }
 
@@ -40,7 +58,8 @@ export async function POST(request: NextRequest) {
         model: 'llama-3.3-70b-versatile',
         messages: [{ role: 'user', content: systemPrompt }],
         response_format: { type: 'json_object' },
-        temperature: 0.7
+        temperature: 0.65,
+        max_tokens: 4096
       })
     })
 
