@@ -21,6 +21,7 @@ import {
   Activity,
   Bell,
   Radar,
+  Mail,
 } from "lucide-react"
 import {
   Sidebar,
@@ -93,6 +94,11 @@ export function AppSidebar() {
       name: "Activités",
       href: "/interactions",
       icon: Activity,
+    },
+    {
+      name: "Email",
+      href: "/email/campaigns",
+      icon: Mail,
     },
     {
       name: "Pipeline",

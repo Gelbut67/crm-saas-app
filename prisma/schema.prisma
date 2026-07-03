@@ -24,6 +24,7 @@ model User {
   reminders    Reminder[]
   tournees     Tournee[]
   emailAccounts EmailAccount[]
+  emailCampaigns EmailCampaign[]
 
   @@map("users")
 }
@@ -55,6 +56,7 @@ model Client {
   reminders      Reminder[]
   tourneeVisites TourneeVisite[]
   emailLogs      EmailLog[]
+  campaignRecipients CampaignRecipient[]
   
   @@map("clients")
 }
@@ -219,6 +221,8 @@ model EmailLog {
   accountId     String?
   clientId      String?
   contactId     String?
+  campaignId    String?
+  externalId    String?       // id/messageId du serveur IMAP
   direction     String        // outbound, inbound
   subject       String
   body          String        @db.Text
@@ -231,8 +235,45 @@ model EmailLog {
   sentAt        DateTime?
   createdAt     DateTime      @default(now())
 
-  account       EmailAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
-  client        Client?       @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  account       EmailAccount?  @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  client        Client?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  campaign      EmailCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
 
   @@map("email_logs")
+}
+
+model EmailCampaign {
+  id            String    @id @default(cuid())
+  userId        String
+  name          String
+  subject       String
+  prompt        String    @db.Text
+  status        String    @default("draft") // draft, sending, sent, paused
+  total         Int       @default(0)
+  sent          Int       @default(0)
+  failed        Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sentAt        DateTime?
+
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipients    CampaignRecipient[]
+  emails        EmailLog[]
+
+  @@map("email_campaigns")
+}
+
+model CampaignRecipient {
+  id          String   @id @default(cuid())
+  campaignId  String
+  clientId    String
+  email       String
+  status      String   @default("pending") // pending, sent, failed, skipped
+  sentAt      DateTime?
+  error       String?
+
+  campaign    EmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  client      Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@map("campaign_recipients")
 }
