@@ -98,6 +98,11 @@ function MapBounds({ visites, pointDepart }: TourneeMapProps) {
 }
 
 export function TourneeMap({ visites, pointDepart }: TourneeMapProps) {
+  // Créer les icônes une seule fois avec useMemo (doit être avant tout retour conditionnel)
+  const homeIcon = useMemo(() => createHomeIcon(), [])
+  const fixedIcon = useMemo(() => createFixedIcon(), [])
+  const defaultIcon = useMemo(() => createDefaultIcon(), [])
+
   // Vérifier qu'il y a au moins une visite avec des coordonnées
   const hasValidCoordinates = visites.some(v => v.coordonnees && v.coordonnees.lat && v.coordonnees.lon)
   
@@ -112,11 +117,6 @@ export function TourneeMap({ visites, pointDepart }: TourneeMapProps) {
       </div>
     )
   }
-  
-  // Créer les icônes une seule fois avec useMemo
-  const homeIcon = useMemo(() => createHomeIcon(), [])
-  const fixedIcon = useMemo(() => createFixedIcon(), [])
-  const defaultIcon = useMemo(() => createDefaultIcon(), [])
   
   // Centre par défaut (Paris)
   const defaultCenter: [number, number] = [48.8566, 2.3522]

@@ -32,6 +32,7 @@ export function EmailComposer({ clientId, defaultTo, defaultSubject, defaultBody
   const [subject, setSubject] = useState(defaultSubject || "")
   const [body, setBody] = useState(defaultBody || "")
   const [prompt, setPrompt] = useState("")
+  const [contexte, setContexte] = useState("")
   const [accounts, setAccounts] = useState<{ id: string; label: string; fromEmail: string; isDefault: boolean }[]>([])
   const [accountId, setAccountId] = useState("")
   const [generating, setGenerating] = useState(false)
@@ -75,7 +76,7 @@ export function EmailComposer({ clientId, defaultTo, defaultSubject, defaultBody
           clientId,
           prompt,
           object: subject,
-          contexte: ""
+          contexte
         })
       })
       const data = await res.json()
@@ -120,6 +121,7 @@ export function EmailComposer({ clientId, defaultTo, defaultSubject, defaultBody
         setBody("")
         setSubject("")
         setPrompt("")
+        setContexte("")
         onSent?.()
       }, 1200)
     } catch (e: any) {
@@ -206,6 +208,20 @@ export function EmailComposer({ clientId, defaultTo, defaultSubject, defaultBody
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
               placeholder="Décris ce que tu veux dire dans l'email..."
+              rows={3}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="email-contexte">Contexte / historique (optionnel)</Label>
+              <span className="text-xs text-muted-foreground">Ex: devis N°123 envoyé le 12/06, client intéressé par le pack premium</span>
+            </div>
+            <Textarea
+              id="email-contexte"
+              value={contexte}
+              onChange={e => setContexte(e.target.value)}
+              placeholder="Donne du contexte pour que l'IA personnalise l'email..."
               rows={2}
             />
           </div>
@@ -214,7 +230,7 @@ export function EmailComposer({ clientId, defaultTo, defaultSubject, defaultBody
             type="button"
             variant="secondary"
             onClick={generate}
-            disabled={generating || !subject}
+            disabled={generating || (!subject && !prompt)}
             className="w-full gap-2"
           >
             {generating ? <><Loader2 className="h-4 w-4 animate-spin" /> Génération...</> : <><Sparkles className="h-4 w-4" /> Générer avec l'IA</>}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -34,11 +34,7 @@ export function Interactions({ clientId }: InteractionsProps) {
     date: new Date().toISOString().split('T')[0]
   })
 
-  useEffect(() => {
-    loadInteractions()
-  }, [clientId])
-
-  const loadInteractions = async () => {
+  const loadInteractions = useCallback(async () => {
     try {
       const response = await fetch(`/api/clients/${clientId}/interactions`)
       if (response.ok) {
@@ -50,7 +46,11 @@ export function Interactions({ clientId }: InteractionsProps) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [clientId])
+
+  useEffect(() => {
+    loadInteractions()
+  }, [loadInteractions])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

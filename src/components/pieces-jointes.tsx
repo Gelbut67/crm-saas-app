@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -28,11 +28,7 @@ export function PiecesJointes({ devisId }: PiecesJointesProps) {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [viewingPiece, setViewingPiece] = useState<PieceJointe | null>(null)
 
-  useEffect(() => {
-    loadPieces()
-  }, [devisId])
-
-  const loadPieces = async () => {
+  const loadPieces = useCallback(async () => {
     try {
       const response = await fetch(`/api/devis/${devisId}/pieces-jointes`)
       if (response.ok) {
@@ -44,7 +40,11 @@ export function PiecesJointes({ devisId }: PiecesJointesProps) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [devisId])
+
+  useEffect(() => {
+    loadPieces()
+  }, [loadPieces])
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]

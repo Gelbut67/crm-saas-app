@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Settings, Save, Target, TrendingUp, Home, KeyRound, Eye, EyeOff } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
+import { Settings, Save, Target, TrendingUp, Home, KeyRound, Eye, EyeOff, Mail, PenLine } from "lucide-react"
 
 interface ObjectifsCA {
   mensuel: number
@@ -30,6 +31,8 @@ export default function SettingsPage() {
   const [passwordError, setPasswordError] = useState('')
   const [passwordSuccess, setPasswordSuccess] = useState(false)
   const [savingPassword, setSavingPassword] = useState(false)
+  const [signatureEmail, setSignatureEmail] = useState('')
+  const [savedSignature, setSavedSignature] = useState(false)
 
   const handleChangePassword = async () => {
     setPasswordError('')
@@ -86,8 +89,22 @@ export default function SettingsPage() {
       }
     }
     
+    // Charger la signature email
+    const loadSignature = async () => {
+      try {
+        const response = await fetch('/api/settings?key=signatureEmail')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.value) setSignatureEmail(data.value)
+        }
+      } catch (error) {
+        console.error("Erreur lors du chargement de la signature:", error)
+      }
+    }
+
     loadObjectifs()
     loadAdresse()
+    loadSignature()
   }, [])
 
   const handleSave = async () => {
@@ -115,6 +132,30 @@ export default function SettingsPage() {
       }
     } catch (error) {
       console.error("Erreur lors de la sauvegarde:", error)
+    }
+  }
+
+  const handleSaveSignature = async () => {
+    try {
+      const response = await fetch('/api/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          key: 'signatureEmail',
+          value: signatureEmail
+        })
+      })
+
+      if (response.ok) {
+        setSavedSignature(true)
+        setTimeout(() => setSavedSignature(false), 2000)
+      } else {
+        console.error("Erreur lors de la sauvegarde de la signature")
+      }
+    } catch (error) {
+      console.error("Erreur lors de la sauvegarde de la signature:", error)
     }
   }
 
@@ -296,6 +337,45 @@ export default function SettingsPage() {
               </p>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Mail className="h-5 w-5" />
+            Signature email IA
+          </CardTitle>
+          <CardDescription>
+            Cette signature sera ajoutée automatiquement aux emails générés par l'IA
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="signatureEmail">Signature</Label>
+            <Textarea
+              id="signatureEmail"
+              placeholder="Ex: Cordialement,\nJean Dupont\nBelle Etiquette\n06 12 34 56 78"
+              value={signatureEmail}
+              onChange={(e) => setSignatureEmail(e.target.value)}
+              rows={5}
+            />
+          </div>
+
+          <div className="border-t pt-4">
+            <Button
+              onClick={handleSaveSignature}
+              className="w-full relative"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {savedSignature ? "Sauvegardé !" : "Sauvegarder la signature"}
+              {savedSignature && (
+                <div className="absolute inset-0 flex items-center justify-center bg-green-500 text-white rounded-md">
+                  <PenLine className="h-4 w-4" />
+                </div>
+              )}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
