@@ -118,6 +118,7 @@ export async function PUT(request: NextRequest) {
       host: account.smtpHost,
       port: account.smtpPort,
       secure: account.smtpSecure,
+      tls: { rejectUnauthorized: false },
       auth: { user: account.smtpUser, pass: decrypt(account.smtpPass) }
     })
 

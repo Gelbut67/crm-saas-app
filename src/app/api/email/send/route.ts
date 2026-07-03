@@ -41,6 +41,9 @@ export async function POST(request: NextRequest) {
       host: account.smtpHost,
       port: account.smtpPort,
       secure: account.smtpSecure,
+      tls: {
+        rejectUnauthorized: false,
+      },
       auth: {
         user: account.smtpUser,
         pass: decrypt(account.smtpPass),
