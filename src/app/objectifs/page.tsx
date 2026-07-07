@@ -49,12 +49,18 @@ interface SemaineHistorique {
   items: ObjectifItem[]
 }
 
+function toLocalDate(utcDate: Date): Date {
+  return new Date(utcDate.getUTCFullYear(), utcDate.getUTCMonth(), utcDate.getUTCDate())
+}
+
 function formatSemaine(weekStart: Date): string {
   const fin = getDimancheSemaine(weekStart)
-  if (weekStart.getMonth() === fin.getMonth()) {
-    return `${format(weekStart, 'd', { locale: fr })} - ${format(fin, 'd MMMM yyyy', { locale: fr })}`
+  const debut = toLocalDate(weekStart)
+  const finLocal = toLocalDate(fin)
+  if (debut.getMonth() === finLocal.getMonth()) {
+    return `${format(debut, 'd', { locale: fr })} - ${format(finLocal, 'd MMMM yyyy', { locale: fr })}`
   }
-  return `${format(weekStart, 'd MMM', { locale: fr })} - ${format(fin, 'd MMMM yyyy', { locale: fr })}`
+  return `${format(debut, 'd MMM', { locale: fr })} - ${format(finLocal, 'd MMMM yyyy', { locale: fr })}`
 }
 
 export default function ObjectifsPage() {
@@ -77,7 +83,7 @@ export default function ObjectifsPage() {
   const weekStart = useMemo(() => {
     const currentWeekStart = getLundiSemaine(new Date())
     const refDate = new Date(currentWeekStart)
-    refDate.setDate(refDate.getDate() + weekOffset * 7)
+    refDate.setUTCDate(refDate.getUTCDate() + weekOffset * 7)
     return getLundiSemaine(refDate)
   }, [weekOffset])
   const isCurrentWeek = weekOffset === 0
