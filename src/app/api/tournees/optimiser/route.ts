@@ -568,7 +568,7 @@ RÉPONDS UNIQUEMENT avec: {"itineraire": ["id1", "id2", ...]}`
         
         // Reconstruire l'itinéraire avec les distances
         itineraireOptimise = []
-        let positionActuelle = clientsAvecCoordonnees[0].coordonnees
+        let positionActuelle = coordonneesDomicile || clientsAvecCoordonnees[0].coordonnees
         
         for (const clientId of resultat.itineraire) {
           const client = clientsAvecCoordonnees.find(c => c.id === clientId)
