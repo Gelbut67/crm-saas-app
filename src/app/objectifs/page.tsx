@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -74,10 +74,12 @@ export default function ObjectifsPage() {
   const [historique, setHistorique] = useState<SemaineHistorique[]>([])
   const [loadingHist, setLoadingHist] = useState(false)
 
-  const currentWeekStart = getLundiSemaine(new Date())
-  const refDate = new Date(currentWeekStart)
-  refDate.setDate(refDate.getDate() + weekOffset * 7)
-  const weekStart = getLundiSemaine(refDate)
+  const weekStart = useMemo(() => {
+    const currentWeekStart = getLundiSemaine(new Date())
+    const refDate = new Date(currentWeekStart)
+    refDate.setDate(refDate.getDate() + weekOffset * 7)
+    return getLundiSemaine(refDate)
+  }, [weekOffset])
   const isCurrentWeek = weekOffset === 0
   const isPast = weekOffset < 0
 
