@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -40,7 +41,9 @@ interface VisiteOptimisee {
   adresse?: string
 }
 
-export default function TourneesPage() {
+function TourneesPageInner() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
   const { clients, loading: loadingClients } = useClients()
   const { prospects, loading: loadingProspects } = useProspects()
   
@@ -123,6 +126,23 @@ export default function TourneesPage() {
         !(c.ville || '').toLowerCase().includes(search)) return false
     return true
   })
+
+  // Pré-sélection des clients/prospects passés depuis la page Objectifs hebdomadaires (?ids=id1,id2)
+  const [preselectionAppliquee, setPreselectionAppliquee] = useState(false)
+  useEffect(() => {
+    if (loading || preselectionAppliquee) return
+    const idsParam = searchParams.get('ids')
+    if (idsParam) {
+      const ids = idsParam.split(',').filter(Boolean)
+      if (ids.length > 0) {
+        setModeSelection('manuel')
+        setClientsSelectionnes(new Set(ids))
+        setTypeTournee('mixte')
+      }
+    }
+    setPreselectionAppliquee(true)
+    router.replace('/tournees')
+  }, [loading, preselectionAppliquee, searchParams, router])
 
   // Charger l'adresse du domicile depuis les paramètres
   useEffect(() => {
@@ -1031,5 +1051,13 @@ export default function TourneesPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function TourneesPage() {
+  return (
+    <Suspense fallback={<div className="p-6">Chargement...</div>}>
+      <TourneesPageInner />
+    </Suspense>
   )
 }

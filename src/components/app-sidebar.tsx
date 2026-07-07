@@ -22,6 +22,7 @@ import {
   Bell,
   Radar,
   Mail,
+  Target,
 } from "lucide-react"
 import {
   Sidebar,
@@ -79,6 +80,11 @@ export function AppSidebar() {
       name: "Devis",
       href: "/devis-db",
       icon: FileText,
+    },
+    {
+      name: "Objectifs",
+      href: "/objectifs",
+      icon: Target,
     },
     {
       name: "Tournées",

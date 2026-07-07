@@ -38,6 +38,18 @@ export async function PUT(request: Request, { params }: { params: { id: string }
           },
         })
         interactionId = interaction.id
+
+        // Synchroniser avec l'objectif hebdomadaire si ce client y figure comme non visité
+        const objectifEnAttente = await (prisma as any).weeklyObjectiveItem.findFirst({
+          where: { clientId: visiteRecord.clientId, visite: false, objective: { userId: session.user.id } },
+          orderBy: { createdAt: 'desc' },
+        })
+        if (objectifEnAttente) {
+          await (prisma as any).weeklyObjectiveItem.update({
+            where: { id: objectifEnAttente.id },
+            data: { visite: true, visitedAt: new Date(), interactionId: interaction.id },
+          })
+        }
       }
 
       const updated = await (prisma as any).tourneeVisite.update({

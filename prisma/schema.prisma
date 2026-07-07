@@ -25,6 +25,7 @@ model User {
   tournees     Tournee[]
   emailAccounts EmailAccount[]
   emailCampaigns EmailCampaign[]
+  weeklyObjectives WeeklyObjective[]
 
   @@map("users")
 }
@@ -57,6 +58,7 @@ model Client {
   tourneeVisites TourneeVisite[]
   emailLogs      EmailLog[]
   campaignRecipients CampaignRecipient[]
+  weeklyObjectiveItems WeeklyObjectiveItem[]
   
   @@map("clients")
 }
@@ -276,4 +278,34 @@ model CampaignRecipient {
   client      Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@map("campaign_recipients")
+}
+
+model WeeklyObjective {
+  id        String   @id @default(cuid())
+  userId    String
+  weekStart DateTime // Lundi 00:00 de la semaine concernée
+  createdAt DateTime @default(now())
+
+  user      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     WeeklyObjectiveItem[]
+
+  @@unique([userId, weekStart])
+  @@map("weekly_objectives")
+}
+
+model WeeklyObjectiveItem {
+  id            String    @id @default(cuid())
+  objectiveId   String
+  clientId      String
+  visite        Boolean   @default(false)
+  visitedAt     DateTime?
+  interactionId String?
+  reporte       Boolean   @default(false) // true si reporté d'une semaine précédente
+  createdAt     DateTime  @default(now())
+
+  objective     WeeklyObjective @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+  client        Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([objectiveId, clientId])
+  @@map("weekly_objective_items")
 }
