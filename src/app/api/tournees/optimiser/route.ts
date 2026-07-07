@@ -673,9 +673,8 @@ RÉPONDS UNIQUEMENT avec: {"itineraire": ["id1", "id2", ...]}`
 
       // Vérifier si on a encore le temps (trajet + pause éventuelle + RDV + retour domicile)
       const tempsNecessaire = travelDuration + pauseAInserer + dureeRdv + dureeRetourDomicile
-      const isMandatory = client._mandatory || (Array.isArray(mandatoryClientIds) && mandatoryClientIds.includes(client.id))
-      if (!isMandatory && minutesActuelles + tempsNecessaire > heureR * 60 + minuteR) {
-        break // Plus de temps disponible (pause + retour domicile inclus)
+      if (minutesActuelles + tempsNecessaire > heureR * 60 + minuteR) {
+        break // Plus de temps disponible (retour domicile inclus)
       }
 
       // Ajouter le temps de trajet
@@ -745,34 +744,6 @@ RÉPONDS UNIQUEMENT avec: {"itineraire": ["id1", "id2", ...]}`
       distanceTotale += (i === 0 && coordonneesDomicile ? distanceDepuisDomicile : (client.distance || 0))
     }
 
-    // Ajouter les clients obligatoires qui ont été coupés par la limite horaire
-    if (Array.isArray(mandatoryClientIds) && mandatoryClientIds.length > 0 && itineraireOptimise) {
-      const visitedIds = new Set(visites.filter((v: any) => v.client).map((v: any) => v.client.id))
-      const missingMandatory = itineraireOptimise.filter((c: any) =>
-        (c._mandatory || mandatoryClientIds.includes(c.id)) && !visitedIds.has(c.id)
-      )
-      for (const client of missingMandatory) {
-        const heureArrivee = toHHMM(minutesActuelles)
-        minutesActuelles += dureeRdv
-        const heureDepartVisite = toHHMM(minutesActuelles)
-        visites.push({
-          type: 'visite',
-          client: { id: client.id, nom: client.nom, entreprise: client.entreprise, adresse: client.adresse, ville: client.ville, codePostal: client.codePostal, statut: client.statut },
-          ordre: ordreVisite++,
-          heureArrivee,
-          heureDepart: heureDepartVisite,
-          distance: client.distance || 0,
-          duree: client.duree || 0,
-          coordonnees: client.coordonnees,
-          heureRdv: client.heureRdv || null,
-          routeGeometry: client.routeGeometry || null,
-          derniereVisite: client.derniereVisite || null
-        })
-        distanceTotale += client.distance || 0
-        dureeTrajetTotale += client.duree || 0
-        console.log('[tournées] client obligatoire ajouté hors plage horaire:', client.nom)
-      }
-    }
 
     // Calculer l'heure de retour réelle depuis le dernier client
     let heureRetourEstimee: string | null = null
