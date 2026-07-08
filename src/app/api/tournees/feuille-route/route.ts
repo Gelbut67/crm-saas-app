@@ -161,6 +161,7 @@ export async function POST(request: Request) {
       margin: 10px 0;
       border-radius: 6px;
       border: 1px solid #e2e8f0;
+      background: #f1f5f9;
     }
     .map-container {
       page-break-before: always;
@@ -174,8 +175,8 @@ export async function POST(request: Request) {
       margin-bottom: 6px;
     }
     @media print {
-      @page { margin: 8mm; }
-      @page :first { margin: 8mm; }
+      @page { margin: 6mm; }
+      @page :first { margin: 6mm; }
       body {
         margin: 0;
         font-size: 11px;
@@ -186,21 +187,27 @@ export async function POST(request: Request) {
       }
       .map-container {
         page-break-before: always;
+        page-break-inside: avoid;
         margin: 0;
         padding: 0;
-        width: 100vw;
+        width: 100%;
         height: 100vh;
+        max-height: 100vh;
         display: flex;
         flex-direction: column;
+        overflow: hidden;
       }
       .map-title {
         flex-shrink: 0;
-        margin: 4mm 0 2mm 0;
+        margin: 3mm 0 2mm 0;
+        font-size: 14px;
       }
       #map {
         flex: 1;
+        width: 100% !important;
         height: auto !important;
         min-height: 0;
+        max-height: calc(100vh - 12mm);
         border-radius: 0;
         border: none;
         margin: 0;
@@ -305,22 +312,15 @@ export async function POST(request: Request) {
     const visites = ${JSON.stringify(visites)};
     const pointDepart = ${JSON.stringify(pointDepart)};
     
-    // Calculer le centre de la carte
-    let centerLat = 48.8566;
-    let centerLon = 2.3522;
-    
-    if (pointDepart && pointDepart.lat && pointDepart.lon) {
-      centerLat = pointDepart.lat;
-      centerLon = pointDepart.lon;
-    } else if (visites.length > 0 && visites[0].coordonnees) {
-      centerLat = visites[0].coordonnees.lat;
-      centerLon = visites[0].coordonnees.lon;
-    }
-    
-    const map = L.map('map').setView([centerLat, centerLon], 12);
+    // Créer la carte sans vue initiale précise (fitBounds prendra le relais)
+    const map = L.map('map', {
+      zoomControl: true,
+      attributionControl: true
+    });
     
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19
     }).addTo(map);
     
     // Créer les icônes personnalisées
@@ -345,13 +345,13 @@ export async function POST(request: Request) {
         .bindPopup('<b>🏠 Domicile</b><br>' + pointDepart.adresse);
     }
     
-    // Ajouter les marqueurs des visites
-    const bounds = [];
+    // Ajouter les marqueurs des visites et tracer l'itinéraire
+    const bounds = L.latLngBounds();
     if (pointDepart && pointDepart.lat && pointDepart.lon) {
-      bounds.push([pointDepart.lat, pointDepart.lon]);
+      bounds.extend([pointDepart.lat, pointDepart.lon]);
     }
     
-    visites.forEach((visite, index) => {
+    visites.forEach((visite) => {
       if (visite.coordonnees && visite.coordonnees.lat && visite.coordonnees.lon) {
         const customIcon = L.divIcon({
           className: 'custom-div-icon',
@@ -366,33 +366,45 @@ export async function POST(request: Request) {
                      visite.client.adresse + '<br>' +
                      '🕐 ' + visite.heureArrivee + ' - ' + visite.heureDepart);
         
-        bounds.push([visite.coordonnees.lat, visite.coordonnees.lon]);
+        bounds.extend([visite.coordonnees.lat, visite.coordonnees.lon]);
         
         // Ajouter les routes si disponibles
         if (visite.routeGeometry && visite.routeGeometry.coordinates) {
           const routeCoords = visite.routeGeometry.coordinates.map(coord => [coord[1], coord[0]]);
-          L.polyline(routeCoords, {
+          const polyline = L.polyline(routeCoords, {
             color: '#3b82f6',
             weight: 4,
             opacity: 0.8
           }).addTo(map);
+          bounds.extend(polyline.getBounds());
         }
       }
     });
     
-    // Ajuster la vue pour montrer tous les points
-    if (bounds.length > 0) {
-      map.fitBounds(bounds, { padding: [30, 30] });
+    function fitMapToItinerary(pad) {
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, {
+          padding: pad,
+          maxZoom: 16,
+          animate: false
+        });
+      } else {
+        // Fallback sur le centre de la France si aucune coordonnée
+        map.setView([46.603354, 1.888334], 6);
+      }
     }
-
-    // Forcer Leaflet à recalculer la taille avant impression
-    window.addEventListener('beforeprint', function() {
+    
+    // Centrer sur l'itinéraire dès que les tuiles de base sont chargées
+    map.whenReady(function() {
       setTimeout(function() {
-        map.invalidateSize();
-        if (bounds.length > 0) {
-          map.fitBounds(bounds, { padding: [10, 10] });
-        }
-      }, 200);
+        fitMapToItinerary([50, 50]);
+      }, 300);
+    });
+
+    // Avant impression : recalculer la taille de la carte et centrer sur l'itinéraire
+    window.addEventListener('beforeprint', function() {
+      map.invalidateSize();
+      fitMapToItinerary([60, 60]);
     });
   </script>
 </body>
