@@ -396,9 +396,12 @@ export async function POST(request: Request) {
       if (Array.isArray(departements) && departements.length > 0) zoneWhere.departement = { in: departements }
       if (Array.isArray(villes) && villes.length > 0) zoneWhere.ville = { in: villes }
 
+      const excludedIds = Array.isArray(excludeClientIds) ? excludeClientIds : []
+      const zoneNotInIds = Array.from(new Set([...mandatoryClientIds, ...excludedIds]))
+
       const [mandatoryClients, zoneClients] = await Promise.all([
         (prisma.client.findMany as any)({ where: { ...baseWhere, id: { in: mandatoryClientIds } }, select: selectClients }),
-        (prisma.client.findMany as any)({ where: { ...zoneWhere, id: { notIn: mandatoryClientIds } }, select: selectClients })
+        (prisma.client.findMany as any)({ where: { ...zoneWhere, id: { notIn: zoneNotInIds } }, select: selectClients })
       ])
       console.log('[tournées] mandatoryClients trouvés:', mandatoryClients.length, '| zoneClients:', zoneClients.length)
       clientsRaw = [

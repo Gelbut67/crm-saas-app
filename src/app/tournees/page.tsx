@@ -270,20 +270,21 @@ function TourneesPageInner() {
   const buildParamsAvecExclus = (exclus: Set<string>, ajouts: Set<string>) => {
     if (!dernierParams) return null
     const ajoutsArr = Array.from(ajouts)
+    const exclusSansAjouts = Array.from(exclus).filter(id => !ajouts.has(id))
     if (dernierParams.mandatoryClientIds) {
       const ids = Array.from(new Set([
-        ...dernierParams.mandatoryClientIds.filter((id: string) => !exclus.has(id)),
+        ...dernierParams.mandatoryClientIds.filter((id: string) => !exclusSansAjouts.includes(id)),
         ...ajoutsArr
       ]))
-      return { ...dernierParams, mandatoryClientIds: ids }
+      return { ...dernierParams, mandatoryClientIds: ids, excludeClientIds: exclusSansAjouts }
     }
     return {
       ...dernierParams,
-      excludeClientIds: Array.from(exclus),
+      excludeClientIds: exclusSansAjouts,
       clientIds: ajoutsArr.length > 0
         ? Array.from(new Set([
             ...tourneeOptimisee
-              .filter(v => v.type === 'visite' && v.client && !exclus.has(v.client.id))
+              .filter(v => v.type === 'visite' && v.client && !exclusSansAjouts.includes(v.client.id))
               .map(v => v.client!.id),
             ...ajoutsArr
           ]))
