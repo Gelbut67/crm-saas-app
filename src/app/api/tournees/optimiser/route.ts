@@ -4,8 +4,28 @@ import { getAuthSession } from '@/lib/auth'
 
 export const maxDuration = 60 // secondes (Vercel Pro)
 
-// Appel IA générique : Groq (gratuit, prioritaire) ou Gemini (fallback)
+// Appel IA générique : Grok (xAI, prioritaire) ou Groq (fallback)
 async function appelIA(prompt: string): Promise<string> {
+  const erreurs: string[] = []
+  if (process.env.XAI_API_KEY) {
+    try {
+      const res = await fetch('https://api.x.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${process.env.XAI_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: process.env.GROK_MODEL || 'grok-4.3',
+          messages: [{ role: 'user', content: prompt }],
+          response_format: { type: 'json_object' },
+          temperature: 0.1
+        })
+      })
+      if (!res.ok) throw new Error(`Grok ${res.status}: ${await res.text()}`)
+      const data = await res.json()
+      return data.choices[0].message.content
+    } catch (err: any) {
+      erreurs.push(err?.message || String(err))
+    }
+  }
   if (process.env.GROQ_API_KEY) {
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -21,24 +41,11 @@ async function appelIA(prompt: string): Promise<string> {
     const data = await res.json()
     return data.choices[0].message.content
   }
-  if (process.env.GEMINI_API_KEY) {
-    for (const v of ['v1', 'v1beta']) {
-      const res = await fetch(`https://generativelanguage.googleapis.com/${v}/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-      })
-      if (res.ok) {
-        const data = await res.json()
-        return data.candidates?.[0]?.content?.parts?.[0]?.text || ''
-      }
-    }
-    throw new Error('Gemini indisponible')
-  }
-  throw new Error('Aucune clé IA configurée (GROQ_API_KEY ou GEMINI_API_KEY)')
+  if (erreurs.length > 0) throw new Error(erreurs.join(' | '))
+  throw new Error('Aucune clé IA configurée (XAI_API_KEY ou GROQ_API_KEY)')
 }
 
-const hasIA = !!(process.env.GROQ_API_KEY || process.env.GEMINI_API_KEY)
+const hasIA = !!(process.env.XAI_API_KEY || process.env.GROQ_API_KEY)
 
 // Filtre par mots-clés avec matching par racine ("brasseurs" trouve "brasserie", "brasseur"...)
 function filtrerParPrompt(clients: any[], prompt: string, obligatoiresIds?: Set<string>): any[] {
@@ -499,7 +506,7 @@ export async function POST(request: Request) {
       return { ...client, heureRdv: rdv.heureRdv }
     }).filter(Boolean) : []
 
-    // Utiliser l'IA (Groq / Gemini) pour optimiser la tournée
+    // Utiliser l'IA (Grok / Groq) pour optimiser la tournée
     let itineraireOptimise
     
     if (hasIA && clientsAvecCoordonnees.length > 0) {
