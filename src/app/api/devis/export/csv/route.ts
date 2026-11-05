@@ -15,9 +15,10 @@ export async function GET() {
     })
 
     const csv = [
-      'ID,Titre,Client,Montant,Statut,Date Création,Date Échéance',
+      'ID,Numéro,Titre,Client,Montant,Statut,Date Création,Date Échéance',
       ...devis.map(devi => [
         devi.id,
+        devi.numero || '',
         devi.titre || '',
         devi.client?.entreprise || devi.client?.nom || '',
         devi.montant || 0,

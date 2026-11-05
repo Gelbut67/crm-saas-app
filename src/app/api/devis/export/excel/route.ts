@@ -17,6 +17,7 @@ export async function GET() {
 
     const data = devis.map(devi => ({
       ID: devi.id,
+      Numéro: devi.numero || '',
       Titre: devi.titre || '',
       Client: devi.client?.entreprise || devi.client?.nom || '',
       Montant: devi.montant || 0,
