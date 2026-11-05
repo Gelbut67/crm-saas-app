@@ -254,7 +254,7 @@ export default function ClientDetailPage() {
                     className="block p-3 border rounded-lg hover:bg-muted transition-colors"
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium">{devis.titre}</span>
+                      <span className="font-medium">{devis.numero ? `${devis.numero} - ` : ''}{devis.titre}</span>
                       {getStatutBadge(devis.statut)}
                     </div>
                     <div className="flex items-center justify-between text-sm">

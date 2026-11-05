@@ -108,7 +108,7 @@ export default function DevisDetailPage() {
         
         <div className="flex justify-between items-start">
           <div>
-            <h1 className="text-3xl font-bold mb-2">{devis.titre}</h1>
+            <h1 className="text-3xl font-bold mb-2">{(devis as any).numero ? `${(devis as any).numero} - ` : ''}{devis.titre}</h1>
             <div className="flex items-center gap-2">
               {getStatutBadge(devis.statut)}
               <span className="text-muted-foreground">

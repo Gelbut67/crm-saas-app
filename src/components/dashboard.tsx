@@ -411,7 +411,7 @@ export function Dashboard() {
                   .map((devisItem) => (
                     <div key={devisItem.id} className="flex items-center justify-between">
                       <div>
-                        <p className="font-medium">{devisItem.titre}</p>
+                        <p className="font-medium">{(devisItem as any).numero ? `${(devisItem as any).numero} - ` : ''}{devisItem.titre}</p>
                         <p className="text-sm text-muted-foreground">{devisItem.client?.nom || 'N/A'}</p>
                       </div>
                       <div className="text-right">

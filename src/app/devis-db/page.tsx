@@ -86,6 +86,7 @@ export default function DevisDBPage() {
   // Préparer les données pour l'export
   const exportData: any = filteredDevis.map(devi => ({
     id: devi.id,
+    numero: (devi as any).numero || '',
     titre: devi.titre,
     client: devi.client?.nom || devi.client?.entreprise || '',
     montant: devi.montant,
@@ -301,6 +302,7 @@ export default function DevisDBPage() {
               <table className="w-full">
                 <thead className="bg-muted/50 border-b">
                   <tr>
+                    <th className="text-left p-3 font-medium text-sm">N° devis</th>
                     <th className="text-left p-3 font-medium text-sm">Titre</th>
                     <th className="text-left p-3 font-medium text-sm">Client</th>
                     <th className="text-left p-3 font-medium text-sm">Échéance</th>
@@ -312,6 +314,7 @@ export default function DevisDBPage() {
                 <tbody>
                   {filteredDevis.map((devi) => (
                     <tr key={devi.id} className="border-b hover:bg-muted/30 transition-colors">
+                      <td className="p-3 text-sm font-mono whitespace-nowrap">{(devi as any).numero || '-'}</td>
                       <td className="p-3">
                         <div className="font-medium">{devi.titre}</div>
                         {devi.description && (

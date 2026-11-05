@@ -171,7 +171,7 @@ export default function ProspectDetailPage() {
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <FileText className="w-4 h-4" />
-                      <span className="font-medium">{devis.titre}</span>
+                      <span className="font-medium">{devis.numero ? `${devis.numero} - ` : ''}{devis.titre}</span>
                     </div>
                     <Badge variant={
                       devis.statut === 'accepte' ? 'default' :

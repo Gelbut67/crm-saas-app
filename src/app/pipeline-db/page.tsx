@@ -189,7 +189,7 @@ export default function PipelinePage() {
             {devis.slice(0, 5).map((devi) => (
               <div key={devi.id} className="flex items-center justify-between p-4 border rounded-lg">
                 <div>
-                  <p className="font-medium">{devi.titre}</p>
+                  <p className="font-medium">{(devi as any).numero ? `${(devi as any).numero} - ` : ''}{devi.titre}</p>
                   <p className="text-sm text-muted-foreground">
                     {devi.client.nom} {devi.client.entreprise && `- ${devi.client.entreprise}`}
                   </p>
