@@ -78,13 +78,11 @@ export async function PUT(
       numeroRevision = `${base}-${n}`
     }
 
-    // Mettre à jour le devis
-    const updatedDevis = await prisma.devis.update({
-      where: {
-        id: params.id,
-      },
+    // Créer une nouvelle version du devis (l'original reste inchangé)
+    const updatedDevis = await prisma.devis.create({
       data: {
         numero: numeroRevision,
+        dateCreation: new Date(),
         titre: data.titre || data.objet || 'Devis',
         montant: parseFloat(data.montant) || 0,
         statut: data.statut,
@@ -107,24 +105,8 @@ export async function PUT(
     })
 
     // Si le statut ou le montant a changé, recalculer le CA du client
-    if (ancienDevis.statut !== data.statut || ancienDevis.montant !== data.montant || ancienDevis.clientId !== data.clientId) {
-      // Recalculer le CA de l'ancien client si nécessaire
-      if (ancienDevis.clientId !== data.clientId) {
-        const anciensDevis = await prisma.devis.findMany({
-          where: { clientId: ancienDevis.clientId }
-        })
-        
-        const caAncienClient = anciensDevis
-          .filter(d => d.statut === 'gagne' || d.statut === 'facture')
-          .reduce((sum, d) => sum + d.montant, 0)
-        
-        await prisma.client.update({
-          where: { id: ancienDevis.clientId },
-          data: { caTotal: caAncienClient }
-        })
-      }
-      
-      // Recalculer le CA du nouveau client
+    {
+      // Recalculer le CA du client
       const nouveauxDevis = await prisma.devis.findMany({
         where: { clientId: data.clientId }
       })
