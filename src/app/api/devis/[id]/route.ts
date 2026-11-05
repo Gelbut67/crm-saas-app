@@ -68,12 +68,23 @@ export async function PUT(
       )
     }
 
+    // Numéro de révision : 100025 -> 100025-1 -> 100025-2 ...
+    let numeroRevision = ancienDevis.numero
+    if (ancienDevis.numero) {
+      const m = ancienDevis.numero.match(/^(.*)-([1-9]\d?)$/)
+      const base = m ? m[1] : ancienDevis.numero
+      let n = m ? parseInt(m[2]) + 1 : 1
+      while (await prisma.devis.findFirst({ where: { numero: `${base}-${n}`, id: { not: params.id } } })) n++
+      numeroRevision = `${base}-${n}`
+    }
+
     // Mettre à jour le devis
     const updatedDevis = await prisma.devis.update({
       where: {
         id: params.id,
       },
       data: {
+        numero: numeroRevision,
         titre: data.titre || data.objet || 'Devis',
         montant: parseFloat(data.montant) || 0,
         statut: data.statut,
